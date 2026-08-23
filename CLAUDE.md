@@ -115,7 +115,7 @@ in the plugin repo, checked out alongside this one at `../smart-second-brain`:
 | Bundled skills | `src/skills/defaults/*/SKILL.md` |
 | Skill/memory folder paths | `src/utils/agentPaths.ts` |
 | Platform support, min app version | `manifest.json` |
-| Architecture | `docs/architecture-overview.md`, `CLAUDE.md` |
+| Architecture | `CLAUDE.md` (the plugin's own, under "Architecture") |
 
 If that checkout is not accessible in the current session, say so rather than
 writing from memory — a wrong feature list on a public site is worse than a
