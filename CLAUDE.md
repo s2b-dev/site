@@ -133,6 +133,8 @@ hand before each release. Work through this list against the sources above:
       `manifest.json`
 - [ ] Landing page (`src/pages/index.astro`) — feature grid and provider list
 - [ ] `help/faq` — the "What's next?" list still reflects reality
+- [ ] `internals/search-algorithm` — constants and the "verified against"
+      version note; sources are listed at the foot of that page
 
 Prose claims (staged edits, conversation branching, per-model capability
 detection) are not mechanically checkable. Re-read them when the related
