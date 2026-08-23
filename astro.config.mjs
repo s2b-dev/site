@@ -27,6 +27,15 @@ export default defineConfig({
 				baseUrl: 'https://github.com/s2b-dev/site/edit/main/',
 			},
 			customCss: ['./src/styles/theme.css'],
+			// Starlight's default is /favicon.svg; the .ico is for browsers
+			// that request /favicon.ico without reading the markup.
+			favicon: '/favicon.svg',
+			head: [
+				{
+					tag: 'link',
+					attrs: { rel: 'icon', href: '/favicon.ico', sizes: '32x32' },
+				},
+			],
 			// The landing page at "/" is a custom route, not a Starlight page.
 			disable404Route: false,
 			sidebar: [

@@ -4,6 +4,51 @@ import '../styles/landing.css';
 const title = 'Smart Second Brain \u2014 Your vault, but smarter';
 const description =
 	'A free, open-source Obsidian plugin: smarter search, an interactive knowledge graph, and an AI agent that reads your notes before it answers.';
+
+const REPO = 's2b-dev/smart-second-brain';
+
+/*
+  Both install links key off the plugin id from manifest.json, not the repo
+  name. (The community registry's `repo` field still points at the pre-rename
+  your-papa/obsidian-Smart2Brain — an update has been requested; GitHub
+  redirects cover it meanwhile, and nothing here depends on it.)
+
+  `obsidian://` opens the in-app plugin page. It is a no-op when Obsidian is
+  not installed, so every use of it must be paired with the community-page
+  fallback below.
+*/
+const PLUGIN_ID = 'smart-second-brain';
+const OBSIDIAN_URI = `obsidian://show-plugin?id=${PLUGIN_ID}`;
+const COMMUNITY_URL = `https://community.obsidian.md/plugins/${PLUGIN_ID}`;
+
+/*
+  Star count is fetched at build time \u2014 the site redeploys on every push, so it
+  stays close enough, and visitors pay no request for it. The unauthenticated
+  API allows 60 requests/hour per IP; if that runs out (or CI is offline) the
+  build must still succeed, so failure just drops the count from the button.
+*/
+async function fetchStars(): Promise<number | null> {
+	try {
+		const res = await fetch(`https://api.github.com/repos/${REPO}`, {
+			headers: { Accept: 'application/vnd.github+json' },
+			signal: AbortSignal.timeout(5000),
+		});
+		if (!res.ok) throw new Error(`GitHub API responded ${res.status}`);
+		const data = await res.json();
+		return typeof data.stargazers_count === 'number' ? data.stargazers_count : null;
+	} catch (err) {
+		console.warn(`[landing] star count unavailable: ${(err as Error).message}`);
+		return null;
+	}
+}
+
+const stars = await fetchStars();
+const starLabel =
+	stars === null
+		? null
+		: stars >= 1000
+			? (stars / 1000).toFixed(1).replace(/\.0$/, '') + 'k'
+			: String(stars);
 ---
 
 <!doctype html>
@@ -14,6 +59,9 @@ const description =
 		<title>{title}</title>
 		<meta name="description" content={description} />
 		<link rel="canonical" href="https://smartsecondbrain.dev/" />
+
+		<link rel="icon" href="/favicon.ico" sizes="32x32" />
+		<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
 
 		<meta property="og:type" content="website" />
 		<meta property="og:title" content={title} />
@@ -27,6 +75,29 @@ const description =
 			href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"
 			rel="stylesheet"
 		/>
+
+		{/*
+		  Must run before first paint so the wrong theme never flashes. Reads the
+		  same 'starlight-theme' key the docs use, so the choice carries across
+		  the landing page and Starlight in both directions.
+		*/}
+		<script is:inline>
+			(function () {
+			  var stored = null;
+			  try {
+			    stored = localStorage.getItem('starlight-theme');
+			  } catch (e) {
+			    /* private mode — fall through to the OS preference */
+			  }
+			  var theme =
+			    stored === 'light' || stored === 'dark'
+			      ? stored
+			      : window.matchMedia('(prefers-color-scheme: light)').matches
+			        ? 'light'
+			        : 'dark';
+			  document.documentElement.dataset.theme = theme;
+			})();
+		</script>
 
 		{/* Must run before first paint so the intro does not flash. */}
 		<script is:inline>
@@ -61,7 +132,46 @@ const description =
 	      <a href="#start">Install</a>
 	<a href="/start/installation/">Docs</a>
 	    </div>
-	    <a class="btn btn-ghost" href="https://github.com/s2b-dev/smart-second-brain">GitHub</a>
+	    <div class="nav-right">
+	      <button
+	        class="theme-tg"
+	        type="button"
+	        aria-label="Toggle dark and light theme"
+	        aria-pressed="false"
+	      >
+	        <svg class="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+	          <circle cx="12" cy="12" r="4"></circle>
+	          <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"></path>
+	        </svg>
+	        <svg class="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+	          <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"></path>
+	        </svg>
+	      </button>
+	      <a
+	        class="btn btn-ghost gh"
+	        href={`https://github.com/${REPO}`}
+	        aria-label={
+	          starLabel
+	            ? `Smart Second Brain on GitHub — ${stars!.toLocaleString('en-US')} stars`
+	            : 'Smart Second Brain on GitHub'
+	        }
+	      >
+	        <svg class="gh-mark" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+	          <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"></path>
+	        </svg>
+	        {
+	          starLabel && (
+	            <>
+	              <span class="gh-sep" aria-hidden="true"></span>
+	              <svg class="gh-star" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+	                <path d="M8 .25a.75.75 0 0 1 .673.418l1.882 3.815 4.21.612a.75.75 0 0 1 .416 1.279l-3.046 2.97.719 4.192a.75.75 0 0 1-1.088.791L8 12.347l-3.766 1.98a.75.75 0 0 1-1.088-.79l.72-4.194L.818 6.374a.75.75 0 0 1 .416-1.28l4.21-.611L7.327.668A.75.75 0 0 1 8 .25Z"></path>
+	              </svg>
+	              <span class="gh-count mono">{starLabel}</span>
+	            </>
+	          )
+	        }
+	      </a>
+	    </div>
 	  </div>
 	</nav>
 
@@ -85,10 +195,25 @@ const description =
 	      and an agent that reads them before it answers.
 	    </p>
 	    <div class="cta-row reveal" style="--d:2340ms">
-	      <a class="btn btn-primary" href="#start">Install the plugin</a>
-	      <a class="btn btn-ghost" href="https://github.com/s2b-dev/smart-second-brain">View source</a>
+	      <a class="btn btn-primary" href={OBSIDIAN_URI}>
+	        	        {/* Obsidian's own icon (obsidian.md/favicon.svg) — the faceted
+	            small-size mark, which stays legible where a flat silhouette does not. */}
+	        <svg class="ob-mark" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true">
+	          <path d="M94.82 149.44c6.53-1.94 17.13-4.9 29.26-5.71a102.97 102.97 0 0 1-7.64-48.84c1.63-16.51 7.54-30.38 13.25-42.1l3.47-7.14 4.48-9.18c2.35-5 4.08-9.38 4.9-13.56.81-4.07.81-7.64-.2-11.11-1.03-3.47-3.07-7.14-7.15-11.21a17.02 17.02 0 0 0-15.8 3.77l-52.81 47.5a17.12 17.12 0 0 0-5.5 10.2l-4.5 30.18a149.26 149.26 0 0 1 38.24 57.2ZM54.45 106l-1.02 3.06-27.94 62.2a17.33 17.33 0 0 0 3.27 18.96l43.94 45.16a88.7 88.7 0 0 0 8.97-88.5A139.47 139.47 0 0 0 54.45 106Z"></path>
+	          <path d="m82.9 240.79 2.34.2c8.26.2 22.33 1.02 33.64 3.06 9.28 1.73 27.73 6.83 42.82 11.21 11.52 3.47 23.45-5.8 25.08-17.73 1.23-8.67 3.57-18.46 7.75-27.53a94.81 94.81 0 0 0-25.9-40.99 56.48 56.48 0 0 0-29.56-13.35 96.55 96.55 0 0 0-40.99 4.79 98.89 98.89 0 0 1-15.29 80.34h.1Z"></path>
+	          <path d="M201.87 197.76a574.87 574.87 0 0 0 19.78-31.6 8.67 8.67 0 0 0-.61-9.48 185.58 185.58 0 0 1-21.82-35.9c-5.91-14.16-6.73-36.08-6.83-46.69 0-4.07-1.22-8.05-3.77-11.21l-34.16-43.33c0 1.94-.4 3.87-.81 5.81a76.42 76.42 0 0 1-5.71 15.9l-4.7 9.8-3.36 6.72a111.95 111.95 0 0 0-12.03 38.23 93.9 93.9 0 0 0 8.67 47.92 67.9 67.9 0 0 1 39.56 16.52 99.4 99.4 0 0 1 25.8 37.31Z"></path>
+	        </svg>
+	        Install the plugin
+	      </a>
+	      <a class="btn btn-ghost" href={`https://github.com/${REPO}`}>View source</a>
 	    </div>
-	    <p class="hero-note reveal" style="--d:2420ms">search + graph work with no AI provider</p>
+	    <p class="hero-note reveal" style="--d:2420ms">
+	      search + graph work with no AI provider
+	      <br />
+	      <span class="hero-alt">
+	        No Obsidian yet? <a href={COMMUNITY_URL}>View in the community catalogue</a>
+	      </span>
+	    </p>
 	  </div>
 
 	  <div class="graph-cap"><span class="lm">●</span> live: Leiden community detection over a sample vault</div>
@@ -213,9 +338,21 @@ const description =
 	    <h2>Make your second brain smarter</h2>
 	    <p>Free, open source, private by design.</p>
 	    <div class="cta-row">
-	      <a class="btn btn-primary" href="https://github.com/s2b-dev/smart-second-brain">Get the plugin</a>
-	      <a class="btn btn-ghost" href="https://github.com/s2b-dev/smart-second-brain#readme">Read the docs</a>
+	      <a class="btn btn-primary" href={OBSIDIAN_URI}>
+	        	        {/* Obsidian's own icon (obsidian.md/favicon.svg) — the faceted
+	            small-size mark, which stays legible where a flat silhouette does not. */}
+	        <svg class="ob-mark" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true">
+	          <path d="M94.82 149.44c6.53-1.94 17.13-4.9 29.26-5.71a102.97 102.97 0 0 1-7.64-48.84c1.63-16.51 7.54-30.38 13.25-42.1l3.47-7.14 4.48-9.18c2.35-5 4.08-9.38 4.9-13.56.81-4.07.81-7.64-.2-11.11-1.03-3.47-3.07-7.14-7.15-11.21a17.02 17.02 0 0 0-15.8 3.77l-52.81 47.5a17.12 17.12 0 0 0-5.5 10.2l-4.5 30.18a149.26 149.26 0 0 1 38.24 57.2ZM54.45 106l-1.02 3.06-27.94 62.2a17.33 17.33 0 0 0 3.27 18.96l43.94 45.16a88.7 88.7 0 0 0 8.97-88.5A139.47 139.47 0 0 0 54.45 106Z"></path>
+	          <path d="m82.9 240.79 2.34.2c8.26.2 22.33 1.02 33.64 3.06 9.28 1.73 27.73 6.83 42.82 11.21 11.52 3.47 23.45-5.8 25.08-17.73 1.23-8.67 3.57-18.46 7.75-27.53a94.81 94.81 0 0 0-25.9-40.99 56.48 56.48 0 0 0-29.56-13.35 96.55 96.55 0 0 0-40.99 4.79 98.89 98.89 0 0 1-15.29 80.34h.1Z"></path>
+	          <path d="M201.87 197.76a574.87 574.87 0 0 0 19.78-31.6 8.67 8.67 0 0 0-.61-9.48 185.58 185.58 0 0 1-21.82-35.9c-5.91-14.16-6.73-36.08-6.83-46.69 0-4.07-1.22-8.05-3.77-11.21l-34.16-43.33c0 1.94-.4 3.87-.81 5.81a76.42 76.42 0 0 1-5.71 15.9l-4.7 9.8-3.36 6.72a111.95 111.95 0 0 0-12.03 38.23 93.9 93.9 0 0 0 8.67 47.92 67.9 67.9 0 0 1 39.56 16.52 99.4 99.4 0 0 1 25.8 37.31Z"></path>
+	        </svg>
+	        Open in Obsidian
+	      </a>
+	      <a class="btn btn-ghost" href="/start/installation/">Read the docs</a>
 	    </div>
+	    <p class="final-alt">
+	      Or browse it on <a href={COMMUNITY_URL}>community.obsidian.md</a>
+	    </p>
 	  </div>
 	</section>
 
@@ -223,8 +360,9 @@ const description =
 	  <div class="wrap foot">
 	    <p class="mono">MIT · Leo310 &amp; nicobrauchtgit</p>
 	    <div>
-	      <a href="https://github.com/s2b-dev/smart-second-brain">GitHub</a>
-	      <a href="https://github.com/s2b-dev/smart-second-brain/issues">Issues</a>
+	      <a href={`https://github.com/${REPO}`}>GitHub</a>
+	      <a href={`https://github.com/${REPO}/issues`}>Issues</a>
+	      <a href={COMMUNITY_URL}>Community plugin</a>
 	      <a href="https://obsidian.md">Obsidian</a>
 	    </div>
 	  </div>

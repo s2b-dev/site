@@ -17,6 +17,63 @@
     --mono: 'JetBrains Mono', ui-monospace, monospace;
     --radius: 10px;
     --max: 1120px;
+
+    /* Derived tokens that were previously hardcoded per-rule. Both themes
+       must define these — see the [data-theme='light'] block below. */
+    --nav-bg: rgba(15, 14, 19, 0.72);
+    --hero-fog: 15, 14, 19;          /* rgb triplet for the hero mask */
+    --grad-2: #5eead4;               /* h1 gradient tail */
+    --machine-fill: rgba(168, 130, 255, 0.045);
+    --mark-bg: rgba(168, 130, 255, 0.22);
+    --green-line: rgba(74, 222, 128, 0.09);
+    --green-edge: rgba(74, 222, 128, 0.25);
+    --amber-soft: rgba(251, 191, 36, 0.09);
+    --amber-edge: rgba(251, 191, 36, 0.25);
+    /* Canvas: lightness/alpha for the hero graph, read by landing.js.
+       Hue and saturation come from the plugin's own cluster formula. */
+    --g-node-l: 55%;
+    --g-node-a: 0.62;
+    --g-hub-l: 62%;
+    --g-hub-a: 0.95;
+    --g-edge-l: 55%;
+    --g-edge-a: 0.16;
+    --g-bridge: rgba(150, 145, 180, 0.07);
+  }
+
+  :root[data-theme='light'] {
+    --bg: #ffffff;
+    --bg-2: #f8f7fb;
+    --surface: #f2f0f7;
+    --surface-2: #e8e6f0;
+    --text: #16151c;
+    --text-2: #4a4759;
+    --text-3: #6f6b85;
+    --border: #e2e0ea;
+    --border-2: #cbc8d8;
+    --accent: #6741e0;
+    --accent-2: #7c5cff;
+    --accent-soft: #efeaff;
+    --green: #15803d;
+    --green-soft: #dcfce7;
+    --amber: #a16207;
+
+    --nav-bg: rgba(255, 255, 255, 0.78);
+    --hero-fog: 255, 255, 255;
+    --grad-2: #0d9488;
+    --machine-fill: rgba(124, 92, 255, 0.04);
+    --mark-bg: rgba(124, 92, 255, 0.16);
+    --green-line: rgba(21, 128, 61, 0.08);
+    --green-edge: rgba(21, 128, 61, 0.22);
+    --amber-soft: rgba(161, 98, 7, 0.08);
+    --amber-edge: rgba(161, 98, 7, 0.22);
+    /* Darker and more opaque so the graph reads against white. */
+    --g-node-l: 45%;
+    --g-node-a: 0.7;
+    --g-hub-l: 38%;
+    --g-hub-a: 0.95;
+    --g-edge-l: 45%;
+    --g-edge-a: 0.2;
+    --g-bridge: rgba(90, 85, 120, 0.12);
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
@@ -32,7 +89,7 @@
   /* ---------- nav ---------- */
   nav {
     position: sticky; top: 0; z-index: 60;
-    background: rgba(15,14,19,0.72); backdrop-filter: blur(14px);
+    background: var(--nav-bg); backdrop-filter: blur(14px);
     border-bottom: 1px solid var(--border);
   }
   .nav-inner { display: flex; align-items: center; justify-content: space-between; height: 58px; }
@@ -55,6 +112,41 @@
   .btn-ghost { border-color: var(--border-2); color: var(--text); background: transparent; }
   .btn-ghost:hover { background: var(--surface); }
 
+  /* ---------- obsidian install ---------- */
+  /* Official icon ships on a square 256 viewBox, already optically centred. */
+  .ob-mark { width: 16px; height: 16px; flex-shrink: 0; margin-right: -1px; }
+  /* Fallback for visitors without Obsidian, where obsidian:// is a no-op. */
+  .hero-alt { color: var(--text-3); display: inline-block; margin-top: 7px; }
+  .hero-alt a { color: var(--text-2); text-decoration: underline; text-underline-offset: 2px; }
+  .hero-alt a:hover { color: var(--accent); }
+  .final-alt { margin-top: 16px; font-size: 13px; color: var(--text-3); font-family: var(--mono); }
+  .final-alt a { color: var(--text-2); text-decoration: underline; text-underline-offset: 2px; }
+  .final-alt a:hover { color: var(--accent); }
+
+  /* ---------- github button ---------- */
+  .gh { gap: 7px; padding-left: 13px; padding-right: 13px; }
+  .gh-mark { width: 16px; height: 16px; flex-shrink: 0; }
+  .gh-sep { width: 1px; height: 15px; background: var(--border-2); flex-shrink: 0; }
+  /* Pull the star toward the count it labels, against the flex gap. */
+  .gh-star { width: 12px; height: 12px; flex-shrink: 0; color: var(--amber); margin-right: -3px; }
+  .gh-count { font-size: 12.5px; color: var(--text-2); letter-spacing: -0.01em; }
+  .gh:hover .gh-count { color: var(--text); }
+
+  /* ---------- theme toggle ---------- */
+  .nav-right { display: flex; align-items: center; gap: 14px; }
+  .theme-tg {
+    display: flex; align-items: center; justify-content: center;
+    width: 32px; height: 32px; padding: 0; flex-shrink: 0;
+    border: 1px solid var(--border-2); border-radius: 8px;
+    background: transparent; color: var(--text-2); cursor: pointer;
+  }
+  .theme-tg:hover { background: var(--surface); color: var(--text); }
+  .theme-tg svg { width: 16px; height: 16px; display: block; }
+  /* Show exactly one glyph per theme. */
+  .theme-tg .i-moon { display: none; }
+  :root[data-theme='light'] .theme-tg .i-moon { display: block; }
+  :root[data-theme='light'] .theme-tg .i-sun { display: none; }
+
   /* ---------- hero ---------- */
   .hero {
     position: relative; min-height: 640px;
@@ -68,7 +160,7 @@
   .hero-mask {
     position: absolute; inset: 0; z-index: 1; pointer-events: none;
     background:
-      radial-gradient(ellipse 60% 50% at 50% 45%, rgba(15,14,19,0.92) 0%, rgba(15,14,19,0.55) 45%, transparent 75%),
+      radial-gradient(ellipse 60% 50% at 50% 45%, rgba(var(--hero-fog),0.92) 0%, rgba(var(--hero-fog),0.55) 45%, transparent 75%),
       linear-gradient(to bottom, transparent 60%, var(--bg) 97%);
   }
   .hero-content { position: relative; z-index: 2; }
@@ -81,7 +173,7 @@
     padding: 5px 13px; border-radius: 999px;
     background: var(--green-soft); color: var(--green);
     font-size: 12.5px; font-weight: 500; margin-bottom: 20px;
-    border: 1px solid rgba(74,222,128,0.2);
+    border: 1px solid var(--green-edge);
   }
   .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
   h1 {
@@ -89,7 +181,7 @@
     letter-spacing: -0.035em; line-height: 1.05; margin-bottom: 20px;
   }
   h1 .grad {
-    background: linear-gradient(96deg, var(--accent) 10%, #5eead4 90%);
+    background: linear-gradient(96deg, var(--accent) 10%, var(--grad-2) 90%);
     -webkit-background-clip: text; background-clip: text; color: transparent;
   }
   .lede {
@@ -189,7 +281,7 @@
     background: var(--accent-soft); color: var(--accent);
   }
   .res-snip { font-size: 12.5px; color: var(--text-3); }
-  .res-snip mark { background: rgba(168,130,255,0.22); color: var(--accent); border-radius: 2px; padding: 0 2px; }
+  .res-snip mark { background: var(--mark-bg); color: var(--accent); border-radius: 2px; padding: 0 2px; }
 
   /* ---------- privacy ---------- */
   .privacy-wrap { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; align-items: center; }
@@ -206,7 +298,7 @@
   }
   .machine {
     border: 1.5px dashed var(--accent); border-radius: 11px; padding: 18px 16px 16px;
-    position: relative; background: rgba(168,130,255,0.045);
+    position: relative; background: var(--machine-fill);
   }
   .machine-label {
     position: absolute; top: -10px; left: 14px; padding: 0 8px;
@@ -231,8 +323,8 @@
     margin: 12px 0; text-align: center; font-family: var(--mono); font-size: 11.5px;
     padding: 7px; border-radius: 7px;
   }
-  .barrier.blocked { background: var(--green-soft); color: var(--green); border: 1px solid rgba(74,222,128,0.25); }
-  .barrier.allowed { background: rgba(251,191,36,0.09); color: var(--amber); border: 1px solid rgba(251,191,36,0.25); }
+  .barrier.blocked { background: var(--green-soft); color: var(--green); border: 1px solid var(--green-edge); }
+  .barrier.allowed { background: var(--amber-soft); color: var(--amber); border: 1px solid var(--amber-edge); }
   .privacy-list { list-style: none; display: flex; flex-direction: column; gap: 13px; }
   .privacy-list li { display: flex; gap: 11px; font-size: 14.5px; color: var(--text-2); }
   .privacy-list .ck {
@@ -276,14 +368,14 @@
     display: flex; align-items: center; justify-content: space-between;
   }
   .diff-line { padding: 3px 12px; font-family: var(--mono); font-size: 12.5px; }
-  .diff-line.add { background: rgba(74,222,128,0.09); color: var(--green); }
+  .diff-line.add { background: var(--green-line); color: var(--green); }
   .diff-line.ctx { color: var(--text-3); }
   .diff-acts { display: flex; gap: 7px; padding: 9px 12px; border-top: 1px solid var(--border); }
   .diff-btn {
     padding: 5px 12px; border-radius: 6px; font-size: 12px; font-weight: 500;
     font-family: inherit; border: 1px solid var(--border-2); background: transparent; color: var(--text-2);
   }
-  .diff-btn.acc { background: var(--green-soft); border-color: rgba(74,222,128,0.3); color: var(--green); }
+  .diff-btn.acc { background: var(--green-soft); border-color: var(--green-edge); color: var(--green); }
 
   /* ---------- features ---------- */
   .fgrid { display: grid; grid-template-columns: repeat(auto-fit,minmax(240px,1fr)); gap: 14px; }
@@ -305,6 +397,8 @@
   .final { text-align: center; padding: 100px 0; }
   .final h2 { margin-bottom: 14px; }
   .final p { color: var(--text-2); font-size: 16.5px; margin-bottom: 28px; }
+  /* Overrides .final p above — must stay after it. */
+  .final p.final-alt { font-size: 13px; margin-bottom: 0; }
   footer { border-top: 1px solid var(--border); padding: 30px 0; }
   .foot { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
   .foot p, .foot a { font-size: 13px; color: var(--text-3); text-decoration: none; }
@@ -318,6 +412,12 @@
     .nav-links { display: none; }
     section { padding: 66px 0; }
     .hero { min-height: 560px; }
+  }
+  @media (max-width: 480px) {
+    /* Keep the nav on one line: the wordmark carries the brand, and the
+       caption is decorative, so both give way before the buttons do. */
+    .brand-name { display: none; }
+    .graph-cap { display: none; }
   }
   @media (prefers-reduced-motion: reduce) {
     .intro-on .logo-lockup, .intro-on .logo-lockup path,

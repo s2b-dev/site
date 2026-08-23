@@ -14,6 +14,50 @@
 
 var REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
+/* ---------- theme toggle ----------
+   The initial theme is set pre-paint by an inline script in index.astro.
+   This only handles clicks, and writes the same 'starlight-theme' key the
+   docs read so the choice survives navigation into Starlight. */
+(function () {
+  var btn = document.querySelector('.theme-tg');
+  if (!btn) return;
+  var root = document.documentElement;
+
+  function sync() {
+    btn.setAttribute('aria-pressed', root.dataset.theme === 'light' ? 'true' : 'false');
+  }
+  sync();
+
+  btn.addEventListener('click', function () {
+    var next = root.dataset.theme === 'light' ? 'dark' : 'light';
+    root.dataset.theme = next;
+    try {
+      localStorage.setItem('starlight-theme', next);
+    } catch (e) {
+      /* private mode — the theme still applies for this page view */
+    }
+    sync();
+    window.dispatchEvent(new CustomEvent('s2b-theme-change'));
+  });
+
+  /* Follow the OS only while the user has made no explicit choice. */
+  var mq = window.matchMedia('(prefers-color-scheme: light)');
+  var onOS = function (e) {
+    var stored = null;
+    try {
+      stored = localStorage.getItem('starlight-theme');
+    } catch (err) {
+      /* ignore */
+    }
+    if (stored === 'light' || stored === 'dark') return;
+    root.dataset.theme = e.matches ? 'light' : 'dark';
+    sync();
+    window.dispatchEvent(new CustomEvent('s2b-theme-change'));
+  };
+  if (mq.addEventListener) mq.addEventListener('change', onOS);
+  else if (mq.addListener) mq.addListener(onOS);
+})();
+
 /* ---------- hero graph: Leiden-style community clustering ----------
    Mirrors what the plugin actually does today: communities are detected and
    colour-coded, and the view can collapse to topic level (outline view).
@@ -26,8 +70,33 @@ var REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   var W = 0, H = 0, DPR = Math.min(window.devicePixelRatio || 1, 2);
 
   var K = 5;
-  var COLORS = [];
-  for (var i = 0; i < K; i++) COLORS.push('hsl(' + Math.round(i * 360 / K) + ', 70%, 55%)');
+  var HUES = [];
+  for (var i = 0; i < K; i++) HUES.push(Math.round(i * 360 / K));
+
+  /* Lightness/alpha come from CSS so the graph tracks the active theme;
+     hue and saturation stay fixed to the plugin's cluster formula. */
+  var PALETTE = {};
+  function readPalette() {
+    var cs = getComputedStyle(document.documentElement);
+    function tok(name, fallback) {
+      var v = cs.getPropertyValue(name).trim();
+      return v || fallback;
+    }
+    PALETTE = {
+      nodeL: tok('--g-node-l', '55%'),
+      nodeA: tok('--g-node-a', '0.62'),
+      hubL: tok('--g-hub-l', '62%'),
+      hubA: tok('--g-hub-a', '0.95'),
+      edgeL: tok('--g-edge-l', '55%'),
+      edgeA: tok('--g-edge-a', '0.16'),
+      bridge: tok('--g-bridge', 'rgba(150,145,180,0.07)'),
+    };
+  }
+  readPalette();
+
+  function hsla(c, l, a) {
+    return 'hsla(' + HUES[c] + ', 70%, ' + l + ', ' + a + ')';
+  }
 
   var nodes = [], edges = [], centers = [];
 
@@ -91,8 +160,8 @@ var REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
       ctx.beginPath();
       ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y);
       ctx.strokeStyle = intra
-        ? COLORS[a.c].replace('55%)', '55%, 0.16)').replace('hsl(','hsla(')
-        : 'rgba(150,145,180,0.07)';
+        ? hsla(a.c, PALETTE.edgeL, PALETTE.edgeA)
+        : PALETTE.bridge;
       ctx.lineWidth = intra ? 0.8 : 0.6;
       ctx.stroke();
     }
@@ -100,13 +169,22 @@ var REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
       var n = nodes[i];
       ctx.beginPath();
       ctx.arc(n.x, n.y, n.hub ? n.r*1.9 : n.r, 0, Math.PI*2);
-      ctx.fillStyle = COLORS[n.c].replace('55%)', n.hub ? '62%, 0.95)' : '55%, 0.62)').replace('hsl(','hsla(');
+      ctx.fillStyle = n.hub
+        ? hsla(n.c, PALETTE.hubL, PALETTE.hubA)
+        : hsla(n.c, PALETTE.nodeL, PALETTE.nodeA);
       ctx.fill();
     }
   }
 
   resize();
   window.addEventListener('resize', resize);
+
+  /* Re-read the palette when the theme flips. The animated path picks the new
+     colours up on its next frame; the reduced-motion path must redraw itself. */
+  window.addEventListener('s2b-theme-change', function () {
+    readPalette();
+    if (REDUCED) draw();
+  });
 
   if (REDUCED) { draw(); return; }
   (function loop(){ step(); draw(); requestAnimationFrame(loop); })();
