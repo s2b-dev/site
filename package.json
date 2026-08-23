@@ -1,0 +1,22 @@
+{
+	"name": "@s2b-dev/site",
+	"version": "0.0.1",
+	"private": true,
+	"type": "module",
+	"description": "Landing page and documentation for Smart Second Brain",
+	"scripts": {
+		"dev": "astro dev",
+		"start": "astro dev",
+		"build": "astro build",
+		"preview": "astro preview",
+		"check": "astro check",
+		"astro": "astro"
+	},
+	"dependencies": {
+		"@astrojs/starlight": "^0.41",
+		"@astrojs/svelte": "^9.0.1",
+		"astro": "^7",
+		"sharp": "^0.35.3",
+		"svelte": "^5.56.10"
+	}
+}

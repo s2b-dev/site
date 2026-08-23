@@ -1,0 +1,50 @@
+/*
+ * Starlight theme tokens, aligned with the landing page palette.
+ * Landing-page-only styles live in src/styles/landing.css.
+ */
+:root {
+	--s2b-accent: #a882ff;
+	--s2b-accent-2: #7c5cff;
+	--s2b-green: #4ade80;
+	--s2b-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+:root {
+	--sl-color-accent-low: #241f3d;
+	--sl-color-accent: #7c5cff;
+	--sl-color-accent-high: #cbb8ff;
+
+	--sl-color-white: #ffffff;
+	--sl-color-gray-1: #e8e6f0;
+	--sl-color-gray-2: #a5a1b8;
+	--sl-color-gray-3: #6f6b85;
+	--sl-color-gray-4: #383548;
+	--sl-color-gray-5: #2a2836;
+	--sl-color-gray-6: #1b1a23;
+	--sl-color-black: #0f0e13;
+
+	--sl-font-mono: var(--s2b-mono);
+}
+
+:root[data-theme='light'] {
+	--sl-color-accent-low: #e2d9ff;
+	--sl-color-accent: #6741e0;
+	--sl-color-accent-high: #2f1d6b;
+
+	--sl-color-white: #16151c;
+	--sl-color-gray-1: #24222e;
+	--sl-color-gray-2: #4a4759;
+	--sl-color-gray-3: #6f6b85;
+	--sl-color-gray-4: #b6b2c6;
+	--sl-color-gray-5: #dddae6;
+	--sl-color-gray-6: #f2f0f7;
+	--sl-color-gray-7: #f8f7fb;
+	--sl-color-black: #ffffff;
+}
+
+/* Slightly tighter, more editorial headings to match the landing page. */
+.sl-markdown-content h1,
+.sl-markdown-content h2,
+.sl-markdown-content h3 {
+	letter-spacing: -0.02em;
+}
