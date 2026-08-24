@@ -678,7 +678,12 @@
   /* Brand marks vary a lot in optical weight, so they sit slightly muted
      rather than at full text colour. */
   .prov-mark { width: 15px; height: 15px; flex-shrink: 0; color: var(--text-2); }
-  .prov em { font-style: normal; color: var(--green); font-size: 11px; margin-left: 3px; }
+  /* Green "local" badge, carrying the plugin's trusted-provider shield. */
+  .prov em {
+    display: inline-flex; align-items: center; gap: 3px;
+    font-style: normal; color: var(--green); font-size: 11px; margin-left: 3px;
+  }
+  .trust-mark { width: 11px; height: 11px; flex-shrink: 0; }
 
   .final { text-align: center; padding: 100px 0; }
   .final h2 { margin-bottom: 14px; }
