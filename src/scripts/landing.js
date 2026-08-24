@@ -1379,32 +1379,74 @@ var REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   io.observe(vault);
 })();
 /* ---------- privacy toggle ---------- */
+/* The two cases make genuinely different promises, so the toggle swaps the
+   claims rather than animating a diagram. Grounded in the plugin's real model
+   (dataStore.isFilePrivate / trustedForPrivateData): local providers
+   (ollama/omlx) are seeded trusted; everything else starts untrusted, and
+   under the default private-by-default mode that means it can read nothing
+   until you list something — by folder, by tag, or by picking files.
+
+   Rows carry their own marker kind ('ok' = green tick, 'note' = neutral) so a
+   caveat never gets a tick that reads as if a limitation were a feature.
+
+   Private notes are filtered out of every vault-facing tool, not just chat:
+   search (searchNotes.ts:442), grep (grepNotes.ts:141), listings
+   (listDirectory.ts:251), reads (readContent.ts:376), tags/properties,
+   indexing (VectorStoreService.ts:1636) and graph titles
+   (SmartGraphView.svelte:1907). Note the plugin's own PrivacyListModal copy
+   claims names stay visible — the enforcement code says otherwise.
+
+   The local copy is also in index.astro so the section survives without JS. */
 (function () {
   var btns = document.querySelectorAll('.tg');
-  var barrier = document.getElementById('barrier');
-  var cloud = document.getElementById('cloudNode');
-  var local = document.getElementById('localModel');
-  if (!barrier) return;
+  var list = document.getElementById('privacyList');
+  if (!list) return;
+
+  var COPY = {
+    local: [
+      ['ok', 'Nothing leaves your computer.', 'The AI runs on it too, so your notes have nowhere to travel.'],
+      ['ok', 'No account, no bill.', 'Ollama and oMLX are free and offline — the plugin trusts them from the start.'],
+      ['ok', 'Every note, right away.', 'Nothing to allow or configure, because nothing is being sent anywhere.'],
+    ],
+    cloud: [
+      ['ok', 'It starts out reading nothing.', 'Every note is private until you allow it — opt-in, not opt-out.'],
+      ['ok', 'You decide what it can read.', 'Allow a folder, everything carrying a tag, or single notes you pick.'],
+      ['ok', 'Private means private everywhere.', 'Not just in chat — a private note is left out of search, listings and the graph too.'],
+    ],
+  };
+
+  var MARK = { ok: '✓', note: '–' };
+
+  function render(mode) {
+    list.innerHTML = COPY[mode]
+      .map(function (row) {
+        return (
+          '<li><span class="ck ck-' +
+          row[0] +
+          '">' +
+          MARK[row[0]] +
+          '</span><span><strong>' +
+          row[1] +
+          '</strong> ' +
+          row[2] +
+          '</span></li>'
+        );
+      })
+      .join('');
+  }
+
+  // shield-check for the trusted (local) case, plain shield otherwise —
+  // the same distinction the plugin's onboarding draws.
+  var shield = document.getElementById('shieldMark');
 
   function set(mode) {
-    btns.forEach(function(b){ b.classList.toggle('on', b.dataset.mode === mode); });
-    if (mode === 'local') {
-      barrier.className = 'barrier blocked';
-      barrier.textContent = '✕ nothing crosses this line';
-      cloud.style.opacity = '.4';
-      cloud.textContent = '☁ cloud AI — idle';
-      local.style.borderColor = 'var(--accent)';
-      local.style.background = 'var(--accent-soft)';
-    } else {
-      barrier.className = 'barrier allowed';
-      barrier.textContent = '→ only notes you allow cross';
-      cloud.style.opacity = '1';
-      cloud.textContent = '☁ cloud AI — 12 of 1,284 notes allowed';
-      local.style.borderColor = 'var(--border-2)';
-      local.style.background = 'var(--surface)';
-    }
+    btns.forEach(function (b) { b.classList.toggle('on', b.dataset.mode === mode); });
+    if (shield) shield.classList.toggle('trusted', mode === 'local');
+    render(mode);
   }
-  btns.forEach(function(b){ b.addEventListener('click', function(){ set(b.dataset.mode); }); });
-  set('local');
+
+  btns.forEach(function (b) {
+    b.addEventListener('click', function () { set(b.dataset.mode); });
+  });
 })();
 
