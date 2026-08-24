@@ -53,9 +53,10 @@ was ported from a hand-written mockup, so:
   localStorage key, so the choice survives navigation in both directions. The
   default follows `prefers-color-scheme` until the user picks explicitly. The
   theme is applied pre-paint by a second `is:inline` script in `index.astro`.
-- The hero canvas reads its lightness/alpha from the `--g-*` CSS tokens and
-  repaints on the `s2b-theme-change` event — keep hue/saturation matching the
-  plugin's cluster formula, and adjust only lightness/alpha per theme.
+- The hero canvas and the demo's mini graph read their lightness/alpha from
+  the `--g-*` CSS tokens and repaint on the `s2b-theme-change` event — keep
+  hue/saturation matching the plugin's cluster formula, and adjust only
+  lightness/alpha per theme.
 - The nav's GitHub star count is fetched **at build time** in the `index.astro`
   frontmatter. A failed fetch is non-fatal: it logs a warning and renders the
   button without a count, so builds still pass offline or when rate-limited.
@@ -65,9 +66,27 @@ was ported from a hand-written mockup, so:
   The `.ob-mark` glyph is Obsidian's own faceted icon (`obsidian.md/favicon.svg`);
   the flat silhouette from their gradient logo turns to mush below ~24px.
 - Animations live in `src/scripts/landing.js` — an animated hero canvas
-  (force-directed graph), a typing search demo, a privacy toggle, and a
-  stepped agent-chat sequence. All are vanilla JS driven by
-  `IntersectionObserver`.
+  (force-directed graph), a privacy toggle, and the integrated workspace demo:
+  one looping storyline across a mock Obsidian window, in four phases the
+  step cards below it can jump to. The graph clusters itself → a lasso
+  immerses into a topic → a sub-topic is opened in the chat and the agent
+  drafts a staged edit → semantic search finds a missing note, which the
+  agent folds into the same draft before one approval.
+  The demo deliberately mirrors real plugin behaviour (ambient graph
+  selection, `⌥A` attach, semantic toggle, staged edits, topic hulls built
+  with the plugin's own convex-hull construction) — keep it truthful to the
+  plugin when editing; verify against the live vault rather than guessing.
+  All vanilla JS driven by `IntersectionObserver`.
+- The demo's mock UI uses its own `--ob-*` palette (both themes) matched to
+  Obsidian's real values, not the site palette. Two canvas gotchas: assigning
+  `canvas.width` **clears** it, so any resize path must repaint synchronously
+  or the graph blanks; and the chat pane's slide-in resizes the canvas without
+  firing a window `resize`, so a `ResizeObserver` refits (rescales) rather
+  than rebuilding, which would restart the story.
+- The page is written for non-technical readers (students, writers,
+  researchers): no mono-font "dev" styling, no jargon in demo content or copy.
+  Inter throughout — clean and minimal is the brief; display faces have been
+  tried and rejected.
 - Two scripts are **inlined** in `index.astro` with `is:inline` and must stay
   in `<head>`, both because they run before first paint: the theme script (sets
   `data-theme`, so the wrong palette never flashes) and the intro gate (sets a

@@ -103,20 +103,30 @@ var REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   function build() {
     nodes = []; edges = []; centers = [];
     var perCluster = 13;
+    /* Size off the geometric mean of the two axes rather than the smaller
+       one: the hero is full-viewport, so min(W,H) swings wildly between a
+       wide desktop and a tall phone and the layout stretches with it. */
+    var unit = Math.sqrt(W * H);
     for (var c = 0; c < K; c++) {
       var a = (c / K) * Math.PI * 2 - Math.PI / 2;
-      var rad = Math.min(W, H) * 0.26;
+      var rad = unit * 0.30;
       centers.push({ x: W/2 + Math.cos(a)*rad, y: H/2 + Math.sin(a)*rad*0.78 });
       for (var j = 0; j < perCluster; j++) {
-        var spread = Math.min(W,H) * 0.10;
+        var spread = unit * 0.075;
         nodes.push({
           c: c,
-          x: centers[c].x + (Math.random()-0.5)*spread*2,
-          y: centers[c].y + (Math.random()-0.5)*spread*2,
+          /* Remembered so cohesion pulls toward a spot in the cluster rather
+             than its exact centre — without this every node converges on one
+             point and the community collapses. */
+          ox: (Math.random()-0.5)*spread*2,
+          oy: (Math.random()-0.5)*spread*2,
           vx: 0, vy: 0,
           r: 1.7 + Math.random()*2.3,
           hub: j === 0
         });
+        var n0 = nodes[nodes.length-1];
+        n0.x = centers[c].x + n0.ox;
+        n0.y = centers[c].y + n0.oy;
       }
     }
     /* intra-community edges (dense) + a few bridges (sparse) */
@@ -142,9 +152,11 @@ var REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     t += 0.0045;
     for (var i = 0; i < nodes.length; i++) {
       var n = nodes[i], ct = centers[n.c];
-      /* cluster cohesion — the same force concept the graph view exposes */
-      n.vx += (ct.x - n.x) * 0.0016;
-      n.vy += (ct.y - n.y) * 0.0016;
+      /* Cohesion toward the node's own place in the cluster, not the shared
+         centre — the same force concept the graph view exposes, but it keeps
+         the community spread instead of collapsing it to a point. */
+      n.vx += (ct.x + n.ox - n.x) * 0.0016;
+      n.vy += (ct.y + n.oy - n.y) * 0.0016;
       /* gentle drift so it never looks frozen */
       n.vx += Math.cos(t*1.7 + i*0.7) * 0.010;
       n.vy += Math.sin(t*1.4 + i*0.9) * 0.010;
@@ -190,80 +202,1182 @@ var REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   (function loop(){ step(); draw(); requestAnimationFrame(loop); })();
 })();
 
-/* ---------- vault search demo ---------- */
+/* ---------- integrated workspace demo ----------
+   One looping storyline in four phases, each carrying a differentiating
+   feature, all mirroring real plugin behaviour:
+   1. the graph opens scattered and clusters itself into labelled topics
+      (automatic topic detection),
+   2. a keyword search finds nothing, Tab flips semantic on, and notes that
+      never use those words appear (SearchModal's semantic toggle),
+   3. a question typed into the chat composer sends the agent reading notes
+      and slide PDFs, and its edit waits for approval (staged edits),
+   4. a lasso selects a cluster and Immerse opens it into finer sub-topics
+      (lasso selection, immerse, the granularity ladder). */
 (function () {
-  var QUERY = 'how does retrieval work';
-  var FILES = [
-    { n: 'RAG pipeline.md',        hit: 1, s: '0.94', t: 'chunking, embedding and <mark>retrieval</mark> over the vault' },
-    { n: 'Vector stores.md',       hit: 1, s: '0.88', t: 'HNSW index, nearest-neighbour <mark>retrieval</mark>' },
-    { n: 'Hybrid ranking.md',      hit: 1, s: '0.81', t: 'fusing lexical and semantic <mark>retrieval</mark> results' },
-    { n: 'Meeting 2026-03-11.md',  hit: 0 },
-    { n: 'Reading list.md',        hit: 0 },
-    { n: 'Obsidian setup.md',      hit: 0 },
-    { n: 'Trip planning.md',       hit: 0 }
+  var vault = document.getElementById('vault');
+  if (!vault) return;
+
+  var QUERY_SEARCH = 'why do we forget';
+  var QUERY_CHAT = 'Draft the consolidation part of my checklist';
+  var QUERY_CHAT2 = 'Fold this in too';
+
+  /* None of these snippets contain the query's words — that gap is the
+     entire point of the semantic phase. */
+  var RESULTS = [
+    { id: 'lec8', n: 'Lecture 8 — Sleep',  p: 'Psych 101', t: 'deep sleep and its role in consolidation' },
+    { id: 'slides', n: 'Week 7 slides.pdf', p: 'Psych 101', t: 'slide 18 — the hippocampus and consolidation' }
   ];
-  var tree = document.getElementById('tree');
-  var typed = document.getElementById('typed');
-  var results = document.getElementById('results');
-  if (!tree || !typed || !results) return;
 
-  FILES.forEach(function (f) {
-    var d = document.createElement('div');
-    d.className = 'tree-item';
-    d.dataset.name = f.n;
-    d.innerHTML = '<span class="ic">▪</span>' + f.n.replace('.md','');
-    tree.appendChild(d);
-  });
-  FILES.filter(function(f){return f.hit;}).forEach(function (f) {
-    var d = document.createElement('div');
-    d.className = 'res';
-    d.innerHTML = '<div class="res-top"><span class="res-name">'+f.n+'</span><span class="res-score">'+f.s+'</span></div><div class="res-snip">'+f.t+'</div>';
-    results.appendChild(d);
-  });
+  /* --- element refs --- */
+  var chat = document.getElementById('vChat');
+  var search = document.getElementById('vSearch');
+  var vsBox = document.querySelector('.vs-box');
+  var typed = document.getElementById('vsTyped');
+  var ph = document.getElementById('vsPh');
+  var resultsEl = document.getElementById('vsResults');
+  var vsEmpty = document.getElementById('vsEmpty');
+  var vsSem = document.getElementById('vsSem');
+  var vsAtt = document.getElementById('vsAtt');
+  var vsSum = document.getElementById('vsSum');
+  var vAttach = document.getElementById('vAttach');
+  var vcTyped = document.getElementById('vcTyped');
+  var vcPh = document.getElementById('vcPh');
+  var vcCaret = document.getElementById('vcCaret');
+  var vSend = document.getElementById('vSend');
+  var vSel = document.getElementById('vSel');
+  var vImm = document.getElementById('vImm');
+  var vExit = document.getElementById('vExit');
+  var vExitBtn = document.getElementById('vExitBtn');
+  var vSel2 = document.getElementById('vSel2');
+  var vOpen = document.getElementById('vOpen');
+  var vGchip = document.getElementById('vGchip');
+  var vLchip = document.getElementById('vLchip');
+  var vaultBody = document.querySelector('.vault-body');
 
-  var resEls = results.querySelectorAll('.res');
-  var treeEls = tree.querySelectorAll('.tree-item');
-
-  function reset() {
-    typed.textContent = '';
-    resEls.forEach(function(r){ r.classList.remove('on'); });
-    treeEls.forEach(function(t){ t.classList.remove('hit'); });
-  }
-
-  function run() {
-    reset();
-    if (REDUCED) {
-      typed.textContent = QUERY;
-      resEls.forEach(function(r){ r.classList.add('on'); });
-      treeEls.forEach(function(t){ if (FILES.find(function(f){return f.n===t.dataset.name && f.hit;})) t.classList.add('hit'); });
+  /* Mobile shows one pane at a time (see the 720px CSS block); the storyline
+     walks graph → chat → graph. No-op on desktop. */
+  function setPane(p, instant) {
+    if (instant) {
+      /* Phase jumps land in a state, they don't animate into it. */
+      vaultBody.style.transition = 'none';
+      vaultBody.dataset.pane = p;
+      void vaultBody.offsetWidth;
+      vaultBody.style.transition = '';
       return;
     }
-    var i = 0;
-    (function type() {
-      if (i <= QUERY.length) {
-        typed.textContent = QUERY.slice(0, i);
-        i++;
-        setTimeout(type, 55 + Math.random()*45);
-      } else {
-        resEls.forEach(function (r, k) {
-          setTimeout(function(){ r.classList.add('on'); }, 160 + k*130);
+    vaultBody.dataset.pane = p;
+  }
+
+  /* --- simulated cursor ---
+     Only used for the graph's direct manipulations (lassoing, pressing the
+     selection-bar buttons): those are gestures, and showing the hand is what
+     makes them read as such. Typing and the search modal deliberately have no
+     cursor — a caret already carries those, and a hovering arrow is noise. */
+  var cursor = document.getElementById('vCursor');
+  var graphPane = document.querySelector('.v-graph');
+  var cursorScale = 1;
+
+  function cursorAt(x, y, instant) {
+    if (instant) cursor.style.transition = 'opacity .25s ease';
+    cursor.style.transform = 'translate(' + x + 'px,' + y + 'px) scale(' + cursorScale + ')';
+    if (instant) {
+      /* Force the jump to land before transitions are restored. */
+      void cursor.offsetWidth;
+      cursor.style.transition = '';
+    }
+  }
+  function cursorShow() { cursor.classList.add('on'); }
+  function cursorHide() { cursor.classList.remove('on'); cursorScale = 1; }
+
+  /** Glide to an element's centre, in graph-pane coordinates. */
+  function cursorToEl(el) {
+    var g = graphPane.getBoundingClientRect();
+    var r = el.getBoundingClientRect();
+    cursorAt(r.left - g.left + r.width / 2 - 3, r.top - g.top + r.height / 2 - 2);
+  }
+
+  /** A quick dip, the cursor's half of a button press. */
+  function cursorClick() {
+    cursorScale = 0.8;
+    cursor.classList.add('click');
+    var m = /translate\(([^p]+)px,([^p]+)px\)/.exec(cursor.style.transform);
+    if (m) cursorAt(parseFloat(m[1]), parseFloat(m[2]));
+    timers.push(setTimeout(function () {
+      cursorScale = 1;
+      cursor.classList.remove('click');
+      if (m) cursorAt(parseFloat(m[1]), parseFloat(m[2]));
+    }, 130));
+  }
+
+  /** Ride the lasso stroke as it sweeps, so the loop looks drawn. */
+  function cursorTraceLasso(getPoint, ms) {
+    var t0 = performance.now();
+    cursor.style.transition = 'opacity .25s ease';   /* follow exactly, no lag */
+    (function frame() {
+      var p = Math.min(1, (performance.now() - t0) / ms);
+      var pt = getPoint(p);
+      if (pt) cursorAt(pt.x - 3, pt.y - 2);
+      if (p < 1) requestAnimationFrame(frame);
+      else cursor.style.transition = '';
+    })();
+  }
+  var stepEls = document.querySelectorAll('#steps li');
+
+  /* --- search results --- */
+  var resEls = RESULTS.map(function (r, i) {
+    var d = document.createElement('div');
+    d.className = 'vs-res' + (i === 0 ? ' sel' : '');
+    d.innerHTML =
+      '<div class="vs-res-top"><span class="vs-res-name">' + r.n + '</span>' +
+      (r.p ? '<span class="vs-res-path">· ' + r.p + '</span>' : '') + '</div>' +
+      '<div class="vs-res-snip">' + r.t + '</div>';
+    resultsEl.appendChild(d);
+    return d;
+  });
+
+  /* --- mini graph: same cluster formula + hull construction as the plugin --- */
+  var graph = (function () {
+    var cv = document.getElementById('miniGraph');
+    var ctx = cv.getContext('2d');
+    var W = 0, H = 0, DPR = Math.min(window.devicePixelRatio || 1, 2);
+
+    var K = 5;
+    var LABELS = [['Memory', 24], ['Sleep', 18], ['Perception', 21], ['Statistics', 19], ['Essays', 12]];
+    /* The finer topics Immerse reveals inside Memory — counts sum to 24. */
+    /* Counts sum to the Memory pill's 24. The cluster only holds PER nodes on
+       screen, so immersing spawns extras (see `subExtras`) — otherwise three
+       dots per group would contradict these labels. */
+    var SUBLABELS = [['Consolidation', 9], ['Recall & testing', 8], ['Sleep & memory', 7]];
+    var SUBHUE_OFFSETS = [0, 34, -34];
+    var SUBCENTERS = [{ fx: 0.30, fy: 0.34 }, { fx: 0.72, fy: 0.33 }, { fx: 0.50, fy: 0.72 }];
+    var PER = 9;
+    var HUES = [];
+    for (var i = 0; i < K; i++) HUES.push(Math.round(i * 360 / K));
+
+    /* organize 0→1 scatter→clustered, imm 0→1 overview→immersed,
+       lassoP 0→1 selection stroke sweep. */
+    var organize = 0, organizeT = 0, orgE = 0;
+    var imm = 0, immT = 0;
+    var lassoP = 0, lassoT = 0;
+    /* Second lasso, drawn inside the immersion around the Consolidation
+       sub-topic — the selection that gets opened in the chat. */
+    var lasso2P = 0, lasso2T = 0;
+
+    /* Per-lasso wobble. Only two harmonics, both low-frequency (2–4 lobes):
+       the real selection region is a big lazy blob, so extra harmonics just
+       read as jitter. Regenerated per run so no two loops match. */
+    function makeJitter() {
+      var h = [];
+      for (var k = 0; k < 2; k++) {
+        h.push({
+          freq: 2 + k + Math.round(Math.random()),   /* 2–4 lobes */
+          amp: (0.075 - k * 0.03) * (0.7 + Math.random() * 0.6),
+          phase: Math.random() * Math.PI * 2
         });
-        treeEls.forEach(function (t) {
-          var f = FILES.find(function(x){ return x.n === t.dataset.name; });
-          if (f && f.hit) setTimeout(function(){ t.classList.add('hit'); }, 300 + Math.random()*400);
-        });
-        setTimeout(run, 6200);
       }
+      h.start = -Math.PI / 2 + (Math.random() - 0.5) * 1.2;
+      return h;
+    }
+    var lassoJit = makeJitter(), lasso2Jit = makeJitter();
+
+    function jitterAt(jit, a) {
+      var w = 0;
+      for (var k = 0; k < jit.length; k++) {
+        w += Math.sin(a * jit[k].freq + jit[k].phase) * jit[k].amp;
+      }
+      return w;
+    }
+
+    /** The lasso outline: a closed, smoothly-curved dashed loop. */
+    function strokeLasso(c, rx, ry, prog, jit, alpha) {
+      var sweep = Math.PI * 2 * Math.min(1, prog);
+      var steps = Math.max(2, Math.round(sweep / 0.10));
+      var pts = [];
+      for (var s = 0; s <= steps; s++) {
+        var a = jit.start + sweep * (s / steps);
+        var w = jitterAt(jit, a);
+        pts.push({ x: c.x + Math.cos(a) * rx * (1 + w), y: c.y + Math.sin(a) * ry * (1 + w) });
+      }
+      /* Trace the outline once; the same path is both filled and stroked. */
+      function tracePath() {
+        ctx.beginPath();
+        ctx.moveTo(pts[0].x, pts[0].y);
+        /* Quadratic midpoint smoothing: the curve passes through the midpoints
+           with each sample as a control point, so there are no visible corners. */
+        for (var i = 1; i < pts.length - 1; i++) {
+          var mx = (pts[i].x + pts[i + 1].x) / 2;
+          var my = (pts[i].y + pts[i + 1].y) / 2;
+          ctx.quadraticCurveTo(pts[i].x, pts[i].y, mx, my);
+        }
+        var last = pts[pts.length - 1];
+        ctx.lineTo(last.x, last.y);
+      }
+
+      /* Faint accent wash over the enclosed area — the region reads as
+         selected, not merely outlined. Canvas closes an unclosed fill path
+         implicitly, so the area builds up as the loop is drawn. */
+      tracePath();
+      ctx.closePath();
+      ctx.fillStyle = ACCENT;
+      ctx.globalAlpha = alpha * 0.1;
+      ctx.fill();
+
+      tracePath();
+      if (prog >= 0.999) ctx.closePath();
+      /* Longer, airier dashes — matching the real selection outline. */
+      ctx.setLineDash([9, 7]);
+      ctx.strokeStyle = ACCENT;
+      ctx.globalAlpha = alpha;
+      ctx.lineWidth = 1.8;
+      ctx.lineJoin = 'round';
+      ctx.lineCap = 'round';
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.globalAlpha = 1;
+    }
+
+    var PALETTE = {}, ACCENT = '#7f6df2';
+    function readPalette() {
+      var cs = getComputedStyle(document.documentElement);
+      function tok(name, fallback) {
+        var v = cs.getPropertyValue(name).trim();
+        return v || fallback;
+      }
+      /* --gm-* are the mini-graph's own node values: the real in-app graph is
+         far more saturated than the hero's backdrop treatment. */
+      PALETTE = {
+        nodeL: tok('--gm-node-l', '62%'),
+        nodeA: tok('--gm-node-a', '0.95'),
+        hubL: tok('--g-hub-l', '62%'),
+        hubA: tok('--g-hub-a', '0.95'),
+        edgeL: tok('--g-edge-l', '55%'),
+        edgeA: tok('--g-edge-a', '0.16'),
+        hullA: tok('--g-hull-a', '0.13'),
+        bridge: tok('--g-bridge', 'rgba(150,145,180,0.07)')
+      };
+      ACCENT = tok('--ob-accent', '#7f6df2');
+    }
+    readPalette();
+
+    function hslaH(h, s, l, a) {
+      return 'hsla(' + h + ', ' + s + '%, ' + l + ', ' + a + ')';
+    }
+    /* Saturation rides `organize`, so the graph starts grey and colour floods
+       in as the topics resolve. */
+    function hsla(c, l, a) {
+      return hslaH(HUES[c], Math.round(70 * orgE), l, a);
+    }
+
+    var TEXT = '#dddddd', FOG = '30, 30, 30';
+    function readChrome() {
+      var cs = getComputedStyle(document.documentElement);
+      TEXT = cs.getPropertyValue('--ob-text').trim() || '#dddddd';
+      FOG = cs.getPropertyValue('--ob-fog').trim() || '30, 30, 30';
+    }
+    readChrome();
+
+    function unitOf() { return Math.sqrt(W * H); }
+
+    /* --- topic regions: ported from the plugin's utils/convexHull.ts --- */
+
+    /** Monotone chain convex hull. */
+    function convexHull(pts) {
+      if (pts.length < 3) return pts.slice();
+      var p = pts.map(function (n) { return { x: n.x, y: n.y }; })
+        .sort(function (a, b) { return a.x - b.x || a.y - b.y; });
+      var cross = function (o, a, b) {
+        return (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x);
+      };
+      var lower = [];
+      for (var i = 0; i < p.length; i++) {
+        while (lower.length >= 2 && cross(lower[lower.length - 2], lower[lower.length - 1], p[i]) <= 0) lower.pop();
+        lower.push(p[i]);
+      }
+      var upper = [];
+      for (var j = p.length - 1; j >= 0; j--) {
+        while (upper.length >= 2 && cross(upper[upper.length - 2], upper[upper.length - 1], p[j]) <= 0) upper.pop();
+        upper.push(p[j]);
+      }
+      lower.pop(); upper.pop();
+      return lower.concat(upper);
+    }
+
+    /** Push each hull vertex outward from the centroid by `pad`. */
+    function expandHull(hull, pad) {
+      var cx = 0, cy = 0;
+      hull.forEach(function (p) { cx += p.x; cy += p.y; });
+      cx /= hull.length; cy /= hull.length;
+      return hull.map(function (p) {
+        var dx = p.x - cx, dy = p.y - cy;
+        var d = Math.hypot(dx, dy) || 1;
+        return { x: p.x + (dx / d) * pad, y: p.y + (dy / d) * pad };
+      });
+    }
+
+    /** Chaikin corner-cutting — the plugin's smoothClosedPath, 2 iterations. */
+    function smoothClosed(points, iterations) {
+      if (points.length < 3) return points;
+      var cur = points;
+      for (var it = 0; it < (iterations || 2); it++) {
+        var next = [];
+        for (var i = 0; i < cur.length; i++) {
+          var a = cur[i], b = cur[(i + 1) % cur.length];
+          next.push({ x: a.x * 0.75 + b.x * 0.25, y: a.y * 0.75 + b.y * 0.25 });
+          next.push({ x: a.x * 0.25 + b.x * 0.75, y: a.y * 0.25 + b.y * 0.75 });
+        }
+        cur = next;
+      }
+      return cur;
+    }
+
+    function topicRegion(pts, pad) {
+      if (!pts.length) return null;
+      var hull = convexHull(pts);
+      if (hull.length < 3) return null;
+      return smoothClosed(expandHull(hull, pad), 2);
+    }
+
+    function roundRect(x, y, w, h, r) {
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.arcTo(x + w, y, x + w, y + h, r);
+      ctx.arcTo(x + w, y + h, x, y + h, r);
+      ctx.arcTo(x, y + h, x, y, r);
+      ctx.arcTo(x, y, x + w, y, r);
+      ctx.closePath();
+    }
+
+    function drawLabelPill(text, x, y, hue, alpha) {
+      if (alpha < 0.03) return;
+      ctx.globalAlpha = alpha;
+      ctx.font = '500 11px Inter, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      var w = ctx.measureText(text).width + 20;
+      var h = 19;
+      roundRect(x - w / 2, y - h / 2, w, h, h / 2);
+      ctx.fillStyle = 'rgba(' + FOG + ', 0.85)';
+      ctx.fill();
+      ctx.strokeStyle = hslaH(hue, Math.round(70 * orgE), PALETTE.nodeL, 0.8);
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+      ctx.fillStyle = TEXT;
+      ctx.fillText(text, x, y);
+      ctx.globalAlpha = 1;
+    }
+
+    var nodes = [], edges = [], centers = [], storyEdges = [];
+    /* Notes the storyline names, mapped to fixed node slots. lec7/slides/
+       checklist/sg sit in the Memory cluster; lec8 is the Sleep hub. */
+    var named = { lec7: 0, slides: 2, checklist: 4, sg: 6, lec8: PER };
+
+    function scatterNode(n) {
+      n.sx = W * (0.06 + Math.random() * 0.88);
+      n.sy = H * (0.08 + Math.random() * 0.84);
+    }
+
+    function build() {
+      nodes = []; edges = []; centers = [];
+      /* Geometric mean, so the layout holds its proportions whether the pane
+         is wide (desktop, side by side) or tall (mobile, stacked). */
+      var unit = unitOf();
+      var spacing = W < 560 ? 0.34 : 0.28;
+      for (var c = 0; c < K; c++) {
+        var a = (c / K) * Math.PI * 2 - Math.PI / 2;
+        var rad = unit * spacing;
+        var ct = { x: W / 2 + Math.cos(a) * rad, y: H / 2 + Math.sin(a) * rad * 0.82 };
+        centers.push(ct);
+        for (var j = 0; j < PER; j++) {
+          var spread = unit * 0.075;
+          /* ox/oy: the node's own spot within the cluster. Cohesion targets
+             this, not the bare centre, so communities stay spread. */
+          var n = {
+            c: c, subc: j % 3,
+            ox: (Math.random() - 0.5) * spread * 2,
+            oy: (Math.random() - 0.5) * spread * 2,
+            iox: (Math.random() - 0.5) * unit * 0.14,
+            ioy: (Math.random() - 0.5) * unit * 0.14,
+            vx: 0, vy: 0,
+            r: 1.8 + Math.random() * 2.3,
+            hub: j === 0,
+            glow: 0, glowT: 0, pop: 0
+          };
+          scatterNode(n);
+          n.x = n.sx; n.y = n.sy;
+          nodes.push(n);
+        }
+      }
+      /* Extra Memory nodes that only exist while immersed, so each sub-topic
+         shows roughly as many dots as its label claims. They start at the
+         cluster centre (invisible at imm=0) and fan out on immerse. */
+      var perSub = [6, 5, 4];
+      for (var s = 0; s < 3; s++) {
+        for (var e2 = 0; e2 < perSub[s]; e2++) {
+          var ex = {
+            c: 0, subc: s, extra: true,
+            ox: 0, oy: 0,
+            iox: (Math.random() - 0.5) * unit * 0.15,
+            ioy: (Math.random() - 0.5) * unit * 0.15,
+            vx: 0, vy: 0,
+            r: 1.8 + Math.random() * 2.0,
+            hub: false,
+            glow: 0, glowT: 0, pop: 0
+          };
+          ex.sx = centers[0].x; ex.sy = centers[0].y;
+          ex.x = ex.sx; ex.y = ex.sy;
+          nodes.push(ex);
+        }
+      }
+
+      for (var n2 = 0; n2 < nodes.length; n2++) {
+        if (nodes[n2].extra) continue;
+        for (var m = n2 + 1; m < nodes.length; m++) {
+          if (nodes[m].extra) continue;
+          var same = nodes[n2].c === nodes[m].c;
+          if (same && Math.random() < 0.16) edges.push([n2, m, 1]);
+          else if (!same && Math.random() < 0.005) edges.push([n2, m, 0]);
+        }
+      }
+    }
+
+    /** Match the backing store to the CSS box. Returns the previous size. */
+    function syncCanvasSize(r) {
+      var prev = { w: W, h: H };
+      W = r.width; H = r.height;
+      cv.width = W * DPR; cv.height = H * DPR;
+      ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+      return prev;
+    }
+
+    function resize() {
+      var r = cv.getBoundingClientRect();
+      if (!r.width || !r.height) return;
+      syncCanvasSize(r);
+      var keep = storyEdges.length > 0;
+      build();
+      if (keep) api.link();
+      if (REDUCED) api.final();
+      else draw();   /* the size change cleared the canvas — repaint now */
+    }
+
+    /**
+     * Re-fit to a new pane size *without* rebuilding — used while the chat
+     * pane slides, which changes the canvas box every frame. A full build()
+     * there would re-scatter the nodes and restart the story, and leaving the
+     * backing store stale stretches the old bitmap into the new box.
+     * Node positions are remapped proportionally so the layout keeps its
+     * shape as the pane grows or shrinks.
+     */
+    function refit() {
+      var r = cv.getBoundingClientRect();
+      if (!r.width || !r.height || !nodes.length) return;
+      var prev = syncCanvasSize(r);
+      if (!prev.w || !prev.h) return;
+      var fx = W / prev.w, fy = H / prev.h;
+      if (fx === 1 && fy === 1) return;
+      for (var i = 0; i < nodes.length; i++) {
+        var n = nodes[i];
+        n.x *= fx; n.y *= fy;
+        n.sx *= fx; n.sy *= fy;
+      }
+      for (var c = 0; c < centers.length; c++) {
+        centers[c].x *= fx; centers[c].y *= fy;
+      }
+      /* Setting cv.width above wipes the canvas. Repaint synchronously — if we
+         waited for the next animation frame the pane would show a blank graph
+         for that frame, which reads as a flicker across the whole slide. */
+      draw();
+    }
+
+    /** Where a node wants to be now, blending scatter → home → immersed. */
+    function targetOf(n) {
+      var ct = centers[n.c];
+      var tx = n.sx + (ct.x + n.ox - n.sx) * orgE;
+      var ty = n.sy + (ct.y + n.oy - n.sy) * orgE;
+      if (imm > 0.001 && n.c === 0) {
+        var sc = SUBCENTERS[n.subc];
+        tx += (W * sc.fx + n.iox - tx) * imm;
+        ty += (H * sc.fy + n.ioy - ty) * imm;
+      }
+      return { x: tx, y: ty };
+    }
+
+    var t = 0;
+    /* Simulation heat. The drift force is scaled by this, so the layout
+       settles instead of wobbling forever: it's reheated whenever something
+       actually moves the nodes (clustering, immersing, exiting) and decays to
+       zero once they've arrived — the way a real force sim cools. */
+    var heat = 1;
+    function reheat() { heat = 1; }
+
+    function step() {
+      t += 0.004;
+      var prevOrg = organize, prevImm = imm;
+      organize += (organizeT - organize) * 0.035;
+      orgE = organize < 0 ? 0 : organize > 1 ? 1 : organize;
+      imm += (immT - imm) * 0.055;
+      /* Linear, not eased: an eased sweep never quite reaches 1, so the loop
+         would hang open. A person draws a lasso at a fairly even speed
+         anyway. ~0.9s at 60fps. */
+      if (lassoP < lassoT) lassoP = Math.min(lassoT, lassoP + 0.032);
+      else lassoP += (lassoT - lassoP) * 0.2;
+      if (lasso2P < lasso2T) lasso2P = Math.min(lasso2T, lasso2P + 0.032);
+      else lasso2P += (lasso2T - lasso2P) * 0.2;
+
+      /* Still transitioning? Hold full heat. Otherwise cool toward stillness. */
+      if (Math.abs(organize - prevOrg) > 0.0004 || Math.abs(imm - prevImm) > 0.0004) heat = 1;
+      else heat *= 0.972;
+      if (heat < 0.002) heat = 0;
+
+      for (var i = 0; i < nodes.length; i++) {
+        var n = nodes[i];
+        var tg = targetOf(n);
+        n.vx += (tg.x - n.x) * 0.0016;
+        n.vy += (tg.y - n.y) * 0.0016;
+        if (heat > 0) {
+          n.vx += Math.cos(t * 1.7 + i * 0.7) * 0.008 * heat;
+          n.vy += Math.sin(t * 1.4 + i * 0.9) * 0.008 * heat;
+        }
+        n.vx *= 0.94; n.vy *= 0.94;
+        n.x += n.vx; n.y += n.vy;
+        n.glow += (n.glowT - n.glow) * 0.08;
+        n.pop *= 0.95;
+      }
+      for (var e = 0; e < storyEdges.length; e++) {
+        var se = storyEdges[e];
+        se.p += (se.t - se.p) * 0.06;
+      }
+    }
+
+    /* Extras are excluded: they sit at the cluster centre until immersion, so
+       including them would distort the overview hull and its label position. */
+    function clusterPts(c) {
+      var pts = [];
+      for (var q = 0; q < nodes.length; q++) if (nodes[q].c === c && !nodes[q].extra) pts.push(nodes[q]);
+      return pts;
+    }
+
+    function subPts(sc) {
+      var pts = [];
+      for (var q = 0; q < nodes.length; q++) if (nodes[q].c === 0 && nodes[q].subc === sc) pts.push(nodes[q]);
+      return pts;
+    }
+
+    function centroidOf(pts) {
+      var cx = 0, cy = 0;
+      pts.forEach(function (p) { cx += p.x; cy += p.y; });
+      return { x: cx / pts.length, y: cy / pts.length };
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, W, H);
+      /* Hulls and labels only appear once the topics have actually formed. */
+      var labelA = Math.max(0, Math.min(1, (orgE - 0.75) / 0.25));
+      var unit = unitOf();
+      /* Non-focused clusters recede while immersed. */
+      /* Fully hidden, not faded: at a few percent the other topics read as
+         noise and compete with the sub-topics you immersed into. The exit
+         bar is what communicates "there's more outside this". */
+      var away = 1 - imm;
+
+      /* Topic hulls: a real padded, smoothed convex hull over each cluster's
+         live node positions — the same construction the plugin uses. Fill 0.1
+         / stroke 0.35 at 1.5px match pixiRenderer's drawHulls. */
+      function paintHull(pts, hue, alpha) {
+        if (alpha < 0.02 || pts.length < 3) return;
+        var path = topicRegion(pts, unit * 0.055);
+        if (!path) return;
+        ctx.globalAlpha = alpha;
+        ctx.beginPath();
+        ctx.moveTo(path[0].x, path[0].y);
+        for (var s = 1; s < path.length; s++) ctx.lineTo(path[s].x, path[s].y);
+        ctx.closePath();
+        ctx.fillStyle = hslaH(hue, Math.round(70 * orgE), PALETTE.nodeL, PALETTE.hullA);
+        ctx.fill();
+        ctx.strokeStyle = hslaH(hue, Math.round(70 * orgE), PALETTE.nodeL, 0.35);
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+      }
+
+      for (var c = 0; c < K; c++) {
+        paintHull(clusterPts(c), HUES[c], labelA * (c === 0 ? 1 - imm : away));
+      }
+      /* Immersed: Memory resolves into its own finer topic regions. */
+      if (imm > 0.02) {
+        for (var sc = 0; sc < 3; sc++) {
+          paintHull(subPts(sc), HUES[0] + SUBHUE_OFFSETS[sc], imm);
+        }
+      }
+
+      for (var e = 0; e < edges.length; e++) {
+        var a = nodes[edges[e][0]], b = nodes[edges[e][1]], intra = edges[e][2];
+        ctx.globalAlpha = (a.c === 0 && b.c === 0) ? 1 : away;
+        ctx.beginPath();
+        ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y);
+        ctx.strokeStyle = intra ? hsla(a.c, PALETTE.edgeL, PALETTE.edgeA) : PALETTE.bridge;
+        ctx.lineWidth = intra ? 0.8 : 0.6;
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+      }
+
+      /* New connections drawn by the accepted edit. */
+      for (var s2 = 0; s2 < storyEdges.length; s2++) {
+        var se = storyEdges[s2];
+        if (se.p < 0.01) continue;
+        var na = nodes[se.a], nb = nodes[se.b];
+        ctx.beginPath();
+        ctx.moveTo(na.x, na.y);
+        ctx.lineTo(na.x + (nb.x - na.x) * se.p, na.y + (nb.y - na.y) * se.p);
+        ctx.strokeStyle = ACCENT;
+        ctx.globalAlpha = 0.9 * (1 - imm);
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+      }
+
+      /* Lasso: a dashed accent loop sweeping around the Memory cluster. */
+      if (lassoP > 0.01 && imm < 0.9) {
+        var mem = centroidOf(clusterPts(0));
+        strokeLasso(mem, unit * 0.16, unit * 0.14, lassoP, lassoJit, (1 - imm) * 0.9);
+      }
+
+      /* Sub-topic lasso, only meaningful once immersed. */
+      if (lasso2P > 0.01 && imm > 0.5) {
+        var sub = centroidOf(subPts(0));
+        strokeLasso(sub, unit * 0.135, unit * 0.12, lasso2P, lasso2Jit, imm * 0.9);
+      }
+
+      for (var i = 0; i < nodes.length; i++) {
+        var n = nodes[i];
+        var r = (n.hub ? n.r * 1.9 : n.r) + n.pop * 5;
+        /* Extras only exist inside the immersion; everything outside the
+           focused cluster fades out entirely. */
+        var fade = n.extra ? imm : (n.c === 0 ? 1 : away);
+        if (n.glow > 0.02) {
+          ctx.beginPath();
+          ctx.arc(n.x, n.y, r + 3.5 + n.glow * 2.5, 0, Math.PI * 2);
+          ctx.strokeStyle = ACCENT;
+          ctx.globalAlpha = 0.85 * n.glow * fade;
+          ctx.lineWidth = 1.5;
+          ctx.stroke();
+        }
+        ctx.globalAlpha = fade;
+        ctx.beginPath();
+        ctx.arc(n.x, n.y, r, 0, Math.PI * 2);
+        ctx.fillStyle = n.hub
+          ? hsla(n.c, PALETTE.hubL, PALETTE.hubA)
+          : hsla(n.c, PALETTE.nodeL, PALETTE.nodeA);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+      }
+
+      /* Labels ride their cluster's live centroid. */
+      for (var c2 = 0; c2 < K; c2++) {
+        var ce = centroidOf(clusterPts(c2));
+        drawLabelPill(LABELS[c2][0] + ' · ' + LABELS[c2][1], ce.x, ce.y - unit * 0.135,
+          HUES[c2], labelA * (c2 === 0 ? 1 - imm : away));
+      }
+      if (imm > 0.02) {
+        for (var sc2 = 0; sc2 < 3; sc2++) {
+          var ce2 = centroidOf(subPts(sc2));
+          drawLabelPill(SUBLABELS[sc2][0] + ' · ' + SUBLABELS[sc2][1], ce2.x, ce2.y - unit * 0.11,
+            HUES[0] + SUBHUE_OFFSETS[sc2], imm);
+        }
+      }
+    }
+
+    var api = {
+      organize: function () { organizeT = 1; reheat(); },
+      immerse: function () { immT = 1; reheat(); },
+      /* Ease back out to the overview — the Exit immersion beat. */
+      unimmerse: function () {
+        immT = 0; lassoT = 0; lassoP = 0; lasso2T = 0; lasso2P = 0;
+        reheat();
+      },
+      /* Sweep the sub-topic lasso (used while immersed). */
+      lasso2: function () { lasso2T = 1; },
+      /* The selection was consumed by Open in chat — retire the stroke. */
+      clearLasso2: function () { lasso2T = 0; lasso2P = 0; },
+      /* Jump straight into the settled immersion (phase-jump catch-up).
+         Nodes are placed at their targets, so the layout is already at rest. */
+      immerseSnap: function () {
+        imm = 1; immT = 1;
+        for (var i = 0; i < nodes.length; i++) {
+          var n = nodes[i], tg = targetOf(n);
+          n.x = tg.x; n.y = tg.y; n.vx = 0; n.vy = 0;
+        }
+        heat = 0;
+      },
+      lasso: function () { lassoT = 1; },
+      /* Point on a lasso's stroke at progress `p` (0–1), in canvas
+         coordinates — lets the simulated cursor ride the loop as it draws. */
+      lassoPoint: function (which, p) {
+        var c, rx, ry, jit;
+        /* Radii must match strokeLasso's, or the cursor drifts off the line. */
+        if (which === 2) {
+          c = centroidOf(subPts(0)); rx = unitOf() * 0.135; ry = unitOf() * 0.12; jit = lasso2Jit;
+        } else {
+          c = centroidOf(clusterPts(0)); rx = unitOf() * 0.16; ry = unitOf() * 0.14; jit = lassoJit;
+        }
+        var a = jit.start + Math.PI * 2 * p;
+        var w = jitterAt(jit, a);
+        return { x: c.x + Math.cos(a) * rx * (1 + w), y: c.y + Math.sin(a) * ry * (1 + w) };
+      },
+      glow: function (id, amt) {
+        var n = nodes[named[id]];
+        if (n) n.glowT = amt;
+        if (REDUCED) { if (n) n.glow = amt; draw(); }
+      },
+      pop: function (id) {
+        var n = nodes[named[id]];
+        if (n) n.pop = 1;
+      },
+      /* The checklist's new links to the notes it now cites. */
+      link: function () {
+        storyEdges = ['lec7', 'slides'].map(function (id) {
+          return { a: named.checklist, b: named[id], p: REDUCED ? 1 : 0, t: 1 };
+        });
+        if (REDUCED) draw();
+      },
+      reset: function () {
+        storyEdges = [];
+        organizeT = 0; organize = 0; orgE = 0;
+        immT = 0; imm = 0;
+        lassoT = 0; lassoP = 0;
+        lasso2T = 0; lasso2P = 0;
+        /* A fresh squiggle each cycle — a person wouldn't draw it identically. */
+        lassoJit = makeJitter(); lasso2Jit = makeJitter();
+        reheat();
+        for (var i = 0; i < nodes.length; i++) {
+          nodes[i].glowT = 0; nodes[i].glow = 0;
+          /* Extras stay parked at the cluster centre — they're invisible until
+             immersion, so scattering them would drag their hull around. */
+          if (nodes[i].extra) { nodes[i].sx = centers[0].x; nodes[i].sy = centers[0].y; }
+          else scatterNode(nodes[i]);
+          nodes[i].x = nodes[i].sx; nodes[i].y = nodes[i].sy;
+        }
+        if (REDUCED) draw();
+      },
+      /* Snap the clustering to done — used when jumping past phase 1. */
+      settle: function () {
+        organize = 1; orgE = 1;
+        for (var i = 0; i < nodes.length; i++) {
+          var n = nodes[i], tg = targetOf(n);
+          n.x = tg.x; n.y = tg.y; n.vx = 0; n.vy = 0;
+        }
+        heat = 0;
+      },
+      /* Reduced motion: jump straight to the organized end state. */
+      final: function () {
+        organize = 1; organizeT = 1; orgE = 1; imm = 0; immT = 0;
+        for (var i = 0; i < nodes.length; i++) {
+          var n = nodes[i], tg = targetOf(n);
+          n.x = tg.x; n.y = tg.y;
+        }
+        draw();
+      }
+    };
+
+    resize();
+    /* A window resize is a genuine layout change — rebuild for it. The pane
+       slide, by contrast, resizes the canvas with no window event, so the
+       observer refits (rescales) instead of rebuilding. The flag keeps the
+       observer from also firing a refit for the rebuild it just caused. */
+    var rebuilding = false;
+    window.addEventListener('resize', function () {
+      rebuilding = true;
+      resize();
+      requestAnimationFrame(function () { rebuilding = false; });
+    });
+    if (window.ResizeObserver) {
+      new ResizeObserver(function () { if (!rebuilding) refit(); }).observe(cv);
+    }
+    window.addEventListener('s2b-theme-change', function () {
+      readPalette();
+      readChrome();
+      if (REDUCED) draw();
+    });
+    if (!REDUCED) (function loop() { step(); draw(); requestAnimationFrame(loop); })();
+    return api;
+  })();
+
+  /* --- chat helpers --- */
+  function addMsg(html, cls) {
+    var d = document.createElement('div');
+    d.className = 'msg' + (cls ? ' ' + cls : '');
+    d.innerHTML = html;
+    chat.appendChild(d);
+    if (REDUCED) d.classList.add('on');
+    else requestAnimationFrame(function () { requestAnimationFrame(function () { d.classList.add('on'); }); });
+    return d;
+  }
+  var ANSWER = 'From your 9 Consolidation notes: it happens in deep sleep, in three stages — here’s your section:';
+  var ANSWER2 = 'Good addition — sleep is when consolidation runs. Updated:';
+  var SUGG =
+    '<div class="sugg"><div class="sugg-head"><span>Exam checklist</span><span>suggested addition</span></div>' +
+    '<div class="sugg-line ctx">## Consolidation</div>' +
+    '<div class="sugg-line">Three stages — lecture 7.</div>' +
+    '<div class="sugg-line">Hippocampus diagram — slide 18.</div>' +
+    '<div class="sugg-acts"><button class="sugg-btn acc" type="button">✓ Accept</button><button class="sugg-btn" type="button">Dismiss</button></div></div>';
+  var SUGG_EXTRA = 'Sleep before the exam — recall needs it.';
+
+  /* Append the complementary note's line to the pending suggestion card. */
+  function extendSugg() {
+    var sugg = chat.querySelector('.sugg');
+    if (!sugg) return;
+    var line = document.createElement('div');
+    line.className = 'sugg-line';
+    line.textContent = SUGG_EXTRA;
+    sugg.insertBefore(line, sugg.querySelector('.sugg-acts'));
+  }
+
+  function setStep(n) {
+    stepEls.forEach(function (li) {
+      li.classList.toggle('on', n === 'all' || li.dataset.step === String(n));
+    });
+  }
+
+  /* --- storyline --- */
+  var timers = [];
+
+  /* Stream an answer the way a real one arrives: a few words at a time, with a
+     cursor that clears on the last chunk. Chunk sizes and delays vary so it
+     doesn't read as a mechanical typewriter. */
+  function streamAnswer(text, done) {
+    var el = addMsg('<div class="msg-ai"><span class="ai-txt"></span><span class="ai-caret"></span></div>');
+    var txt = el.querySelector('.ai-txt');
+    var caret = el.querySelector('.ai-caret');
+    if (REDUCED) {
+      txt.textContent = text;
+      caret.remove();
+      if (done) done();
+      return el;
+    }
+    var words = text.split(' ');
+    var i = 0;
+    (function chunk() {
+      if (i >= words.length) {
+        caret.remove();
+        if (done) done();
+        return;
+      }
+      /* 1–3 words per tick, the way tokens actually clump. */
+      var take = 1 + Math.floor(Math.random() * 3);
+      txt.textContent += (txt.textContent ? ' ' : '') + words.slice(i, i + take).join(' ');
+      i += take;
+      timers.push(setTimeout(chunk, 55 + Math.random() * 85));
+    })();
+    return el;
+  }
+
+  /* `hidePh` is hidden for the whole run, not just at the first keystroke —
+     otherwise a mistimed reset can leave the placeholder sitting under the
+     typed text. */
+  /* Tracks the in-flight typing run. Submitting bumps this so any keystroke
+     still queued is abandoned instead of rewriting the field after it's been
+     cleared — which would leave the sent text sitting in the composer. */
+  var typeRun = 0;
+  function stopTyping() { typeRun++; }
+
+  function typeInto(el, text, speed, hidePh) {
+    if (hidePh) hidePh.classList.add('off');
+    var run = ++typeRun;
+    var i = 0;
+    (function tick() {
+      if (run !== typeRun || i > text.length) return;
+      el.textContent = text.slice(0, i);
+      if (hidePh) hidePh.classList.add('off');
+      i++;
+      timers.push(setTimeout(tick, speed + Math.random() * speed * 0.7));
     })();
   }
 
-  var started = false;
-  var io = new IntersectionObserver(function (en) {
-    en.forEach(function (e) { if (e.isIntersecting && !started) { started = true; run(); } });
-  }, { threshold: 0.35 });
-  io.observe(document.getElementById('search'));
-})();
+  function reset() {
+    timers.forEach(clearTimeout); timers = [];
+    stopTyping();
+    chat.innerHTML = '';
+    typed.textContent = '';
+    ph.classList.remove('off');
+    search.classList.remove('on');
+    vsBox.classList.remove('glow');
+    vsEmpty.classList.remove('on');
+    vsSem.textContent = '⇥ semantic: off';
+    vsSem.classList.remove('pulse', 'on');
+    vsAtt.classList.remove('pulse', 'on');
+    vsSum.classList.remove('on');
+    vAttach.classList.remove('on');
+    vGchip.hidden = true;
+    vLchip.hidden = true;
+    resEls.forEach(function (r) { r.classList.remove('on', 'picked'); });
+    vcTyped.textContent = '';
+    vcPh.classList.remove('off');
+    vcCaret.hidden = true;
+    vSend.classList.remove('pressed');
+    vSel.classList.remove('on');
+    vSel2.classList.remove('on');
+    vExit.classList.remove('on');
+    vImm.classList.remove('pressed');
+    vOpen.classList.remove('pressed');
+    vExitBtn.classList.remove('pressed');
+    cursorHide();
+    setPane('graph', true);
+    graph.reset();
+    setStep(0);
+  }
 
+  /* The graph-notes context chip + question posting to the transcript. */
+  function postFirstExchange() {
+    addMsg('<div class="msg-atts"><span class="msg-att">◉ 9 graph notes</span></div>');
+    addMsg('<div class="msg-user">' + QUERY_CHAT + '</div>');
+  }
+
+  /* Where each phase begins on the timeline. Jumping to a phase replays from
+     that offset, after fast-forwarding whatever earlier phases established. */
+  var PHASE_AT = { 1: 0, 2: 4200, 3: 11500, 4: 22100 };
+
+  /* Put the world into the state phase `n` expects to start from, without
+     any of the animation that normally gets it there. */
+  function catchUpTo(n) {
+    if (n <= 1) return;
+    /* topics already formed */
+    graph.organize();
+    graph.settle();
+    if (n >= 3) {
+      /* the lasso + immerse happened */
+      graph.immerseSnap();
+      vExit.classList.add('on');
+    }
+    if (n >= 4) {
+      /* the first exchange happened: draft pending, still immersed */
+      setPane('chat', true);
+      postFirstExchange();
+      addMsg('<div class="act">Read 9 notes in <em>Consolidation</em></div>');
+      addMsg('<div class="msg-ai">' + ANSWER + '</div>');
+      addMsg(SUGG);
+    }
+  }
+
+  /** Run the storyline, optionally starting at phase `from` (default 1). */
+  function run(from) {
+    var start = PHASE_AT[from] || 0;
+    reset();
+    catchUpTo(from || 1);
+
+    /* Schedule relative to the jump point; anything already past is dropped. */
+    function at(t, fn) {
+      if (t < start) return;
+      timers.push(setTimeout(fn, t - start));
+    }
+
+    /* 1 — the map connects itself */
+    at(400, function () { setStep(1); graph.organize(); });
+
+    /* 2 — lasso the Memory topic and immerse into it */
+    at(4200, function () {
+      setStep(2);
+      cursorAt(graph.lassoPoint(1, 0).x - 3, graph.lassoPoint(1, 0).y - 2, true);
+      cursorShow();
+    });
+    at(4400, function () {
+      graph.lasso();
+      cursorTraceLasso(function (p) { return graph.lassoPoint(1, p); }, 560);
+    });
+    at(5400, function () { vSel.classList.add('on'); });
+    at(5900, function () { cursorToEl(vImm); });
+    at(6500, function () { vImm.classList.add('pressed'); cursorClick(); });
+    at(7000, function () {
+      vSel.classList.remove('on');
+      graph.immerse();
+      cursorHide();
+    });
+    at(8200, function () { vExit.classList.add('on'); });
+
+    /* 3 — select a sub-topic inside the immersion and open it in the chat.
+       The lassoed notes reach the composer as the ambient graph-selection
+       chip, exactly how the real bar's "Open in Chat" works. */
+    at(11600, function () {
+      setStep(3);
+      vExit.classList.remove('on');   /* make room for the selection bar */
+      cursorAt(graph.lassoPoint(2, 0).x - 3, graph.lassoPoint(2, 0).y - 2, true);
+      cursorShow();
+    });
+    at(11800, function () {
+      graph.lasso2();
+      cursorTraceLasso(function (p) { return graph.lassoPoint(2, p); }, 560);
+    });
+    at(12700, function () { vSel2.classList.add('on'); });
+    at(13100, function () { cursorToEl(vOpen); });
+    at(13700, function () { vOpen.classList.add('pressed'); cursorClick(); });
+    at(14200, function () {
+      vOpen.classList.remove('pressed');
+      vSel2.classList.remove('on');
+      graph.clearLasso2();
+      cursorHide();
+      vExit.classList.add('on');
+      setPane('chat');
+      vGchip.hidden = false;
+      vAttach.classList.add('on');
+    });
+    /* Wait out the pane's slide-in (0.55s) before typing, so the question
+       isn't being written into a composer that's still moving. */
+    at(15100, function () {
+      vcCaret.hidden = false;
+      typeInto(vcTyped, QUERY_CHAT, 32, vcPh);
+    });
+    at(16900, function () {
+      vSend.classList.add('pressed');
+      stopTyping();
+      vcCaret.hidden = true;
+      vcTyped.textContent = '';
+      vcPh.classList.remove('off');
+      vAttach.classList.remove('on');
+      vGchip.hidden = true;
+      postFirstExchange();
+    });
+    at(17200, function () { vSend.classList.remove('pressed'); });
+    at(17700, function () { addMsg('<div class="act">Read 9 notes in <em>Consolidation</em></div>'); });
+    /* The draft card follows the stream rather than racing a fixed delay —
+       streaming duration varies with the random chunking. */
+    at(18600, function () {
+      streamAnswer(ANSWER, function () {
+        timers.push(setTimeout(function () { addMsg(SUGG); }, 450));
+      });
+    });
+
+    /* 4 — a piece is missing: search by meaning, attach, the agent folds it
+       into the pending draft. One approval at the very end. */
+    at(22400, function () { setStep(4); search.classList.add('on'); });
+    at(22900, function () { typeInto(typed, QUERY_SEARCH, 42, ph); });
+    at(24200, function () { vsEmpty.classList.add('on'); });
+    at(25000, function () { vsSem.classList.add('pulse'); });
+    at(25800, function () {
+      vsSem.classList.remove('pulse');
+      vsSem.classList.add('on');
+      vsSem.textContent = '⇥ semantic: on';
+      vsBox.classList.add('glow');
+    });
+    at(26400, function () {
+      vsBox.classList.remove('glow');
+      vsEmpty.classList.remove('on');
+      resEls.forEach(function (r, k) {
+        timers.push(setTimeout(function () { r.classList.add('on'); }, k * 150));
+      });
+    });
+    at(27800, function () {
+      resEls[0].classList.add('picked');
+      timers.push(setTimeout(function () { vsSum.classList.add('on'); }, 380));
+    });
+    at(28600, function () { vsAtt.classList.add('pulse'); });
+    at(29400, function () {
+      vsAtt.classList.remove('pulse');
+      vsAtt.classList.add('on');
+    });
+    at(29800, function () {
+      search.classList.remove('on');
+      vLchip.hidden = false;
+      vAttach.classList.add('on');
+    });
+    /* Typed in the composer, like the first question — not conjured. */
+    at(30300, function () {
+      vcCaret.hidden = false;
+      typeInto(vcTyped, QUERY_CHAT2, 34, vcPh);
+    });
+    at(31500, function () {
+      vSend.classList.add('pressed');
+      stopTyping();
+      vcCaret.hidden = true;
+      vcTyped.textContent = '';
+      vcPh.classList.remove('off');
+      vAttach.classList.remove('on');
+      vLchip.hidden = true;
+      addMsg('<div class="msg-atts"><span class="msg-att">📝 Lecture 8 — Sleep.md</span></div>');
+      addMsg('<div class="msg-user">' + QUERY_CHAT2 + '</div>');
+    });
+    at(31800, function () { vSend.classList.remove('pressed'); });
+    at(32300, function () { addMsg('<div class="act">Read <em>Lecture 8 — Sleep</em></div>'); });
+    at(33100, function () {
+      /* The revised draft line lands only once the answer has finished
+         streaming, so the two don't arrive on top of each other. */
+      streamAnswer(ANSWER2, extendSugg);
+    });
+    at(34600, function () {
+      var btn = chat.querySelector('.sugg-btn.acc');
+      if (btn) btn.classList.add('pressed');
+    });
+    at(35200, function () {
+      var sugg = chat.querySelector('.sugg');
+      if (sugg) sugg.closest('.msg').remove();
+      addMsg('<div class="act ok">✓ Added to <em>Exam checklist</em> — approved by you</div>');
+    });
+
+    /* Finale: exit the immersion, back to the overview — where the approved
+       note draws its new connections. Closes the loop where it began. */
+    at(35600, function () { cursorToEl(vExitBtn); cursorShow(); });
+    at(36100, function () { vExitBtn.classList.add('pressed'); cursorClick(); });
+    at(36600, function () {
+      vExitBtn.classList.remove('pressed');
+      vExit.classList.remove('on');
+      setPane('graph');
+      graph.unimmerse();
+      cursorHide();
+    });
+    at(37800, function () {
+      graph.glow('checklist', 1); graph.pop('checklist');
+      graph.glow('lec7', 0.6); graph.glow('lec8', 0.6);
+      graph.link();
+    });
+    at(41700, function () { run(1); });
+  }
+
+  /* Reduced motion: no storyline — show the finished, organized state. */
+  function renderFinal() {
+    setStep('all');
+    setPane('chat', true);
+    graph.final();
+    postFirstExchange();
+    addMsg('<div class="act">Read 9 notes in <em>Consolidation</em></div>');
+    addMsg('<div class="msg-ai">' + ANSWER + '</div>');
+    addMsg('<div class="msg-atts"><span class="msg-att">📝 Lecture 8 — Sleep.md</span></div>');
+    addMsg('<div class="msg-user">' + QUERY_CHAT2 + '</div>');
+    addMsg('<div class="act">Read <em>Lecture 8 — Sleep</em></div>');
+    addMsg('<div class="act ok">✓ Added to <em>Exam checklist</em> — approved by you</div>');
+    typed.textContent = QUERY_SEARCH;
+    ph.classList.add('off');
+    vsSem.textContent = '⇥ semantic: on';
+    vsSem.classList.add('on');
+    resEls.forEach(function (r) { r.classList.add('on'); });
+    ['lec7', 'lec8', 'checklist'].forEach(function (id) { graph.glow(id, 1); });
+    graph.link();
+  }
+
+  var started = false;
+
+  /* Clicking a card jumps the storyline to that phase. Under reduced motion
+     the demo is a still, so the cards do nothing but stay focusable. */
+  stepEls.forEach(function (li) {
+    var btn = li.querySelector('button');
+    if (!btn) return;
+    btn.addEventListener('click', function () {
+      if (REDUCED) return;
+      /* Mark started so the IntersectionObserver, if it hasn't fired yet,
+         doesn't restart the loop from phase 1 on top of this jump. */
+      started = true;
+      run(Number(li.dataset.step));
+    });
+  });
+
+  var io = new IntersectionObserver(function (en) {
+    en.forEach(function (e) {
+      if (e.isIntersecting && !started) {
+        started = true;
+        if (REDUCED) renderFinal();
+        else run(1);
+      }
+    });
+  }, { threshold: 0.25 });
+  io.observe(vault);
+})();
 /* ---------- privacy toggle ---------- */
 (function () {
   var btns = document.querySelectorAll('.tg');
@@ -278,14 +1392,14 @@ var REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
       barrier.className = 'barrier blocked';
       barrier.textContent = '✕ nothing crosses this line';
       cloud.style.opacity = '.4';
-      cloud.textContent = '☁ cloud provider — idle';
+      cloud.textContent = '☁ cloud AI — idle';
       local.style.borderColor = 'var(--accent)';
       local.style.background = 'var(--accent-soft)';
     } else {
       barrier.className = 'barrier allowed';
       barrier.textContent = '→ only notes you allow cross';
       cloud.style.opacity = '1';
-      cloud.textContent = '☁ cloud provider — 12 of 1,284 notes allowed';
+      cloud.textContent = '☁ cloud AI — 12 of 1,284 notes allowed';
       local.style.borderColor = 'var(--border-2)';
       local.style.background = 'var(--surface)';
     }
@@ -294,42 +1408,3 @@ var REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   set('local');
 })();
 
-/* ---------- agent loop ---------- */
-(function () {
-  var body = document.getElementById('agentBody');
-  if (!body) return;
-  var STEPS = [
-    { html: '<div class="msg-user">add a note summarising how retrieval works here</div>' },
-    { html: '<div class="tool"><span class="tk">memory</span> Agent/Memories <span class="ok">prefers concise notes</span></div>' },
-    { html: '<div class="tool"><span class="tk">search_notes</span> "retrieval pipeline" <span class="ok">3 hits</span></div>' },
-    { html: '<div class="tool"><span class="tk">read_content</span> RAG pipeline.md <span class="ok">read</span></div>' },
-    { html: '<div class="msg-ai">Found three related notes. Drafting a summary and staging it for review.</div>' },
-    { html: '<div class="diff"><div class="diff-head"><span>Retrieval overview.md</span><span style="color:var(--green)">+4</span></div>'
-          + '<div class="diff-line ctx">## How retrieval works</div>'
-          + '<div class="diff-line add">+ Queries run through lexical and vector search in parallel.</div>'
-          + '<div class="diff-line add">+ Results are fused with reciprocal rank fusion.</div>'
-          + '<div class="diff-line add">+ Recently opened notes get a small boost.</div>'
-          + '<div class="diff-acts"><button class="diff-btn acc">✓ Accept</button><button class="diff-btn">Reject</button></div></div>' }
-  ];
-
-  function render(instant) {
-    body.innerHTML = '';
-    STEPS.forEach(function (s, i) {
-      var d = document.createElement('div');
-      d.className = 'msg';
-      d.innerHTML = s.html;
-      body.appendChild(d);
-      if (instant) { d.classList.add('on'); return; }
-      setTimeout(function(){ d.classList.add('on'); }, 500 + i * 1050);
-    });
-    if (!instant) setTimeout(function(){ render(false); }, 500 + STEPS.length*1050 + 4200);
-  }
-
-  var started = false;
-  var io = new IntersectionObserver(function (en) {
-    en.forEach(function (e) {
-      if (e.isIntersecting && !started) { started = true; render(REDUCED); }
-    });
-  }, { threshold: 0.3 });
-  io.observe(document.getElementById('agent'));
-})();

@@ -72,7 +72,7 @@ const starLabel =
 		<link rel="preconnect" href="https://fonts.googleapis.com" />
 		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 		<link
-			href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"
+			href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
 			rel="stylesheet"
 		/>
 
@@ -126,9 +126,8 @@ const starLabel =
 	      <span class="brand-name">Smart Second Brain</span>
 	    </a>
 	    <div class="nav-links">
-	      <a href="#search">Search</a>
+	      <a href="#demo">How it works</a>
 	      <a href="#privacy">Privacy</a>
-	      <a href="#agent">Agent</a>
 	      <a href="#start">Install</a>
 	<a href="/start/installation/">Docs</a>
 	    </div>
@@ -208,7 +207,7 @@ const starLabel =
 	      <a class="btn btn-ghost" href={`https://github.com/${REPO}`}>View source</a>
 	    </div>
 	    <p class="hero-note reveal" style="--d:2420ms">
-	      search + graph work with no AI provider
+	      Search and the graph work with no AI setup at all.
 	      <br />
 	      <span class="hero-alt">
 	        No Obsidian yet? <a href={COMMUNITY_URL}>View in the community catalogue</a>
@@ -216,82 +215,179 @@ const starLabel =
 	    </p>
 	  </div>
 
-	  <div class="graph-cap"><span class="lm">●</span> live: Leiden community detection over a sample vault</div>
+	  <div class="graph-cap"><span class="lm">●</span> a sample vault, sorting itself into topics</div>
 	</header>
 
-	<section id="search">
+	<section id="demo">
 	  <div class="wrap">
 	    <div class="sec-head">
-	      <div class="eyebrow">// search</div>
-	      <h2>Finds the note you meant</h2>
-	      <p>Full-text, fuzzy, and tag-aware out of the box. Watch it rank as the query builds.</p>
+	      <div class="eyebrow">How it works</div>
+	      <h2>Connect your notes, then build on them</h2>
+	      <p>
+	        One evening of exam prep — the map connects what you wrote, the agent
+	        builds on a topic, and search by meaning pulls in the note you forgot
+	        you had.
+	      </p>
 	    </div>
 
-	    <div class="demo">
-	      <div class="demo-bar"><i></i><i></i><i></i><span>vault — smart search</span></div>
-	      <div class="demo-body">
-	        <div class="demo-tree" id="tree"></div>
-	        <div class="demo-main">
-	          <div class="search-box">
-	            <span style="color:var(--text-3)">⌕</span>
-	            <span id="typed"></span><span class="cursor"></span>
+	    {/* A mock of the real workspace: file list, smart graph pane, chat pane,
+	        with the search modal floating over it — the same three views the
+	        plugin adds to Obsidian. The storyline is driven by landing.js. */}
+	    <div class="vault" id="vault">
+	      <div class="vault-bar"><i></i><i></i><i></i><span>My vault — Obsidian</span></div>
+	      {/* data-pane drives the mobile one-pane-at-a-time view; the storyline
+	          moves it graph → chat → graph. Ignored on desktop. */}
+	      <div class="vault-body" data-pane="graph">
+	        <div class="v-main">
+	          <div class="v-graph">
+	            <canvas id="miniGraph" aria-hidden="true"></canvas>
+	            {/* Simulated cursor — shown only for the graph's direct
+	                manipulations (lassoing, pressing the bar buttons), where
+	                seeing the hand is what makes them read as gestures. */}
+	            <span class="v-cursor" id="vCursor" aria-hidden="true">
+	              <svg viewBox="0 0 24 24"><path d="M5 2.5 19 12.2l-6.1.7-3.2 5.6z"/></svg>
+	            </span>
+	            {/* Selection and exit bars live inside the graph pane so they
+	                centre on the graph, not on the whole window. */}
+	            <div class="v-selbar" id="vSel" aria-hidden="true">
+	              <strong>24</strong> notes selected
+	              <span class="v-selact" id="vImm">Immerse</span>
+	              <span class="v-selact">Collapse</span>
+	            </div>
+	            {/* Second selection, inside the immersion: a sub-topic lassoed
+	                and handed to the chat — the real bar's "Open in Chat". */}
+	            <div class="v-selbar" id="vSel2" aria-hidden="true">
+	              <strong>9</strong> notes selected
+	              <span class="v-selact" id="vOpen">Open in chat</span>
+	            </div>
+	            {/* Shown while immersed — the way back out of the topic. */}
+	            <div class="v-selbar v-exitbar" id="vExit" aria-hidden="true">
+	              Immersed in <strong>Memory</strong>
+	              <span class="v-selact" id="vExitBtn">Exit</span>
+	            </div>
 	          </div>
-	          <div class="search-hint">tab toggles semantic · #tag and /folder filter · ⌥↵ asks the agent</div>
-	          <div class="results" id="results"></div>
+	        </div>
+
+	        <aside class="v-chat">
+	          <div class="v-chat-body" id="vChat"></div>
+	          <div class="v-composer">
+	            {/* Context chips: the ambient graph selection (immersed topic)
+	                and, later, a note attached from search (⌥A) — the same
+	                shapes the real composer uses. */}
+	            <div class="v-attach" id="vAttach" aria-hidden="true">
+	              <span class="v-att-chip v-att-graph" id="vGchip" hidden>◉ 9 graph notes</span>
+	              <span class="v-att-chip" id="vLchip" hidden>Lecture 8 — Sleep.md</span>
+	            </div>
+	            {/* Questions are typed here, in the composer — not in the search
+	                modal, which is for finding notes. */}
+	            <div class="v-comp-input">
+	              <span id="vcTyped"></span><span class="v-caret" id="vcCaret" hidden></span>
+	              <span class="v-comp-ph" id="vcPh">Type a message…</span>
+	            </div>
+	            <div class="v-comp-row">
+	              <span class="v-plus">+</span>
+	              <span class="v-agent">S2B Agent</span>
+	              {/* Deliberately generic — naming a provider here would read as
+	                  an endorsement, and the point is that you pick your own. */}
+	              <span class="v-model">Your model</span>
+	              <span class="v-send" id="vSend" aria-hidden="true">
+	                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+	              </span>
+	            </div>
+	          </div>
+	        </aside>
+
+	        <div class="v-search" id="vSearch">
+	          <div class="vs-box">
+	            <div class="vs-input">
+	              {/* Lucide `search`, matching the real modal: circle upper-left,
+	                  handle running down to the lower-right. */}
+	              <svg class="vs-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+	                <circle cx="10" cy="10" r="7"></circle>
+	                <path d="m15 15 6 6"></path>
+	              </svg>
+	              <span id="vsTyped"></span><span class="vs-caret"></span>
+	              <span class="vs-ph" id="vsPh">Search notes with #tag or /folder…</span>
+	            </div>
+	            <div class="vs-empty" id="vsEmpty">No notes contain those words.</div>
+	            {/* Selection summary, as the real modal shows above the results. */}
+	            <div class="vs-sum" id="vsSum" aria-hidden="true">1 selected: Lecture 8 — Sleep</div>
+	            <div class="vs-results" id="vsResults"></div>
+	            <div class="vs-hints">
+	              <span>↵ Open note</span>
+	              <span id="vsAtt" class="vs-att">⌥A Attach to chat</span>
+	              <span id="vsSem" class="vs-sem">⇥ semantic: off</span>
+	              <span>esc Close</span>
+	            </div>
+	          </div>
 	        </div>
 	      </div>
 	    </div>
+
+	    {/* Each card jumps the storyline to its phase — landing.js binds them. */}
+	    <ol class="steps" id="steps">
+	      <li data-step="1">
+	        <button type="button">
+	          <strong>It connects itself</strong>
+	          <span>No folders, no tagging. Related notes find each other and group into topics, named for what they're about.</span>
+	        </button>
+	      </li>
+	      <li data-step="2">
+	        <button type="button">
+	          <strong>Immerse into a topic</strong>
+	          <span>Circle any cluster to dive in — and watch it break apart into the finer topics hiding inside.</span>
+	        </button>
+	      </li>
+	      <li data-step="3">
+	        <button type="button">
+	          <strong>Build on it with the agent</strong>
+	          <span>Circle a sub-topic and open it in the chat. The agent reads those notes and drafts — nothing is saved without your OK.</span>
+	        </button>
+	      </li>
+	      <li data-step="4">
+	        <button type="button">
+	          <strong>Search what you meant</strong>
+	          <span>Missing a piece? Search by meaning finds the note you forgot you had — attach it, and the agent folds it in.</span>
+	        </button>
+	      </li>
+	    </ol>
 	  </div>
 	</section>
 
 	<section id="privacy" style="background:var(--bg-2); border-block:1px solid var(--border);">
 	  <div class="wrap privacy-wrap">
 	    <div>
-	      <div class="eyebrow">// privacy</div>
+	      <div class="eyebrow">Privacy</div>
 	      <h2 style="text-align:left">Your notes stay yours</h2>
 	      <p style="color:var(--text-2); font-size:16.5px; margin:12px 0 22px;">
-	        Run a local model and nothing ever leaves your machine. Use a cloud one and you decide, per note, what it may see.
+	        Run the AI on your own computer and nothing ever leaves it. Use a cloud one and you decide, note by note, what it may see.
 	      </p>
 	      <div class="toggle-row">
-	        <button class="tg on" data-mode="local">Local model</button>
-	        <button class="tg" data-mode="cloud">Cloud provider</button>
+	        <button class="tg on" data-mode="local">On my computer</button>
+	        <button class="tg" data-mode="cloud">Cloud AI</button>
 	      </div>
 	      <ul class="privacy-list">
-	        <li><span class="ck">✓</span><span><strong>Untrusted by default.</strong> Cloud providers start blocked from every private note.</span></li>
-	        <li><span class="ck">✓</span><span><strong>Private-by-default vaults.</strong> Only notes you allow can be read, embedded, or sent.</span></li>
-	        <li><span class="ck">✓</span><span><strong>Staged edits.</strong> Nothing is written to disk until you approve the diff.</span></li>
+	        <li><span class="ck">✓</span><span><strong>Untrusted until you say so.</strong> Cloud AI starts blocked from every private note.</span></li>
+	        <li><span class="ck">✓</span><span><strong>Private by default.</strong> Only notes you allow can be read or sent anywhere.</span></li>
+	        <li><span class="ck">✓</span><span><strong>Nothing written without you.</strong> Every edit waits for your approval first.</span></li>
 	      </ul>
 	    </div>
 
 	    <div class="flow">
 	      <div class="machine">
-	        <span class="machine-label">your machine</span>
+	        <span class="machine-label">your computer</span>
 	        <div class="node-row">
-	          <div class="fnode"><strong>vault</strong><span>1,284 notes</span></div>
+	          <div class="fnode"><strong>your notes</strong><span>1,284 of them</span></div>
 	          <span class="arrow">→</span>
-	          <div class="fnode"><strong>plugin</strong><span>index + agent</span></div>
+	          <div class="fnode"><strong>the plugin</strong><span>reads &amp; organizes</span></div>
 	          <span class="arrow" id="arr2">→</span>
-	          <div class="fnode" id="localModel"><strong>ollama</strong><span>local model</span></div>
+	          <div class="fnode" id="localModel"><strong>local AI</strong><span>runs right here</span></div>
 	        </div>
 	      </div>
 	      <div class="cloud-zone">
 	        <div class="barrier blocked" id="barrier">✕ nothing crosses this line</div>
-	        <div class="cloud-node" id="cloudNode" style="opacity:.4">☁ cloud provider — idle</div>
+	        <div class="cloud-node" id="cloudNode" style="opacity:.4">☁ cloud AI — idle</div>
 	      </div>
-	    </div>
-	  </div>
-	</section>
-
-	<section id="agent">
-	  <div class="wrap">
-	    <div class="sec-head">
-	      <div class="eyebrow">// agent</div>
-	      <h2>It reads before it answers</h2>
-	      <p>Searches your vault, opens what's relevant, and stages every edit for review.</p>
-	    </div>
-	    <div class="agent">
-	      <div class="agent-head"><span style="color:var(--accent)">●</span> chat — project notes</div>
-	      <div class="agent-body" id="agentBody"></div>
 	    </div>
 	  </div>
 	</section>
@@ -299,18 +395,18 @@ const starLabel =
 	<section style="background:var(--bg-2); border-block:1px solid var(--border);">
 	  <div class="wrap">
 	    <div class="sec-head">
-	      <div class="eyebrow">// everything else</div>
+	      <div class="eyebrow">And then some</div>
 	      <h2>Built for daily use</h2>
 	    </div>
 	    <div class="fgrid">
-	      <div class="fcell"><span class="k">memory</span><h4>It remembers you</h4><p>Opt in and the agent keeps its own notes on your preferences and projects — as real notes in your vault, yours to read and edit.</p></div>
-	      <div class="fcell"><span class="k">skills</span><h4>Teach it your tools</h4><p>Bundled skills for exploring your vault, editing notes and searching the web. Write your own as plain notes.</p></div>
-	      <div class="fcell"><span class="k">mcp</span><h4>Connect anything</h4><p>Attach MCP servers to give the agent any external tool or data source.</p></div>
-	      <div class="fcell"><span class="k">.chat</span><h4>Branching history</h4><p>Chats are files in your vault. Editing a message forks a branch instead of erasing the old one.</p></div>
-	      <div class="fcell"><span class="k">vision</span><h4>Images and PDFs</h4><p>Send them to models that support it — capability is detected per model, not assumed.</p></div>
-	      <div class="fcell"><span class="k">subagents</span><h4>Delegate</h4><p>Hand focused work to another agent with its own model, tools and clean context.</p></div>
-	      <div class="fcell"><span class="k">parallel</span><h4>Many chats at once</h4><p>Run several conversations simultaneously — none blocks another.</p></div>
-	      <div class="fcell"><span class="k">pointers</span><h4>Never goes stale</h4><p>Memory stores links to where facts live in your vault, not copies — so answers reflect your current notes.</p></div>
+	      <div class="fcell"><span class="k">Memory</span><h4>It remembers you</h4><p>Opt in and the agent keeps its own notes on your preferences and projects — as real notes in your vault, yours to read and edit.</p></div>
+	      <div class="fcell"><span class="k">Skills</span><h4>Teach it new tricks</h4><p>It comes knowing how to explore your vault, edit notes and search the web. Teach it more by writing plain notes.</p></div>
+	      <div class="fcell"><span class="k">Connections</span><h4>Bring your other tools</h4><p>Hook up outside tools and sources (via MCP) when you want the agent to reach beyond your vault.</p></div>
+	      <div class="fcell"><span class="k">History</span><h4>Chats are notes too</h4><p>Every conversation is saved in your vault. Rewrite a question and the old thread stays — nothing is lost.</p></div>
+	      <div class="fcell"><span class="k">Images &amp; PDFs</span><h4>Beyond plain text</h4><p>Share them in chat with an AI that can look at them — the plugin checks what each one supports.</p></div>
+	      <div class="fcell"><span class="k">Helpers</span><h4>Delegate the busywork</h4><p>Hand a focused job to a second agent with its own instructions, and keep your conversation on topic.</p></div>
+	      <div class="fcell"><span class="k">Parallel</span><h4>Many chats at once</h4><p>Run several conversations side by side — none of them blocks another.</p></div>
+	      <div class="fcell"><span class="k">Always current</span><h4>Never goes stale</h4><p>Memory keeps track of where things live in your vault instead of copying them — so answers follow your latest edits.</p></div>
 	    </div>
 	  </div>
 	</section>
@@ -318,9 +414,9 @@ const starLabel =
 	<section id="start">
 	  <div class="wrap">
 	    <div class="sec-head">
-	      <div class="eyebrow">// providers</div>
-	      <h2>Bring your own model</h2>
-	      <p>Six provider types. Multiple instances each. Switch per chat.</p>
+	      <div class="eyebrow">Providers</div>
+	      <h2>Bring the AI you trust</h2>
+	      <p>Six kinds of provider — two run entirely on your own computer. Switch per chat.</p>
 	    </div>
 	    <div class="provs">
 	      <div class="prov">OpenAI</div>
@@ -358,7 +454,7 @@ const starLabel =
 
 	<footer>
 	  <div class="wrap foot">
-	    <p class="mono">MIT · Leo310 &amp; nicobrauchtgit</p>
+	    <p>MIT · Leo310 &amp; nicobrauchtgit</p>
 	    <div>
 	      <a href={`https://github.com/${REPO}`}>GitHub</a>
 	      <a href={`https://github.com/${REPO}/issues`}>Issues</a>
