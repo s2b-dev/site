@@ -47,15 +47,29 @@ export default defineConfig({
 						{ label: 'Connecting a provider', slug: 'start/providers' },
 					],
 				},
+				// Mirrors the plugin's own settings tabs: Search, Agents, Graph.
+				// Everything an agent *has* (skills, integrations, memory, MCP)
+				// nests under Agents, the way the Agent editor's sections do.
+				// Search and Graph are single-page groups rather than bare links:
+				// a top-level `link` renders as a loose item and gets absorbed
+				// into the group above it, which buried them under "Getting
+				// started". A one-item group keeps the three features parallel.
 				{
-					label: 'Features',
+					label: 'Search',
+					items: [{ label: 'Search', slug: 'search' }],
+				},
+				{
+					label: 'Graph',
+					items: [{ label: 'Graph', slug: 'graph' }],
+				},
+				{
+					label: 'Agents',
 					items: [
-						{ label: 'Search', slug: 'features/search' },
-						{ label: 'Smart Graph', slug: 'features/graph' },
-						{ label: 'Agent chat', slug: 'features/agent' },
-						{ label: 'Skills', slug: 'features/skills' },
-						{ label: 'MCP servers', slug: 'features/mcp' },
-						{ label: 'Memory', slug: 'features/memory' },
+						{ label: 'Overview', slug: 'agents' },
+						{ label: 'Skills', slug: 'agents/skills' },
+						{ label: 'Integrations', slug: 'agents/integrations' },
+						{ label: 'Memory', slug: 'agents/memory' },
+						{ label: 'MCP servers', slug: 'agents/mcp' },
 					],
 				},
 				{

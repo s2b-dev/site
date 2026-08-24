@@ -20,7 +20,7 @@ filtering. Out of the box it renders your wikilinks.
 Open either from the command palette:
 
 - `Smart Second Brain: Search notes`
-- `Smart Second Brain: Open smart graph`
+- `Smart Second Brain: Open graph`
 
 ## Add an embedding model — semantic layer
 

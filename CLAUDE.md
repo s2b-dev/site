@@ -106,14 +106,22 @@ Two steps, and the build fails if you only do the first:
 Frontmatter requires `title` and `description`. **Quote any value containing a
 colon** — unquoted colons are a YAML syntax error and will fail the build.
 
-## Content status
+## Structure mirrors the plugin's settings
 
-Written: `start/installation`, `start/first-run`, `start/providers`,
-`privacy/model`, `help/faq`.
+The sidebar deliberately follows the plugin's own settings tabs — **Search**,
+**Agents**, **Graph** — so someone moving between the app and the docs finds
+the same three features in the same shape.
 
-Everything else is a stub carrying a "Work in progress" callout — all of
-`features/`, `internals/`, `help/troubleshooting`, and
-`privacy/trusted-providers`.
+Everything an agent *has* nests under `agents/`, the way the Agent editor's
+sections do: skills, integrations, memory, MCP servers. Subagents are a section
+of `agents/index.md` rather than their own page — the topic is short and reads
+naturally next to multi-agent setup.
+
+`search` and `graph` are single-page groups in `astro.config.mjs`, not bare
+`link` entries. A top-level `link` renders as a loose item and gets absorbed
+into the group above it, which buried both under "Getting started".
+
+All pages are written. There are no remaining stubs.
 
 ## This site is the documentation
 
@@ -131,10 +139,18 @@ in the plugin repo, checked out alongside this one at `../smart-second-brain`:
 | --- | --- |
 | Providers | `src/providers/index.ts` → `PROVIDER_TEMPLATES` |
 | Built-in tools | `src/types/plugin.ts` → `BUILT_IN_TOOL_IDS` |
-| Bundled skills | `src/skills/defaults/*/SKILL.md` |
+| Bundled core skills | `src/skills/defaults/*/SKILL.md` |
+| Integration skills | `src/skills/integrations/*/SKILL.md`, and `CURATED_PLUGIN_INTEGRATIONS` in `src/agent/integrations/pluginIntegrations.ts` |
 | Skill/memory folder paths | `src/utils/agentPaths.ts` |
+| Command names | `src/main.ts` → `addCommand` calls |
+| Settings/editor section names | `src/views/settings/Settings.svelte`, `src/components/modal/AgentEditorModal.svelte` |
 | Platform support, min app version | `manifest.json` |
-| Architecture | `CLAUDE.md` (the plugin's own, under "Architecture") |
+| Architecture | `AGENTS.md` (the plugin's own, under "Architecture") |
+
+Note that the plugin's `AGENTS.md` prose can itself drift — it currently names
+the core skills `vault`/`notes`/`web`/`update`, while the actual directories are
+`edit-notes`, `explore-vault`, `manage-skills`, and `web`. **Prefer the source
+files over any prose description of them**, including the plugin's own.
 
 If that checkout is not accessible in the current session, say so rather than
 writing from memory — a wrong feature list on a public site is worse than a
@@ -146,8 +162,11 @@ Enumerable facts are **not** generated at build time; they are refreshed by
 hand before each release. Work through this list against the sources above:
 
 - [ ] `start/providers` — provider table matches `PROVIDER_TEMPLATES`
-- [ ] `features/skills` — bundled skills match `src/skills/defaults/`
-- [ ] `features/agent` — tool list matches `BUILT_IN_TOOL_IDS`
+- [ ] `agents/skills` — bundled core skills match `src/skills/defaults/`
+- [ ] `agents/integrations` — curated list matches
+      `CURATED_PLUGIN_INTEGRATIONS`, and the seeded-at-startup core-plugin
+      integrations match `src/skills/integrations/`
+- [ ] `agents/index` — tool list matches `BUILT_IN_TOOL_IDS`
 - [ ] `start/installation` — `minAppVersion` and platform support match
       `manifest.json`
 - [ ] Landing page (`src/pages/index.astro`) — feature grid and provider list
