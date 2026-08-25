@@ -379,6 +379,18 @@
   }
   /* Older messages scroll off the top rather than stretching the pane. */
   .v-chat-body > .msg { flex-shrink: 0; }
+  /* Open up the turn boundaries. Within a turn the base 6px holds things
+     together — attachments sit tight against their user bubble, and the
+     agent's activity lines stay grouped with its answer. Between turns the
+     gap doubles: after a user bubble (the agent starts replying) and before
+     the next user turn, which begins with its attachment chips when there
+     are any. */
+  .msg:has(.msg-user) + .msg:has(.act),
+  .msg:has(.msg-user) + .msg:has(.msg-ai),
+  .msg:has(.msg-ai) + .msg:has(.msg-atts),
+  .msg:has(.msg-ai) + .msg:has(.msg-user),
+  .msg:has(.act) + .msg:has(.msg-atts),
+  .msg:has(.act) + .msg:has(.msg-user) { margin-top: 12px; }
   .act em, .msg-ai em { font-style: normal; font-weight: 500; }
 
   /* Composer, matching the real `.chat-input-wrapper`: a 22px pill defined by
