@@ -555,6 +555,12 @@ var REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
       ctx.textBaseline = 'middle';
       var w = ctx.measureText(text).width + 20;
       var h = 19;
+      /* Keep the pill inside the canvas. Memory sits at the top of the ring,
+         so its label would otherwise be clipped by the top edge; the same
+         clamp catches wide pills near the left/right edges. */
+      var m = 3;
+      x = Math.max(w / 2 + m, Math.min(W - w / 2 - m, x));
+      y = Math.max(h / 2 + m, Math.min(H - h / 2 - m, y));
       roundRect(x - w / 2, y - h / 2, w, h, h / 2);
       ctx.fillStyle = 'rgba(' + FOG + ', 0.85)';
       ctx.fill();
