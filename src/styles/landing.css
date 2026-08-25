@@ -447,12 +447,14 @@
   .msg.on { opacity: 1; transform: none; }
   /* The bubble sits inside a .msg wrapper, so align-self does nothing here —
      the wrapper is the flex child. Right-align via the wrapper instead.
-     Radius and max-width match the real bubble (`rounded-t-lg rounded-bl`,
-     `max-w-[80%]`): the bottom-RIGHT corner is square, forming the tail. */
+     max-width matches the real bubble (`max-w-[80%]`). The radius is
+     deliberately softer than the plugin's (`rounded-t-lg rounded-bl-lg`,
+     which squares the bottom-right into a tail) — all four corners are
+     rounded here, a landing-page choice. */
   .msg:has(.msg-user), .msg:has(.msg-atts) { display: flex; justify-content: flex-end; }
   .msg-user {
     max-width: 80%; padding: 8px 14px;
-    border-radius: 8px 8px 0 8px;
+    border-radius: 8px;
     background: var(--ob-bubble-bg); color: var(--ob-bubble-text); font-size: 14px;
   }
   /* Attachments are their own bubbles ABOVE the message — not part of it —
