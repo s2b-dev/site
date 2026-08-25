@@ -1140,7 +1140,7 @@ var REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   /* Where each phase begins on the timeline. Jumping to a phase replays from
      that offset, after fast-forwarding whatever earlier phases established. */
-  var PHASE_AT = { 1: 0, 2: 4200, 3: 11500, 4: 22100 };
+  var PHASE_AT = { 1: 0, 2: 4200, 3: 10400, 4: 19900 };
 
   /* Put the world into the state phase `n` expects to start from, without
      any of the animation that normally gets it there. */
@@ -1202,20 +1202,20 @@ var REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     /* 3 — select a sub-topic inside the immersion and open it in the chat.
        The lassoed notes reach the composer as the ambient graph-selection
        chip, exactly how the real bar's "Open in Chat" works. */
-    at(11600, function () {
+    at(10500, function () {
       setStep(3);
       vExit.classList.remove('on');   /* make room for the selection bar */
       cursorAt(graph.lassoPoint(2, 0).x - 3, graph.lassoPoint(2, 0).y - 2, true);
       cursorShow();
     });
-    at(11800, function () {
+    at(10700, function () {
       graph.lasso2();
       cursorTraceLasso(function (p) { return graph.lassoPoint(2, p); }, 560);
     });
-    at(12700, function () { vSel2.classList.add('on'); });
-    at(13100, function () { cursorToEl(vOpen); });
-    at(13700, function () { vOpen.classList.add('pressed'); cursorClick(); });
-    at(14200, function () {
+    at(11600, function () { vSel2.classList.add('on'); });
+    at(12000, function () { cursorToEl(vOpen); });
+    at(12600, function () { vOpen.classList.add('pressed'); cursorClick(); });
+    at(13100, function () {
       vOpen.classList.remove('pressed');
       vSel2.classList.remove('on');
       graph.clearLasso2();
@@ -1227,11 +1227,11 @@ var REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     });
     /* Wait out the pane's slide-in (0.55s) before typing, so the question
        isn't being written into a composer that's still moving. */
-    at(15100, function () {
+    at(14000, function () {
       vcCaret.hidden = false;
       typeInto(vcTyped, QUERY_CHAT, 32, vcPh);
     });
-    at(16900, function () {
+    at(15800, function () {
       vSend.classList.add('pressed');
       stopTyping();
       vcCaret.hidden = true;
@@ -1241,11 +1241,11 @@ var REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
       vGchip.hidden = true;
       postFirstExchange();
     });
-    at(17200, function () { vSend.classList.remove('pressed'); });
-    at(17700, function () { addMsg('<div class="act">Read 9 notes in <em>Consolidation</em></div>'); });
+    at(16100, function () { vSend.classList.remove('pressed'); });
+    at(16600, function () { addMsg('<div class="act">Read 9 notes in <em>Consolidation</em></div>'); });
     /* The draft card follows the stream rather than racing a fixed delay —
        streaming duration varies with the random chunking. */
-    at(18600, function () {
+    at(17500, function () {
       streamAnswer(ANSWER, function () {
         timers.push(setTimeout(function () { addMsg(SUGG); }, 450));
       });
@@ -1253,43 +1253,43 @@ var REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
     /* 4 — a piece is missing: search by meaning, attach, the agent folds it
        into the pending draft. One approval at the very end. */
-    at(22400, function () { setStep(4); search.classList.add('on'); });
-    at(22900, function () { typeInto(typed, QUERY_SEARCH, 42, ph); });
-    at(24200, function () { vsEmpty.classList.add('on'); });
-    at(25000, function () { vsSem.classList.add('pulse'); });
-    at(25800, function () {
+    at(20200, function () { setStep(4); search.classList.add('on'); });
+    at(20700, function () { typeInto(typed, QUERY_SEARCH, 42, ph); });
+    at(22000, function () { vsEmpty.classList.add('on'); });
+    at(22800, function () { vsSem.classList.add('pulse'); });
+    at(23600, function () {
       vsSem.classList.remove('pulse');
       vsSem.classList.add('on');
       vsSem.textContent = '⇥ semantic: on';
       vsBox.classList.add('glow');
     });
-    at(26400, function () {
+    at(24200, function () {
       vsBox.classList.remove('glow');
       vsEmpty.classList.remove('on');
       resEls.forEach(function (r, k) {
         timers.push(setTimeout(function () { r.classList.add('on'); }, k * 150));
       });
     });
-    at(27800, function () {
+    at(25600, function () {
       resEls[0].classList.add('picked');
       timers.push(setTimeout(function () { vsSum.classList.add('on'); }, 380));
     });
-    at(28600, function () { vsAtt.classList.add('pulse'); });
-    at(29400, function () {
+    at(26400, function () { vsAtt.classList.add('pulse'); });
+    at(27200, function () {
       vsAtt.classList.remove('pulse');
       vsAtt.classList.add('on');
     });
-    at(29800, function () {
+    at(27600, function () {
       search.classList.remove('on');
       vLchip.hidden = false;
       vAttach.classList.add('on');
     });
     /* Typed in the composer, like the first question — not conjured. */
-    at(30300, function () {
+    at(28100, function () {
       vcCaret.hidden = false;
       typeInto(vcTyped, QUERY_CHAT2, 34, vcPh);
     });
-    at(31500, function () {
+    at(29300, function () {
       vSend.classList.add('pressed');
       stopTyping();
       vcCaret.hidden = true;
@@ -1300,18 +1300,18 @@ var REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
       addMsg('<div class="msg-atts"><span class="msg-att">📝 Lecture 8 — Sleep.md</span></div>');
       addMsg('<div class="msg-user">' + QUERY_CHAT2 + '</div>');
     });
-    at(31800, function () { vSend.classList.remove('pressed'); });
-    at(32300, function () { addMsg('<div class="act">Read <em>Lecture 8 — Sleep</em></div>'); });
-    at(33100, function () {
+    at(29600, function () { vSend.classList.remove('pressed'); });
+    at(30100, function () { addMsg('<div class="act">Read <em>Lecture 8 — Sleep</em></div>'); });
+    at(30900, function () {
       /* The revised draft line lands only once the answer has finished
          streaming, so the two don't arrive on top of each other. */
       streamAnswer(ANSWER2, extendSugg);
     });
-    at(34600, function () {
+    at(32400, function () {
       var btn = chat.querySelector('.sugg-btn.acc');
       if (btn) btn.classList.add('pressed');
     });
-    at(35200, function () {
+    at(33000, function () {
       var sugg = chat.querySelector('.sugg');
       if (sugg) sugg.closest('.msg').remove();
       addMsg('<div class="act ok">✓ Added to <em>Exam checklist</em> — approved by you</div>');
@@ -1319,21 +1319,21 @@ var REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
     /* Finale: exit the immersion, back to the overview — where the approved
        note draws its new connections. Closes the loop where it began. */
-    at(35600, function () { cursorToEl(vExitBtn); cursorShow(); });
-    at(36100, function () { vExitBtn.classList.add('pressed'); cursorClick(); });
-    at(36600, function () {
+    at(33400, function () { cursorToEl(vExitBtn); cursorShow(); });
+    at(33900, function () { vExitBtn.classList.add('pressed'); cursorClick(); });
+    at(34400, function () {
       vExitBtn.classList.remove('pressed');
       vExit.classList.remove('on');
       setPane('graph');
       graph.unimmerse();
       cursorHide();
     });
-    at(37800, function () {
+    at(35600, function () {
       graph.glow('checklist', 1); graph.pop('checklist');
       graph.glow('lec7', 0.6); graph.glow('lec8', 0.6);
       graph.link();
     });
-    at(41700, function () { run(1); });
+    at(38700, function () { run(1); });
   }
 
   /* Reduced motion: no storyline — show the finished, organized state. */
