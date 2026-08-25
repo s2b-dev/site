@@ -301,6 +301,58 @@ const starLabel =
 	              <span class="v-selact" id="vExitBtn">Exit</span>
 	            </div>
 	          </div>
+
+	          {/* The note the agent proposed an edit to. Clicking the path in the
+	              pending-changes bar opens it here — the real bar's link calls
+	              revealAndScroll(), which jumps to the first changed line, where
+	              the inline diff decorations live. The note is the PRIMARY review
+	              surface in the plugin; the in-chat diff is the secondary one, for
+	              when you don't want to leave the chat. Takes over the main pane,
+	              the way opening a note in Obsidian would. */}
+	          <div class="v-note" id="vNote" aria-hidden="true">
+	            <div class="v-note-tab">
+	              <span class="v-note-name">Exam checklist</span>
+	              <span class="v-note-close" id="vNoteClose" aria-hidden="true">×</span>
+	            </div>
+	            <div class="v-note-body">
+	              <h1>Exam checklist</h1>
+	              <p>Revision plan for the memory paper. Work through each topic and
+	                tick it off once you can explain it without the notes.</p>
+	              <h2>Encoding</h2>
+	              <p>Levels of processing — lecture 4.</p>
+	              <h2>Consolidation</h2>
+	              {/* Group 1: the staged addition under Consolidation. The action
+	                  bar sits above its first changed line, as the CM6 block
+	                  widget does. */}
+	              <div class="v-diff-group" id="vDiff1">
+	                <div class="v-diff-bar">
+	                  <span class="v-diff-label">Pending change</span>
+	                  <span class="v-diff-pos">1/2</span>
+	                  <button class="v-diff-btn v-diff-acc" type="button">Accept</button>
+	                  <button class="v-diff-btn v-diff-rej" type="button">Reject</button>
+	                </div>
+	                <div class="v-diff-detail">
+	                  <span class="v-diff-add">Three stages — lecture 7.</span>
+	                  <br /><span class="v-diff-add">Hippocampus diagram — slide 18.</span>
+	                </div>
+	              </div>
+	              <h2>Sleep</h2>
+	              {/* Group 2: the note found by semantic search, folded into the
+	                  same staged change. Approving one group and not the other is
+	                  the per-hunk control the bar's counter refers to. */}
+	              <div class="v-diff-group" id="vDiff2">
+	                <div class="v-diff-bar">
+	                  <span class="v-diff-label">Pending change</span>
+	                  <span class="v-diff-pos">2/2</span>
+	                  <button class="v-diff-btn v-diff-acc" type="button">Accept</button>
+	                  <button class="v-diff-btn v-diff-rej" type="button">Reject</button>
+	                </div>
+	                <div class="v-diff-detail">
+	                  <span class="v-diff-add">Sleep before the exam — recall needs it.</span>
+	                </div>
+	              </div>
+	            </div>
+	          </div>
 	        </div>
 
 	        <aside class="v-chat">

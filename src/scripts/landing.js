@@ -243,6 +243,9 @@ var REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
      needs something to catch the tap that closes it. */
   var vDismiss = document.getElementById('vDismiss');
   var vPlus = document.getElementById('vPlus');
+  /* The note view that opens over the graph for the in-note diff review. */
+  var vNote = document.getElementById('vNote');
+  var vNoteClose = document.getElementById('vNoteClose');
   /* The same modal serves search and the vault picker; on mobile the story
      reaches it through the + button, so its placeholder switches to the
      picker's — the real one reads exactly this. */
@@ -1078,7 +1081,11 @@ var REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   var ANSWER2 = 'Good addition — sleep is when consolidation runs. Updated:';
   /* The staged edit, shaped like the real PendingChangesBar: a summary row
      ("1 update pending" + Accept All / Reject All) over a collapsible entry
-     carrying the change type and the note it touches. */
+     carrying the change type and the note it touches. The entry shows no
+     in-chat diff — the path is a link, and clicking it opens the note with
+     the inline diff decorations, the way the real bar's revealAndScroll()
+     does. The note is the plugin's primary review surface; the in-chat diff
+     is its secondary one, and the demo shows the primary. */
   var SUGG =
     '<div class="pcb">' +
     '<div class="pcb-sum"><div class="pcb-sum-l">' +
@@ -1097,14 +1104,13 @@ var REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     '<span class="pcb-chev" aria-hidden="true">▸</span>' +
     '</div></div>' +
     '<div class="pcb-list">' +
-    '<div class="pcb-entry"><span class="pcb-badge">Update</span>' +
-    '<span class="pcb-path">Exam checklist</span></div>' +
-    '<div class="pcb-diff">' +
-    '<div class="pcb-line pcb-ctx">## Consolidation</div>' +
-    '<div class="pcb-line"><span class="pcb-add">Three stages — lecture 7.</span></div>' +
-    '<div class="pcb-line"><span class="pcb-add">Hippocampus diagram — slide 18.</span></div>' +
+    '<div class="pcb-entry">' +
+    /* The real entry's preview-toggle chevron — the in-chat diff exists
+       behind it, the demo just routes the review through the note instead. */
+    '<span class="pcb-tgl" aria-hidden="true">▸</span>' +
+    '<span class="pcb-badge">Update</span>' +
+    '<a class="pcb-path" id="vNoteLink">Exam checklist</a>' +
     '</div></div></div>';
-  var SUGG_EXTRA = 'Sleep before the exam — recall needs it.';
 
   /* Mount the staged edit above the composer — where the real bar lives — and
      open it a beat later. The real bar always arrives collapsed, so the
@@ -1129,18 +1135,15 @@ var REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     timers.push(setTimeout(function () { pcb.classList.add('open'); }, 600));
   }
 
-  /* Append the complementary note's line to the pending draft — the second
-     question folds into the SAME staged change, not a new one. */
-  function extendSugg() {
-    var diff = pending.querySelector('.pcb-diff');
-    if (!diff) return;
-    var line = document.createElement('div');
-    line.className = 'pcb-line';
-    var add = document.createElement('span');
-    add.className = 'pcb-add';
-    add.textContent = SUGG_EXTRA;
-    line.appendChild(add);
-    diff.appendChild(line);
+  /* The second question folds into the SAME staged change, not a new one.
+     With the diff living in the note, the bar acknowledges the update with a
+     brief accent pulse — the count stays "1 update pending" because it counts
+     entries, not lines, exactly as the real summary would. */
+  function pulseSugg() {
+    var pcb = pending.querySelector('.pcb');
+    if (!pcb) return;
+    pcb.classList.add('pulse');
+    timers.push(setTimeout(function () { pcb.classList.remove('pulse'); }, 1200));
   }
 
   function setStep(n) {
@@ -1213,6 +1216,11 @@ var REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     ph.classList.remove('off');
     ph.textContent = PH_SEARCH;
     vPlus.classList.remove('pressed');
+    /* Close the note view and re-arm its diff groups for the next pass. */
+    vNote.classList.remove('on');
+    vNoteClose.classList.remove('pressed');
+    vNote.querySelectorAll('.v-diff-group').forEach(function (g) { g.classList.remove('done'); });
+    vNote.querySelectorAll('.v-diff-btn').forEach(function (b) { b.classList.remove('pressed'); });
     search.classList.remove('on');
     vsBox.classList.remove('glow');
     vsEmpty.classList.remove('on');
@@ -1435,37 +1443,71 @@ var REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     at(29600, function () { vSend.classList.remove('pressed'); });
     at(30100, function () { addMsg('<div class="act">Read <em>Lecture 8 — Sleep</em></div>'); });
     at(30900, function () {
-      /* The revised draft line lands only once the answer has finished
-         streaming, so the two don't arrive on top of each other. */
-      streamAnswer(ANSWER2, extendSugg);
+      /* The bar pulses only once the answer has finished streaming, so the
+         two acknowledgements don't arrive on top of each other. */
+      streamAnswer(ANSWER2, pulseSugg);
     });
-    at(32400, function () {
-      var btn = pending.querySelector('.pcb-accept');
-      if (btn) btn.classList.add('pressed');
+
+    /* Review in the note itself: clicking the bar's path opens the note over
+       the graph, scrolled to the pending change — revealAndScroll(), as the
+       real link does. Each group carries its own Accept, so the two additions
+       are approved individually: per-hunk control is the point of this beat. */
+    at(32600, function () {
+      var link = document.getElementById('vNoteLink');
+      if (link) link.classList.add('pressed');
     });
-    at(33000, function () {
-      /* Accepted: the bar clears, because there is nothing left pending. */
+    at(32900, function () {
+      var link = document.getElementById('vNoteLink');
+      if (link) link.classList.remove('pressed');
+      /* The note replaces the GRAPH only — the chat stays open beside it, so
+         the bar you clicked and the diff you're reviewing are both visible.
+         On mobile that means showing the main pane (where the note lives);
+         the panes are one-at-a-time there regardless. */
+      vNote.classList.add('on');
+      if (isMobileDemo()) setPane('graph');
+    });
+    at(34000, function () {
+      var b = vNote.querySelector('#vDiff1 .v-diff-acc');
+      if (b) b.classList.add('pressed');
+    });
+    at(34350, function () {
+      var g = document.getElementById('vDiff1');
+      if (g) g.classList.add('done');
+    });
+    at(35100, function () {
+      var b = vNote.querySelector('#vDiff2 .v-diff-acc');
+      if (b) b.classList.add('pressed');
+    });
+    at(35450, function () {
+      var g = document.getElementById('vDiff2');
+      if (g) g.classList.add('done');
+      /* Both groups resolved: the entry is settled, so the bar goes. */
       pending.innerHTML = '';
       addMsg('<div class="act ok">✓ Added to <em>Exam checklist</em> — approved by you</div>');
+    });
+    at(36200, function () { vNoteClose.classList.add('pressed'); });
+    at(36500, function () {
+      vNoteClose.classList.remove('pressed');
+      vNote.classList.remove('on');
     });
 
     /* Finale: exit the immersion, back to the overview — where the approved
        note draws its new connections. Closes the loop where it began. */
-    at(33400, function () { cursorToEl(vExitBtn); cursorShow(); });
-    at(33900, function () { vExitBtn.classList.add('pressed'); cursorClick(); });
-    at(34400, function () {
+    at(36900, function () { cursorToEl(vExitBtn); cursorShow(); });
+    at(37400, function () { vExitBtn.classList.add('pressed'); cursorClick(); });
+    at(37900, function () {
       vExitBtn.classList.remove('pressed');
       vExit.classList.remove('on');
       setPane('graph');
       graph.unimmerse();
       cursorHide();
     });
-    at(35600, function () {
+    at(39100, function () {
       graph.glow('checklist', 1); graph.pop('checklist');
       graph.glow('lec7', 0.6); graph.glow('lec8', 0.6);
       graph.link();
     });
-    at(38700, function () { run(1); });
+    at(42200, function () { run(1); });
   }
 
   /* Reduced motion: no storyline — show the finished, organized state. */
