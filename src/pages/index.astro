@@ -249,16 +249,51 @@ const starLabel =
 	            </span>
 	            {/* Selection and exit bars live inside the graph pane so they
 	                centre on the graph, not on the whole window. */}
+	            {/* Mobile only: the sheet's dismiss layer. Deliberately
+	                transparent rather than a dimming scrim — these controls are
+	                drag-and-watch, so anything that dims the canvas defeats the
+	                reason the sheet exists. */}
+	            <div class="v-sheet-dismiss" id="vDismiss" aria-hidden="true"></div>
+	            {/* Both bars are the SAME component, so they carry the same
+	                actions — only the genuinely conditional ones differ, exactly
+	                as SmartGraphView renders it:
+	                  · Zoom (`scan`), Immerse (`scan-search`), Open all
+	                    (`copy-plus`) and Clear (`x`) are always offered;
+	                  · Collapse (`chevrons-down-up`) appears only for a TOPIC
+	                    selection — folding an arbitrary lasso would surprise;
+	                  · "Open in chat" (`message-square`) appears only when no
+	                    chat is visible — the selection is ambient otherwise.
+	                So bar 1 (a topic, chat closed) shows Collapse AND Open in
+	                chat; bar 2 (a freehand lasso inside the immersion, chat
+	                still closed) drops only Collapse. */}
 	            <div class="v-selbar" id="vSel" aria-hidden="true">
-	              <strong>24</strong> notes selected
-	              <span class="v-selact" id="vImm">Immerse</span>
-	              <span class="v-selact">Collapse</span>
+	              <div class="v-selhead">
+	                <span class="v-selcount"><strong>24</strong> notes selected</span>
+	                <span class="v-selact v-selicon v-selclear" title="Clear selection"><svg class="v-selic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></span>
+	              </div>
+	              <div class="v-selacts">
+	                <span class="v-selact v-selzoom" title="Zoom to selection"><svg class="v-selic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/></svg><em>Zoom to selection</em></span>
+	                <span class="v-seldiv" aria-hidden="true"></span>
+	                <span class="v-selact"><svg class="v-selic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m7 20 5-5 5 5M7 4l5 5 5-5"/></svg><em>Collapse</em></span>
+	                <span class="v-selact" id="vImm"><svg class="v-selic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/><circle cx="12" cy="12" r="3"/><path d="m16 16-1.5-1.5"/></svg><em>Immerse</em></span>
+	                <span class="v-selact"><svg class="v-selic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><em>Open in chat</em></span>
+	                <span class="v-selact"><svg class="v-selic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v5h5M9 15h4M11 13v4"/></svg><em>Open all</em></span>
+	              </div>
 	            </div>
-	            {/* Second selection, inside the immersion: a sub-topic lassoed
-	                and handed to the chat — the real bar's "Open in Chat". */}
+	            {/* Second selection: a freehand lasso inside the immersion.
+	                Same component, minus Collapse — this is not a topic. */}
 	            <div class="v-selbar" id="vSel2" aria-hidden="true">
-	              <strong>9</strong> notes selected
-	              <span class="v-selact" id="vOpen">Open in chat</span>
+	              <div class="v-selhead">
+	                <span class="v-selcount"><strong>9</strong> notes selected</span>
+	                <span class="v-selact v-selicon v-selclear" title="Clear selection"><svg class="v-selic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></span>
+	              </div>
+	              <div class="v-selacts">
+	                <span class="v-selact v-selzoom" title="Zoom to selection"><svg class="v-selic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/></svg><em>Zoom to selection</em></span>
+	                <span class="v-seldiv" aria-hidden="true"></span>
+	                <span class="v-selact"><svg class="v-selic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/><circle cx="12" cy="12" r="3"/><path d="m16 16-1.5-1.5"/></svg><em>Immerse</em></span>
+	                <span class="v-selact" id="vOpen"><svg class="v-selic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><em>Open in chat</em></span>
+	                <span class="v-selact"><svg class="v-selic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v5h5M9 15h4M11 13v4"/></svg><em>Open all</em></span>
+	              </div>
 	            </div>
 	            {/* Shown while immersed — the way back out of the topic. */}
 	            <div class="v-selbar v-exitbar" id="vExit" aria-hidden="true">
@@ -270,28 +305,64 @@ const starLabel =
 
 	        <aside class="v-chat">
 	          <div class="v-chat-body" id="vChat"></div>
+	          {/* Staged edits mount HERE, between the messages and the composer —
+	              where the real PendingChangesBar lives (it renders inside
+	              .chat-input-container, above .chat-input-wrapper). It is a
+	              persistent bar you act on, not a message in the transcript. */}
+	          <div class="v-pending" id="vPending"></div>
 	          <div class="v-composer">
-	            {/* Context chips: the ambient graph selection (immersed topic)
-	                and, later, a note attached from search (⌥A) — the same
-	                shapes the real composer uses. */}
+	            {/* Context chips, mirroring the real ContextTray. The two carry
+	                different weight on purpose: the graph selection is a
+	                *reference* (paths the agent may choose to read), so it is
+	                hollow; the ⌥A-attached note carries its contents into the
+	                message, so it is filled. In the plugin that distinction
+	                drives token cost and what reaches an untrusted provider. */}
 	            <div class="v-attach" id="vAttach" aria-hidden="true">
-	              <span class="v-att-chip v-att-graph" id="vGchip" hidden>◉ 9 graph notes</span>
-	              <span class="v-att-chip" id="vLchip" hidden>Lecture 8 — Sleep.md</span>
+	              <span class="v-att-chip v-att-graph" id="vGchip" hidden>
+	                {/* Lucide `git-fork`, as the real graph chip uses. */}
+	                <svg class="v-att-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+	                  <circle cx="12" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><circle cx="18" cy="6" r="3"/>
+	                  <path d="M18 9v2c0 .6-.4 1-1 1H7c-.6 0-1-.4-1-1V9M12 12v3"/>
+	                </svg>
+	                9 Graph Notes
+	                {/* The split remove-all action the real summary chip carries. */}
+	                <span class="v-att-x" aria-hidden="true">×</span>
+	              </span>
+	              <span class="v-att-chip v-att-file" id="vLchip" hidden>
+	                {/* Lucide `file-text` — the attachment chip's icon. */}
+	                <svg class="v-att-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+	                  <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/>
+	                  <path d="M14 2v5h5M16 13H8M16 17H8M10 9H8"/>
+	                </svg>
+	                Lecture 8 — Sleep
+	              </span>
 	            </div>
 	            {/* Questions are typed here, in the composer — not in the search
 	                modal, which is for finding notes. */}
 	            <div class="v-comp-input">
 	              <span id="vcTyped"></span><span class="v-caret" id="vcCaret" hidden></span>
-	              <span class="v-comp-ph" id="vcPh">Type a message…</span>
+	              <span class="v-comp-ph" id="vcPh">Ask about your notes…</span>
 	            </div>
 	            <div class="v-comp-row">
-	              <span class="v-plus">+</span>
-	              <span class="v-agent">S2B Agent</span>
+	              {/* Accent-tinted circle, matching the real attach button — not
+	                  a muted glyph. Lucide `plus` at the heavier 2.5 stroke it
+	                  uses, which keeps it legible reversed out of the tint. */}
+	              <span class="v-plus" id="vPlus" aria-hidden="true">
+	                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5v14"/></svg>
+	              </span>
+	              <span class="v-agent">
+	                {/* Lucide `sparkles`, the real agent pill's icon. */}
+	                <svg class="v-agent-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+	                  <path d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z"/>
+	                  <path d="M20 2v4"/><path d="M22 4h-4"/><circle cx="4" cy="20" r="2"/>
+	                </svg>
+	                S2B Agent
+	              </span>
 	              {/* Deliberately generic — naming a provider here would read as
 	                  an endorsement, and the point is that you pick your own. */}
 	              <span class="v-model">Your model</span>
 	              <span class="v-send" id="vSend" aria-hidden="true">
-	                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+	                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
 	              </span>
 	            </div>
 	          </div>
@@ -313,11 +384,17 @@ const starLabel =
 	            {/* Selection summary, as the real modal shows above the results. */}
 	            <div class="vs-sum" id="vsSum" aria-hidden="true">1 selected: Lecture 8 — Sleep</div>
 	            <div class="vs-results" id="vsResults"></div>
+	            {/* The real modal's instructions row. Obsidian doesn't render it
+	                on mobile — there's no keyboard to hint at — so at ≤720px the
+	                key glyphs are dropped and the purely-keyboard rows go with
+	                them. The two the storyline drives (semantic, attach) stay:
+	                on a phone they're the toggle and the action you tap, so they
+	                remain real affordances rather than shortcuts. */}
 	            <div class="vs-hints">
-	              <span>↵ Open note</span>
-	              <span id="vsAtt" class="vs-att">⌥A Attach to chat</span>
-	              <span id="vsSem" class="vs-sem">⇥ semantic: off</span>
-	              <span>esc Close</span>
+	              <span class="vs-hint-key">↵ Open note</span>
+	              <span id="vsAtt" class="vs-att"><i>⌥A</i> Attach to chat</span>
+	              <span id="vsSem" class="vs-sem"><i>⇥</i> semantic: off</span>
+	              <span class="vs-hint-key">esc Close</span>
 	            </div>
 	          </div>
 	        </div>
@@ -398,14 +475,13 @@ const starLabel =
 	    </div>
 	    <div class="fgrid">
 	      <div class="fcell"><span class="k">Approval</span><h4>Nothing written without you</h4><p>Every change the agent wants to make to a note waits as a draft. You read it, then keep it or throw it away.</p></div>
-	      <div class="fcell"><span class="k">Memory</span><h4>It remembers you</h4><p>Opt in and the agent keeps its own notes on your preferences and projects — as real notes in your vault, yours to read and edit.</p></div>
+	      <div class="fcell"><span class="k">Memory</span><h4>Picks up where you left off</h4><p>Opt in and it keeps working notes on your projects — real notes in your vault, and never a stale copy of them.</p></div>
 	      <div class="fcell"><span class="k">Skills</span><h4>Teach it new tricks</h4><p>It comes knowing how to explore your vault, edit notes and search the web. Teach it more by writing plain notes.</p></div>
 	      <div class="fcell"><span class="k">Connections</span><h4>Bring your other tools</h4><p>Hook up outside tools and sources (via MCP) when you want the agent to reach beyond your vault.</p></div>
 	      <div class="fcell"><span class="k">History</span><h4>Chats are notes too</h4><p>Every conversation is saved in your vault. Rewrite a question and the old thread stays — nothing is lost.</p></div>
 	      <div class="fcell"><span class="k">Images &amp; PDFs</span><h4>Beyond plain text</h4><p>Share them in chat with an AI that can look at them — the plugin checks what each one supports.</p></div>
 	      <div class="fcell"><span class="k">Helpers</span><h4>Delegate the busywork</h4><p>Hand a focused job to a second agent with its own instructions, and keep your conversation on topic.</p></div>
 	      <div class="fcell"><span class="k">Parallel</span><h4>Many chats at once</h4><p>Run several conversations side by side — none of them blocks another.</p></div>
-	      <div class="fcell"><span class="k">Always current</span><h4>Never goes stale</h4><p>Memory keeps track of where things live in your vault instead of copying them — so answers follow your latest edits.</p></div>
 	    </div>
 	  </div>
 	</section>

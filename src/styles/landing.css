@@ -60,9 +60,20 @@
     --ob-text-3: #565656;
     --ob-accent: #8a5cf5;
     --ob-accent-soft: rgba(138, 92, 245, 0.18);
+    /* Chip/outline tint: the real context chips mix the accent ~20% into the
+       border colour, so an outline chip reads as active without a fill. */
+    --ob-accent-edge: rgba(138, 92, 245, 0.42);
     --ob-bubble-bg: rgba(138, 92, 245, 0.18);
     --ob-bubble-text: #dddddd;
     --ob-fog: 30, 30, 30;
+    /* Pending-changes bar. The plugin tints its badges at 20% of Obsidian's
+       --color-* and paints word-diffs with the fixed rgba values below
+       (src/styles.css → .s2b-diff-word-*), which are theme-independent. */
+    --red: #f87171;
+    --badge-update-bg: rgba(251, 191, 36, 0.2);
+    --badge-update-fg: #fbbf24;
+    --diff-add: rgba(0, 180, 0, 0.18);
+    --diff-del: rgba(220, 50, 47, 0.18);
   }
 
   :root[data-theme='light'] {
@@ -113,9 +124,17 @@
     --ob-text-3: #bfbfbf;
     --ob-accent: #9873f7;
     --ob-accent-soft: rgba(152, 115, 247, 0.16);
+    --ob-accent-edge: rgba(152, 115, 247, 0.5);
     --ob-bubble-bg: rgba(152, 115, 247, 0.16);
     --ob-bubble-text: #262626;
     --ob-fog: 255, 255, 255;
+    /* Badge foreground darkens for contrast on white; the tint and the two
+       diff washes stay as the plugin paints them. */
+    --red: #b91c1c;
+    --badge-update-bg: rgba(161, 98, 7, 0.18);
+    --badge-update-fg: #a16207;
+    --diff-add: rgba(0, 180, 0, 0.18);
+    --diff-del: rgba(220, 50, 47, 0.18);
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
@@ -362,99 +381,197 @@
   .v-chat-body > .msg { flex-shrink: 0; }
   .act em, .msg-ai em { font-style: normal; font-weight: 500; }
 
-  /* composer, matching the real chat: input area + agent/model row + send */
+  /* Composer, matching the real `.chat-input-wrapper`: a 22px pill defined by
+     its border, not by a contrasting slab — the fill is the page colour. The
+     radius is deliberately far rounder than a normal card (Obsidian's largest
+     token, --radius-l, is only 12px), which is what makes it read as the
+     plugin's composer rather than a generic chat box. */
+  /* 10px top, not the real wrapper's 4px: there the tray row sits at the top
+     with its own 2px offset, so text never touches the curve. Here, with
+     nothing attached, 4px put the placeholder right against the border. The
+     tray's own top margin drops to match when chips ARE shown, so the text
+     keeps its distance either way. */
   .v-composer {
-    margin: 0 12px 12px; padding: 10px 12px 9px;
-    border: 1px solid var(--ob-border); border-radius: 12px;
+    margin: 0 12px 12px; padding: 10px 12px 8px;
+    border: 1px solid var(--ob-border); border-radius: 22px;
     background: var(--ob-bg);
   }
-  /* Attached notes: one plain capsule each, no icons — deliberately low-fi. */
+  /* Context chips, mirroring the real ContextTray's compact pill.
+     `nowrap` is deliberate: the chips are revealed in the same frame that
+     setPane('chat') starts the column's 0.55s slide from 0px, so a wrapping
+     tray lays itself out against a near-zero width, breaks onto two rows, and
+     stays broken once the pane has opened. At full width the two chips need
+     ~266px of the tray's 329px, so a single row always fits — and if a longer
+     name ever overruns, `.v-att-chip`'s min-width:0 lets the label ellipsise
+     rather than push the row apart. */
   .v-attach {
-    display: flex; flex-wrap: wrap; gap: 5px;
+    display: flex; flex-wrap: nowrap; gap: 6px;
     max-height: 0; margin: 0; overflow: hidden; opacity: 0;
-    transition: max-height .3s ease, opacity .3s ease, margin .3s ease;
+    transition: max-height .3s ease, opacity .3s ease, margin-bottom .3s ease;
   }
-  .v-attach.on { max-height: 64px; opacity: 1; margin-bottom: 9px; }
+  /* No top margin: the composer's 10px padding already clears the border, so
+     adding to it would push the chips down when they appear. */
+  .v-attach.on { max-height: 64px; opacity: 1; margin: 0 0 8px; }
+  /* Restate `hidden`: the flex display below is an author rule, so it beats
+     the UA sheet's `[hidden] { display: none }` on origin — without this,
+     `hidden` chips (the Lecture 8 attachment before the search beat) render
+     the moment the tray opens. */
+  .v-att-chip[hidden] { display: none; }
+  /* `min-width: 0` + `overflow: hidden` are what let a chip be squeezed below
+     its text size — the real tray does the same. Without them the row cannot
+     absorb any overflow and the chips would spill past the composer's edge. */
   .v-att-chip {
-    padding: 3px 10px; border-radius: 999px;
-    border: 1px solid var(--ob-border); background: var(--ob-surface);
-    color: var(--ob-text-2); font-size: 11px; white-space: nowrap;
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 2px 8px; border-radius: 999px; line-height: 1.15;
+    border: 1px solid var(--ob-border); background: var(--ob-bg);
+    color: var(--ob-text); font-size: 11px; white-space: nowrap;
+    min-width: 0; overflow: hidden; text-overflow: ellipsis;
   }
-  /* The ambient graph-selection chip — accent-tinted like the real one. */
-  .v-att-graph {
-    border-color: var(--ob-accent); background: var(--ob-accent-soft);
-    color: var(--ob-text);
+  /* Inline SVG collapses to 0×0 without explicit dimensions. */
+  .v-att-ic { width: 12px; height: 12px; flex-shrink: 0; opacity: .9; }
+  /* Hollow: a *reference*. The graph selection sends paths the agent may
+     choose to read, so the chip is an outline — a pointer to something. */
+  .v-att-graph { border-color: var(--ob-accent-edge); }
+  /* Filled: an *attachment*. This one inlines the note's contents into the
+     message, so it carries pigment. The weight, not the hue, is what
+     separates the two — both are the same accent family. */
+  .v-att-file {
+    border-color: var(--ob-accent-edge); background: var(--ob-accent-soft);
+  }
+  /* The split remove-all action on the graph summary chip: divided from the
+     label by a hairline, as the real chip's bordered action button is. */
+  .v-att-x {
+    margin-left: 2px; padding-left: 6px;
+    border-left: 1px solid var(--ob-accent-edge);
+    color: var(--ob-text-3); font-size: 12px; line-height: 1;
   }
 
+  /* `min-height` must be at least one LINE-height, not an arbitrary smaller
+     value: typeInto() hides the placeholder before writing the first
+     character, so for one frame this flex row holds nothing but an empty span
+     and a 2px caret. Anything shorter than a line lets the row — and the
+     composer around it — collapse and snap back on every typing beat. */
   .v-comp-input {
-    color: var(--ob-text); font-size: 12.5px; margin-bottom: 12px;
-    min-height: 16px; display: flex; align-items: center;
+    color: var(--ob-text); font-size: 12.5px; line-height: 1.5;
+    margin-bottom: 12px;
+    min-height: 1.5em; display: flex; align-items: center;
   }
-  .v-comp-ph { color: var(--ob-text-3); }
+  /* Never wrap: the placeholder is longer than the caret it replaces, and a
+     wrapped placeholder makes the empty composer taller than the typed one —
+     the same jump from the other direction. */
+  .v-comp-ph { color: var(--ob-text-3); white-space: nowrap; }
   .v-comp-ph.off { display: none; }
   /* Belt and braces: never show the placeholder beside typed text. */
   #vcTyped:not(:empty) ~ .v-comp-ph, #vsTyped:not(:empty) ~ .vs-ph { display: none; }
+  /* Full line-height — see .vs-caret for why this is load-bearing. */
   .v-caret {
-    width: 2px; height: 14px; background: var(--ob-accent); flex-shrink: 0;
+    width: 2px; height: 1.5em; background: var(--ob-accent); flex-shrink: 0;
     animation: blink 1.1s step-end infinite;
   }
-  .v-comp-row { display: flex; align-items: center; gap: 9px; font-size: 11.5px; color: var(--ob-text-2); }
+  .v-comp-row { display: flex; align-items: center; gap: 9px; font-size: 12px; color: var(--ob-text-2); }
+  /* Accent-tinted circle, not a muted glyph — the real attach button is one of
+     the two prominent controls in this row, bookending it with send. */
   .v-plus {
-    width: 20px; height: 20px; border-radius: 50%; flex-shrink: 0;
+    width: 26px; height: 26px; border-radius: 50%; flex-shrink: 0;
     display: flex; align-items: center; justify-content: center;
-    background: var(--ob-surface); color: var(--ob-text-3); font-size: 13px;
+    background: var(--ob-accent-soft); color: var(--ob-accent);
+    transition: transform .15s ease;
   }
-  .v-model { color: var(--ob-text-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  /* The mobile story opens the vault picker through this button; same press
+     dip as the send button, and like it, no cursor — the touch dot stays
+     scoped to the graph's direct manipulations. */
+  .v-plus.pressed { transform: scale(0.85); }
+  .v-plus svg { width: 14px; height: 14px; }
+  .v-agent {
+    display: inline-flex; align-items: center; gap: 6px;
+    color: var(--ob-text); white-space: nowrap;
+  }
+  .v-agent-ic { width: 13px; height: 13px; flex-shrink: 0; }
+  /* --ob-text, matching the agent pill beside it: both are pickers, and a
+     muted model name read as a caption rather than something clickable. */
+  .v-model { color: var(--ob-text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .v-send {
-    margin-left: auto; width: 22px; height: 22px; border-radius: 50%; flex-shrink: 0;
+    margin-left: auto; width: 26px; height: 26px; border-radius: 999px; flex-shrink: 0;
     display: flex; align-items: center; justify-content: center;
     background: var(--ob-accent); color: #fff;
     transition: transform .15s ease;
   }
   .v-send.pressed { transform: scale(0.85); }
-  .v-send svg { width: 12px; height: 12px; }
+  .v-send svg { width: 14px; height: 14px; }
 
   /* Graph selection bar — the real one appears when a lasso picks a topic. */
+  /* Page fill + border and NO shadow, matching the real bar: in the plugin a
+     surface is defined by its outline, not by elevation. Radius is Obsidian's
+     `--radius-l` (12px) — the composer's 22px is a pill, not a house rounding. */
   .v-selbar {
     position: absolute; left: 50%; bottom: 16px; z-index: 4;
     transform: translate(-50%, 8px);
-    display: flex; align-items: center; gap: 12px;
-    padding: 7px 8px 7px 14px; border-radius: 10px;
-    border: 1px solid var(--ob-border); background: var(--ob-surface);
-    box-shadow: var(--modal-shadow);
+    display: flex; align-items: center; gap: 10px;
+    padding: 6px 8px 6px 14px; border-radius: 12px;
+    border: 1px solid var(--ob-border); background: var(--ob-bg);
     font-size: 12px; color: var(--ob-text-2); white-space: nowrap;
     opacity: 0; pointer-events: none;
     transition: opacity .3s ease, transform .3s ease;
   }
   .v-selbar.on { opacity: 1; transform: translate(-50%, 0); }
   .v-selbar strong { color: var(--ob-text); font-weight: 600; }
+  /* On desktop the header and the action group are just inline segments of the
+     one row; the sheet layout below re-splits them into a heading and a card. */
+  .v-selhead, .v-selacts { display: contents; }
+  /* Separates the count and its view control from the verbs acting on the
+     notes — the real bar's `.selection-divider`. */
+  .v-seldiv {
+    width: 1px; align-self: stretch; margin: 2px 0;
+    background: var(--ob-border); flex-shrink: 0;
+  }
+  .v-selic { width: 13px; height: 13px; flex-shrink: 0; }
+  /* Zoom and Clear are icon-only on the bar — affordances rather than peer
+     verbs. The sheet promotes Zoom to a labelled row (it renders ~30×26 here,
+     the easiest control to mis-tap) and moves Clear into the heading. */
+  .v-selzoom em, .v-selclear em { display: none; }
+  .v-selicon { padding: 4px; }
+  .v-selicon .v-selic { width: 14px; height: 14px; display: block; }
+  /* With `display: contents` the header's and group's children become direct
+     flex items of the bar, so `order` sequences them individually: count first,
+     then the action group in source order, with Clear pulled to the end (it
+     lives in the header markup for the sheet's benefit). */
+  .v-selcount { order: 0; flex-shrink: 0; }
+  .v-selacts > * { order: 1; }
+  .v-selclear { order: 2; }
+  .v-selact em { font-style: normal; }
+  /* The dismiss layer is mobile-only chrome. */
+  .v-sheet-dismiss { display: none; }
   /* The exit bar is plain chrome, like the selection bar — the accent is
      reserved for the graph's own selection strokes and the agent's marks. */
+  /* Quiet toolbar buttons: transparent at rest with no border, as the real bar
+     styles them. Obsidian's stock filled `button` look is its FORM treatment;
+     in a toolbar the convention is transparent controls that light up on
+     hover, and the bar's own border does the grouping. */
   .v-selact {
-    padding: 3px 10px; border-radius: 6px;
-    background: var(--ob-bg); border: 1px solid var(--ob-border);
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 3px 8px; border-radius: 6px;
+    background: transparent; border: none;
     color: var(--ob-text);
-    transition: transform .15s ease, background .15s ease, border-color .15s ease;
+    transition: transform .15s ease, background .15s ease;
   }
   /* The bar itself is neutral chrome, but the press is a state — accent it so
      the click reads clearly. */
   .v-selact.pressed {
     transform: scale(0.93);
-    background: var(--ob-accent-soft); border-color: var(--ob-accent);
+    background: var(--ob-accent-soft); color: var(--ob-accent);
   }
 
   .msg { opacity: 0; transform: translateY(6px); transition: opacity .4s ease, transform .4s ease; }
   .msg.on { opacity: 1; transform: none; }
   /* The bubble sits inside a .msg wrapper, so align-self does nothing here —
-     the wrapper is the flex child. Right-align via the wrapper instead.
-     max-width matches the real bubble (`max-w-[80%]`). The radius is
-     deliberately softer than the plugin's (`rounded-t-lg rounded-bl-lg`,
-     which squares the bottom-right into a tail) — all four corners are
-     rounded here, a landing-page choice. */
+     the wrapper is the flex child. Right-align via the wrapper instead. */
   .msg:has(.msg-user), .msg:has(.msg-atts) { display: flex; justify-content: flex-end; }
+  /* Matches the real bubble exactly: `max-w-[80%] rounded-[16px] px-4 py-2`
+     in MessageContainer.svelte — a uniform 16px radius (no squared corner)
+     over an accent fill mixed at 20%. */
   .msg-user {
-    max-width: 80%; padding: 8px 14px;
-    border-radius: 8px;
+    max-width: 80%; padding: 8px 16px;
+    border-radius: 16px;
     background: var(--ob-bubble-bg); color: var(--ob-bubble-text); font-size: 14px;
   }
   /* Attachments are their own bubbles ABOVE the message — not part of it —
@@ -464,11 +581,17 @@
     display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 4px;
     max-width: 92%;
   }
+  /* `rounded-lg px-3 py-2` on a hover-grey fill, as UserAttachmentFiles
+     renders them. File chips keep the plugin's own MIME emoji (📝 for a
+     markdown note); a graph selection is ambient context rather than a file
+     attachment, so it carries the context tray's `git-fork` icon instead. */
   .msg-att {
-    padding: 6px 11px; border-radius: 8px;
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 6px 12px; border-radius: 8px;
     background: var(--ob-surface); color: var(--ob-text-2);
     font-size: 11.5px; line-height: 1.35;
   }
+  .msg-att-ic { width: 12px; height: 12px; flex-shrink: 0; }
   /* agent activity — plain muted lines, like the real chat's tool summaries.
      Consecutive lines read as one block, so they sit tighter than bubbles. */
   .act { padding: 0 2px; font-size: 12.5px; color: var(--ob-text-2); }
@@ -482,24 +605,72 @@
     background: var(--ob-accent); animation: blink 1.1s step-end infinite;
   }
 
-  /* the staged edit the agent proposes — approved before anything is written */
-  .sugg { border: 1px solid var(--ob-border); border-radius: 10px; overflow: hidden; background: var(--ob-surface); }
-  .sugg-head {
-    display: flex; justify-content: space-between; gap: 10px;
-    padding: 7px 11px; border-bottom: 1px solid var(--ob-border);
-    font-size: 11.5px; color: var(--ob-text-3);
+  /* The staged edit the agent proposes — nothing is written until you approve.
+     Mirrors the real PendingChangesBar: it sits above the composer and shares
+     its 22px pill and page fill, so the two read as one stacked surface. */
+  .v-pending { margin: 0 12px; }
+  .v-pending:not(:empty) { margin-bottom: 8px; }
+  .pcb {
+    border: 1px solid var(--ob-border); border-radius: 22px;
+    background: var(--ob-bg); overflow: hidden;
   }
-  .sugg-line { padding: 4px 11px; font-size: 12px; background: var(--green-line); color: var(--green); }
-  .sugg-line.ctx { background: none; color: var(--ob-text-3); }
-  .sugg-acts { display: flex; gap: 7px; padding: 8px 11px; border-top: 1px solid var(--ob-border); }
-  .sugg-btn {
-    padding: 4px 12px; border-radius: 6px; font-size: 12px; font-weight: 500;
-    font-family: inherit; border: 1px solid var(--ob-border);
-    background: transparent; color: var(--ob-text-2);
+  /* Arrives with the same lift the chat messages use. */
+  .pcb { opacity: 0; transform: translateY(6px); transition: opacity .35s ease, transform .35s ease; }
+  .pcb.on { opacity: 1; transform: none; }
+
+  /* Summary row — the bar's default, collapsed state. */
+  .pcb-sum {
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    padding: 6px 10px; font-size: 11.5px; color: var(--ob-text);
+  }
+  .pcb-sum-l { display: flex; align-items: center; gap: 6px; min-width: 0; }
+  .pcb-ic { width: 13px; height: 13px; flex-shrink: 0; color: var(--ob-accent); }
+  .pcb-count { font-weight: 500; }
+  .pcb-sum-r { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+  /* Accept/Reject All: text buttons tinted green/red, no fill until hover. */
+  .pcb-act {
+    display: inline-flex; align-items: center; gap: 3px;
+    padding: 2px 8px; border-radius: 4px; border: none; background: transparent;
+    font-family: inherit; font-size: 11px; font-weight: 500;
     transition: transform .15s ease;
   }
-  .sugg-btn.acc { background: var(--green-soft); border-color: var(--green-edge); color: var(--green); }
-  .sugg-btn.acc.pressed { transform: scale(0.94); }
+  .pcb-act svg { width: 12px; height: 12px; flex-shrink: 0; }
+  .pcb-accept { color: var(--green); }
+  .pcb-reject { color: var(--red); }
+  .pcb-accept.pressed { transform: scale(0.94); }
+  /* Rotates to point down as the bar opens, like the real disclosure. */
+  .pcb-chev {
+    margin-left: 2px; color: var(--ob-text-3); font-size: 10px;
+    transition: transform .25s ease;
+  }
+  .pcb.open .pcb-chev { transform: rotate(90deg); }
+
+  /* Expanded list. Collapsed by default — the real bar always arrives closed;
+     the storyline opens it a beat later so the proposed edit is still seen. */
+  .pcb-list {
+    max-height: 0; overflow: hidden;
+    border-top: 1px solid transparent;
+    transition: max-height .4s ease, border-color .4s ease;
+  }
+  .pcb.open .pcb-list { max-height: 220px; border-top-color: var(--ob-border); }
+  .pcb-entry { display: flex; align-items: center; gap: 6px; padding: 5px 10px; font-size: 11.5px; }
+  /* Uppercase type badge, tinted at the plugin's 20%. */
+  .pcb-badge {
+    padding: 1px 5px; border-radius: 4px; flex-shrink: 0;
+    font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .03em;
+    background: var(--badge-update-bg); color: var(--badge-update-fg);
+  }
+  /* Note title, not code: UI font, and the `.md` extension is dropped — the
+     way the real bar's displayPath() renders it. */
+  .pcb-path { color: var(--ob-text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  /* Word-level diff, painted with the plugin's own washes. */
+  .pcb-diff {
+    padding: 2px 10px 8px; font-size: 11.5px; line-height: 1.5;
+    color: var(--ob-text); white-space: pre-wrap;
+  }
+  .pcb-line { padding: 1px 0; }
+  .pcb-add { background: var(--diff-add); border-radius: 2px; padding: 0 1px; }
+  .pcb-ctx { color: var(--ob-text-3); }
 
   /* search modal overlay — mirrors the plugin's popup search */
   .v-search {
@@ -519,7 +690,8 @@
   /* Glows while the semantic pass runs — the real modal animates its border. */
   .vs-box.glow { border-color: var(--ob-accent); box-shadow: var(--modal-shadow), 0 0 0 3px var(--ob-accent-soft); }
   .vs-input {
-    display: flex; align-items: center; gap: 9px; padding: 15px 20px; font-size: 15px;
+    display: flex; align-items: center; gap: 9px; padding: 15px 20px;
+    font-size: 15px; line-height: 1.5;
   }
   /* The keyword miss — the setup for the semantic reveal. */
   .vs-empty {
@@ -543,12 +715,19 @@
   }
   /* Inline SVG needs explicit dimensions or it collapses to 0×0. */
   .vs-ic { width: 18px; height: 18px; flex-shrink: 0; color: var(--ob-text-2); }
+  /* Full line-height, not a shorter bar. typeInto() hides the placeholder
+     before writing the first character, so for one frame the row holds only
+     an empty span and this caret — a short caret lets the row (and the whole
+     modal) collapse and snap back on every typing beat. Sizing the caret to
+     the line keeps the row's height constant from placeholder to first
+     keystroke. `min-height` on the row itself can't do this job: the row is
+     `border-box` with 15px of vertical padding, which swallows it. */
   .vs-caret {
-    width: 2px; height: 16px; background: var(--ob-accent); flex-shrink: 0;
+    width: 2px; height: 1.5em; background: var(--ob-accent); flex-shrink: 0;
     animation: blink 1.1s step-end infinite;
   }
   @keyframes blink { 50% { opacity: 0; } }
-  .vs-ph { color: var(--ob-text-3); }
+  .vs-ph { color: var(--ob-text-3); white-space: nowrap; }
   .vs-ph.off { display: none; }
   /* Rows collapse to zero height until they land, so the modal grows with the
      results instead of opening as a tall empty box. */
@@ -578,6 +757,8 @@
     display: flex; flex-wrap: wrap; gap: 4px 18px; justify-content: center;
     padding: 6px 20px 16px; font-size: 12px; color: var(--ob-text-2);
   }
+  /* The key glyph is wrapped so mobile can drop it without losing the label. */
+  .vs-hints i { font-style: normal; }
   /* The semantic toggle and attach hint: pulse to draw the eye, then latch. */
   .vs-sem, .vs-att { transition: color .3s ease; }
   .vs-sem.pulse, .vs-att.pulse { color: var(--ob-accent); font-weight: 600; animation: askPulse 0.9s ease infinite; }
@@ -736,6 +917,138 @@
     .v-chat { border-left: none; flex: 1; min-height: 0; }
     .v-chat-body { padding: 12px 14px 8px; }
     .steps li button { padding: 14px 16px 14px 44px; }
+    /* ── Mobile selection sheet ─────────────────────────────────────────
+       The floating bar is ~610px — nearly twice a phone's width — so on
+       mobile the plugin replaces it outright with a bottom sheet, and so
+       does this. A sheet is a narrow column by construction, so the verbs
+       stack as full-width rows and the divider has no job left to do.
+       Anchored at `bottom: 0` and rounded on the TOP corners only: the
+       bottom edge is flush, and rounding an edge that touches something
+       reads as a rendering mistake. Not draggable — this is a fixed list
+       of verbs with nothing to expand into, so a handle would advertise a
+       gesture that does nothing. */
+    .v-selbar {
+      left: 0; right: 0; bottom: 0; width: auto;
+      display: flex; flex-direction: column; align-items: stretch; gap: 0;
+      padding: 8px 0 0;
+      border: none; border-top: 1px solid var(--ob-border);
+      border-radius: 12px 12px 0 0;
+      background: var(--ob-surface); box-shadow: var(--modal-shadow);
+      white-space: normal;
+      /* Slides up from the bottom edge, as the real BottomSheet does. */
+      transform: translateY(100%);
+      transition: transform .16s ease-out, opacity .16s ease-out;
+    }
+    .v-selbar.on { transform: translateY(0); }
+    /* The count becomes the sheet's heading, with Clear beside it — outside
+       the card, sharing the rows' 16px left edge. */
+    .v-selhead {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 8px; min-height: 32px; padding: 0 16px; margin-bottom: 8px;
+    }
+    /* The card holding the verbs. */
+    .v-selacts {
+      display: flex; flex-direction: column;
+      background: var(--ob-bg); padding-block: 4px;
+    }
+    /* Full-width rows at the 44px touch floor, left-aligned. */
+    .v-selacts .v-selact {
+      justify-content: flex-start; gap: 10px;
+      width: 100%; min-height: 44px; padding: 10px 16px;
+      border-radius: 0;
+    }
+    /* Hairlines between rows — `:not(:first-child)` so the card's own
+       rounded top edge stays clean. */
+    .v-selacts .v-selact:not(:first-child) { border-top: 1px solid var(--ob-border); }
+    /* Zoom is promoted from an icon to a labelled row here; the divider has
+       nothing left to separate in a single column. */
+    .v-selzoom em { display: inline; }
+    .v-seldiv { display: none; }
+    .v-selacts .v-selic { width: 16px; height: 16px; }
+    .v-selclear { padding: 6px; }
+    /* Catches the tap without dimming: the canvas has to stay visible, since
+       watching the graph react is the point of these controls. */
+    .v-sheet-dismiss {
+      display: block; position: absolute; inset: 0; z-index: 3;
+      background: transparent; opacity: 0; pointer-events: none;
+      transition: opacity .16s ease;
+    }
+    .v-sheet-dismiss.on { opacity: 1; }
+    /* The exit bar stays a small floating pill — immersion is a mode you work
+       inside, so it must not hold a sheet open over the canvas you just
+       immersed into (the plugin makes exactly this exception). */
+    .v-selbar.v-exitbar {
+      left: 50%; right: auto; bottom: 16px; width: auto;
+      flex-direction: row; align-items: center; gap: 10px;
+      padding: 6px 8px 6px 14px;
+      border: 1px solid var(--ob-border); border-radius: 12px;
+      background: var(--ob-bg); box-shadow: none;
+      transform: translate(-50%, 8px);
+    }
+    .v-selbar.v-exitbar.on { transform: translate(-50%, 0); }
+
+    /* Obsidian renders no instructions row on mobile — there is no keyboard to
+       hint at. The purely-keyboard rows go entirely; the two the storyline
+       drives stay, minus their key glyphs, because on a phone those are the
+       toggle and the action you tap rather than shortcuts. */
+    .vs-hint-key { display: none; }
+    .vs-sem i, .vs-att i { display: none; }
+    .vs-hints { gap: 4px 14px; padding: 4px 20px 14px; font-size: 11.5px; }
+
+    /* A phone has no pointer, so the simulated hand becomes a touch dot: a
+       soft accent-ringed circle, centred on the point of contact, instead of
+       an arrow whose hotspot is its tip. The glide/press motion is shared —
+       only the glyph changes. */
+    .v-cursor { width: 26px; height: 26px; margin: -13px 0 0 -13px; }
+    .v-cursor svg { display: none; }
+    .v-cursor::after {
+      content: ''; display: block; width: 100%; height: 100%;
+      border-radius: 50%;
+      background: var(--ob-accent-soft);
+      border: 1.5px solid var(--ob-accent);
+      box-shadow: 0 0 0 4px var(--ob-accent-soft);
+    }
+
+    /* ── Mobile search sheet ────────────────────────────────────────────
+       Obsidian mobile renders prompts as a near-full-height sheet rising
+       from the bottom, INVERTED from desktop: results fill from the top and
+       the input sits at the bottom in a fully-rounded pill — thumb
+       territory — with a circular clear button at its right (verified
+       against the live vault in mobile emulation). The story reaches it
+       through the composer's + button, so it opens as the vault picker. */
+    .v-search { padding: 0; align-items: flex-end; }
+    .vs-box {
+      width: 100%; max-width: none; height: 86%;
+      display: flex; flex-direction: column;
+      background: var(--ob-bg); backdrop-filter: none;
+      border-radius: 16px 16px 0 0; border-bottom: none;
+      transform: translateY(100%); transition: transform .2s ease-out;
+    }
+    .v-search.on .vs-box { transform: translateY(0); }
+    /* Source order is desktop's (input first); `order` re-stacks it. The
+       results take the slack, so the rows sit at the top and the input
+       stays pinned to the bottom whatever the count. */
+    .vs-empty { order: 1; }
+    .vs-sum { order: 2; }
+    .vs-results { order: 3; flex: 1 1 auto; min-height: 0; overflow: hidden; }
+    .vs-hints { order: 4; }
+    .vs-input {
+      order: 5; margin: 0 12px 12px; padding: 11px 16px;
+      border-radius: 999px; font-size: 14px;
+      background: var(--ob-bg); border: 1px solid var(--ob-border);
+      box-shadow: var(--modal-shadow);
+    }
+    /* No multi-select on mobile — you tap one note — so the selection
+       summary strip has no state to summarise and is never rendered. The
+       story's `.on` add is harmless against display:none. */
+    .vs-sum { display: none; }
+    /* The pill's circular clear button. */
+    .vs-input::after {
+      content: '✕'; margin-left: auto; flex-shrink: 0;
+      width: 22px; height: 22px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      background: var(--ob-text-2); color: var(--ob-bg); font-size: 11px;
+    }
   }
   @media (max-width: 480px) {
     /* Keep the nav on one line: the wordmark carries the brand, and the

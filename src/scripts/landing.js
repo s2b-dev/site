@@ -230,13 +230,39 @@ var REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   /* --- element refs --- */
   var chat = document.getElementById('vChat');
+  /* Host for the staged-edit bar, between the messages and the composer. */
+  var pending = document.getElementById('vPending');
   var search = document.getElementById('vSearch');
   var vsBox = document.querySelector('.vs-box');
   var typed = document.getElementById('vsTyped');
   var ph = document.getElementById('vsPh');
   var resultsEl = document.getElementById('vsResults');
   var vsEmpty = document.getElementById('vsEmpty');
+  /* Mobile-only dismiss layer behind the selection sheet. It tracks the two
+     selection bars, since on mobile those render as a bottom sheet and a sheet
+     needs something to catch the tap that closes it. */
+  var vDismiss = document.getElementById('vDismiss');
+  var vPlus = document.getElementById('vPlus');
+  /* The same modal serves search and the vault picker; on mobile the story
+     reaches it through the + button, so its placeholder switches to the
+     picker's — the real one reads exactly this. */
+  var PH_SEARCH = 'Search notes with #tag or /folder…';
+  var PH_PICKER = 'Search vault files to attach…';
+  /* Checked at beat time, not load time — a resize between loops should
+     change the gesture, not be ignored. */
+  function isMobileDemo() { return window.matchMedia('(max-width: 720px)').matches; }
+  function syncDismiss() {
+    var open = vSel.classList.contains('on') || vSel2.classList.contains('on');
+    vDismiss.classList.toggle('on', open);
+  }
   var vsSem = document.getElementById('vsSem');
+  /* Rewrite only the label, leaving the `<i>` key glyph intact — mobile hides
+     that glyph via CSS, and a textContent write would delete it outright. */
+  function setSemLabel(state) {
+    var key = vsSem.querySelector('i');
+    vsSem.textContent = ' semantic: ' + state;
+    if (key) vsSem.insertBefore(key, vsSem.firstChild);
+  }
   var vsAtt = document.getElementById('vsAtt');
   var vsSum = document.getElementById('vsSum');
   var vAttach = document.getElementById('vAttach');
@@ -719,9 +745,14 @@ var REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     function step() {
       t += 0.004;
       var prevOrg = organize, prevImm = imm;
-      organize += (organizeT - organize) * 0.035;
+      /* 0.06, up from 0.035: the exponential IS the fast-start/slow-settle
+         shape, but at the old rate it moved at ~the spring's own tracking
+         speed, so the spring low-passed it into a constant crawl. Faster
+         target + heat-scaled stiffness below let the surge show. (0.08 read
+         as lurching; this is the calmer of the two that still cools.) */
+      organize += (organizeT - organize) * 0.06;
       orgE = organize < 0 ? 0 : organize > 1 ? 1 : organize;
-      imm += (immT - imm) * 0.055;
+      imm += (immT - imm) * 0.085;
       /* Linear, not eased: an eased sweep never quite reaches 1, so the loop
          would hang open. A person draws a lasso at a fairly even speed
          anyway. ~0.9s at 60fps. */
@@ -735,16 +766,25 @@ var REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
       else heat *= 0.972;
       if (heat < 0.002) heat = 0;
 
+      /* Spring stiffness rides the heat, the way a force sim's alpha scales
+         its forces: hot = a stronger pull, cooling = it relaxes toward the
+         gentle base value, so arrival reads as deceleration into stillness
+         rather than a constant-speed crawl. Damping rises with heat in step —
+         a stronger spring under the same damping is underdamped (ζ≈0.3) and
+         visibly overshot its cluster; 3× pull with 0.90 damping keeps the
+         hot system near critical (ζ≈0.7): fast, but no bounce. */
+      var pull = 0.0016 * (1 + 2 * heat);
+      var damp = 0.94 - 0.04 * heat;
       for (var i = 0; i < nodes.length; i++) {
         var n = nodes[i];
         var tg = targetOf(n);
-        n.vx += (tg.x - n.x) * 0.0016;
-        n.vy += (tg.y - n.y) * 0.0016;
+        n.vx += (tg.x - n.x) * pull;
+        n.vy += (tg.y - n.y) * pull;
         if (heat > 0) {
           n.vx += Math.cos(t * 1.7 + i * 0.7) * 0.008 * heat;
           n.vy += Math.sin(t * 1.4 + i * 0.9) * 0.008 * heat;
         }
-        n.vx *= 0.94; n.vy *= 0.94;
+        n.vx *= damp; n.vy *= damp;
         n.x += n.vx; n.y += n.vy;
         n.glow += (n.glowT - n.glow) * 0.08;
         n.pop *= 0.95;
@@ -783,8 +823,20 @@ var REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
       /* Non-focused clusters recede while immersed. */
       /* Fully hidden, not faded: at a few percent the other topics read as
          noise and compete with the sub-topics you immersed into. The exit
-         bar is what communicates "there's more outside this". */
-      var away = 1 - imm;
+         bar is what communicates "there's more outside this".
+         Opacity runs AHEAD of the motion rather than tracking `imm` linearly:
+         `imm` is an exponential ease, so a linear `1 - imm` leaves a faint
+         residue visible for most of the transition — the "slow fade". Clear
+         by imm≈0.75 on a gentle ease-out: ~400ms, brisk enough that the
+         sub-topics arrive on a clean canvas, but still a fade rather than the
+         cut a steeper curve gives (0.55 squared cleared in 130ms — a cut). */
+      var away = Math.max(0, 1 - imm / 0.75);
+      away = away * (2 - away);
+      /* The focused cluster's own chrome (its hull, ring and lasso) crossfades
+         into the immersed view rather than vanishing, so it fades less
+         aggressively than `away` — but still ahead of linear, or it hangs
+         over the sub-topics as they arrive. */
+      var leaving = Math.max(0, 1 - imm / 0.8);
 
       /* Topic hulls: a real padded, smoothed convex hull over each cluster's
          live node positions — the same construction the plugin uses. Fill 0.1
@@ -807,7 +859,7 @@ var REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
       }
 
       for (var c = 0; c < K; c++) {
-        paintHull(clusterPts(c), HUES[c], labelA * (c === 0 ? 1 - imm : away));
+        paintHull(clusterPts(c), HUES[c], labelA * (c === 0 ? leaving : away));
       }
       /* Immersed: Memory resolves into its own finer topic regions. */
       if (imm > 0.02) {
@@ -836,7 +888,7 @@ var REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
         ctx.moveTo(na.x, na.y);
         ctx.lineTo(na.x + (nb.x - na.x) * se.p, na.y + (nb.y - na.y) * se.p);
         ctx.strokeStyle = ACCENT;
-        ctx.globalAlpha = 0.9 * (1 - imm);
+        ctx.globalAlpha = 0.9 * leaving;
         ctx.lineWidth = 2;
         ctx.stroke();
         ctx.globalAlpha = 1;
@@ -845,7 +897,7 @@ var REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
       /* Lasso: a dashed accent loop sweeping around the Memory cluster. */
       if (lassoP > 0.01 && imm < 0.9) {
         var mem = centroidOf(clusterPts(0));
-        strokeLasso(mem, unit * 0.16, unit * 0.14, lassoP, lassoJit, (1 - imm) * 0.9);
+        strokeLasso(mem, unit * 0.16, unit * 0.14, lassoP, lassoJit, leaving * 0.9);
       }
 
       /* Sub-topic lasso, only meaningful once immersed. */
@@ -882,7 +934,7 @@ var REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
       for (var c2 = 0; c2 < K; c2++) {
         var ce = centroidOf(clusterPts(c2));
         drawLabelPill(LABELS[c2][0] + ' · ' + LABELS[c2][1], ce.x, ce.y - unit * 0.135,
-          HUES[c2], labelA * (c2 === 0 ? 1 - imm : away));
+          HUES[c2], labelA * (c2 === 0 ? leaving : away));
       }
       if (imm > 0.02) {
         for (var sc2 = 0; sc2 < 3; sc2++) {
@@ -1018,24 +1070,77 @@ var REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     else requestAnimationFrame(function () { requestAnimationFrame(function () { d.classList.add('on'); }); });
     return d;
   }
+  /* Lucide `git-fork` — a graph selection is ambient context, not a file
+     attachment, so it carries the tray's icon rather than a file emoji. */
+  var GRAPH_ICON =
+    '<svg class="msg-att-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><circle cx="18" cy="6" r="3"/><path d="M18 9v2c0 .6-.4 1-1 1H7c-.6 0-1-.4-1-1V9M12 12v3"/></svg>';
   var ANSWER = 'From your 9 Consolidation notes: it happens in deep sleep, in three stages — here’s your section:';
   var ANSWER2 = 'Good addition — sleep is when consolidation runs. Updated:';
+  /* The staged edit, shaped like the real PendingChangesBar: a summary row
+     ("1 update pending" + Accept All / Reject All) over a collapsible entry
+     carrying the change type and the note it touches. */
   var SUGG =
-    '<div class="sugg"><div class="sugg-head"><span>Exam checklist</span><span>suggested addition</span></div>' +
-    '<div class="sugg-line ctx">## Consolidation</div>' +
-    '<div class="sugg-line">Three stages — lecture 7.</div>' +
-    '<div class="sugg-line">Hippocampus diagram — slide 18.</div>' +
-    '<div class="sugg-acts"><button class="sugg-btn acc" type="button">✓ Accept</button><button class="sugg-btn" type="button">Dismiss</button></div></div>';
+    '<div class="pcb">' +
+    '<div class="pcb-sum"><div class="pcb-sum-l">' +
+    /* Lucide `file-diff`, the icon the real summary row uses. */
+    '<svg class="pcb-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+    '<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v5h5"/>' +
+    '<path d="M12 10v6M9 13h6"/></svg>' +
+    '<span class="pcb-count">1 update pending</span></div>' +
+    '<div class="pcb-sum-r">' +
+    '<button class="pcb-act pcb-accept" type="button">' +
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 13 4 4L19 7"/></svg>' +
+    'Accept All</button>' +
+    '<button class="pcb-act pcb-reject" type="button">' +
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>' +
+    'Reject All</button>' +
+    '<span class="pcb-chev" aria-hidden="true">▸</span>' +
+    '</div></div>' +
+    '<div class="pcb-list">' +
+    '<div class="pcb-entry"><span class="pcb-badge">Update</span>' +
+    '<span class="pcb-path">Exam checklist</span></div>' +
+    '<div class="pcb-diff">' +
+    '<div class="pcb-line pcb-ctx">## Consolidation</div>' +
+    '<div class="pcb-line"><span class="pcb-add">Three stages — lecture 7.</span></div>' +
+    '<div class="pcb-line"><span class="pcb-add">Hippocampus diagram — slide 18.</span></div>' +
+    '</div></div></div>';
   var SUGG_EXTRA = 'Sleep before the exam — recall needs it.';
 
-  /* Append the complementary note's line to the pending suggestion card. */
+  /* Mount the staged edit above the composer — where the real bar lives — and
+     open it a beat later. The real bar always arrives collapsed, so the
+     expansion is itself a UI gesture rather than a fabricated default. Under
+     reduced motion it renders open immediately, with no transition. */
+  function showSugg() {
+    pending.innerHTML = SUGG;
+    var pcb = pending.querySelector('.pcb');
+    if (!pcb) return;
+    if (REDUCED) {
+      pcb.classList.add('on', 'open');
+      return;
+    }
+    requestAnimationFrame(function () {
+      requestAnimationFrame(function () { pcb.classList.add('on'); });
+    });
+    /* rAF is suspended while the tab is hidden, so the two frames above may
+       never run — which would leave the bar stuck at opacity 0 even after the
+       user comes back. The timer is the backstop; adding `on` twice is a
+       no-op, and it fires well before the expand below. */
+    timers.push(setTimeout(function () { pcb.classList.add('on'); }, 80));
+    timers.push(setTimeout(function () { pcb.classList.add('open'); }, 600));
+  }
+
+  /* Append the complementary note's line to the pending draft — the second
+     question folds into the SAME staged change, not a new one. */
   function extendSugg() {
-    var sugg = chat.querySelector('.sugg');
-    if (!sugg) return;
+    var diff = pending.querySelector('.pcb-diff');
+    if (!diff) return;
     var line = document.createElement('div');
-    line.className = 'sugg-line';
-    line.textContent = SUGG_EXTRA;
-    sugg.insertBefore(line, sugg.querySelector('.sugg-acts'));
+    line.className = 'pcb-line';
+    var add = document.createElement('span');
+    add.className = 'pcb-add';
+    add.textContent = SUGG_EXTRA;
+    line.appendChild(add);
+    diff.appendChild(line);
   }
 
   function setStep(n) {
@@ -1103,12 +1208,15 @@ var REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     timers.forEach(clearTimeout); timers = [];
     stopTyping();
     chat.innerHTML = '';
+    pending.innerHTML = '';
     typed.textContent = '';
     ph.classList.remove('off');
+    ph.textContent = PH_SEARCH;
+    vPlus.classList.remove('pressed');
     search.classList.remove('on');
     vsBox.classList.remove('glow');
     vsEmpty.classList.remove('on');
-    vsSem.textContent = '⇥ semantic: off';
+    setSemLabel('off');
     vsSem.classList.remove('pulse', 'on');
     vsAtt.classList.remove('pulse', 'on');
     vsSum.classList.remove('on');
@@ -1122,6 +1230,7 @@ var REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     vSend.classList.remove('pressed');
     vSel.classList.remove('on');
     vSel2.classList.remove('on');
+    syncDismiss();
     vExit.classList.remove('on');
     vImm.classList.remove('pressed');
     vOpen.classList.remove('pressed');
@@ -1134,7 +1243,7 @@ var REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   /* The graph-notes context chip + question posting to the transcript. */
   function postFirstExchange() {
-    addMsg('<div class="msg-atts"><span class="msg-att">◉ 9 graph notes</span></div>');
+    addMsg('<div class="msg-atts"><span class="msg-att">' + GRAPH_ICON + '9 Graph Notes</span></div>');
     addMsg('<div class="msg-user">' + QUERY_CHAT + '</div>');
   }
 
@@ -1160,7 +1269,11 @@ var REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
       postFirstExchange();
       addMsg('<div class="act">Read 9 notes in <em>Consolidation</em></div>');
       addMsg('<div class="msg-ai">' + ANSWER + '</div>');
-      addMsg(SUGG);
+      /* Fast-forward: this beat is already in the past, so the bar lands
+         settled and open rather than replaying its arrival. */
+      pending.innerHTML = SUGG;
+      var pcb = pending.querySelector('.pcb');
+      if (pcb) pcb.classList.add('on', 'open');
     }
   }
 
@@ -1189,11 +1302,12 @@ var REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
       graph.lasso();
       cursorTraceLasso(function (p) { return graph.lassoPoint(1, p); }, 560);
     });
-    at(5400, function () { vSel.classList.add('on'); });
+    at(5400, function () { vSel.classList.add('on'); syncDismiss(); });
     at(5900, function () { cursorToEl(vImm); });
     at(6500, function () { vImm.classList.add('pressed'); cursorClick(); });
     at(7000, function () {
       vSel.classList.remove('on');
+      syncDismiss();
       graph.immerse();
       cursorHide();
     });
@@ -1212,12 +1326,13 @@ var REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
       graph.lasso2();
       cursorTraceLasso(function (p) { return graph.lassoPoint(2, p); }, 560);
     });
-    at(11600, function () { vSel2.classList.add('on'); });
+    at(11600, function () { vSel2.classList.add('on'); syncDismiss(); });
     at(12000, function () { cursorToEl(vOpen); });
     at(12600, function () { vOpen.classList.add('pressed'); cursorClick(); });
     at(13100, function () {
       vOpen.classList.remove('pressed');
       vSel2.classList.remove('on');
+      syncDismiss();
       graph.clearLasso2();
       cursorHide();
       vExit.classList.add('on');
@@ -1247,20 +1362,37 @@ var REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
        streaming duration varies with the random chunking. */
     at(17500, function () {
       streamAnswer(ANSWER, function () {
-        timers.push(setTimeout(function () { addMsg(SUGG); }, 450));
+        timers.push(setTimeout(showSugg, 450));
       });
     });
 
     /* 4 — a piece is missing: search by meaning, attach, the agent folds it
-       into the pending draft. One approval at the very end. */
-    at(20200, function () { setStep(4); search.classList.add('on'); });
+       into the pending draft. One approval at the very end.
+       On mobile the search is reached the way the real app reaches it: there
+       is no ⌥A, so the + button in the composer opens the vault picker (the
+       same sheet, in picker mode — its placeholder says so). The press is a
+       scale dip like the send button's; deliberately no cursor here, the
+       touch dot is scoped to the graph's direct manipulations. */
+    at(20200, function () {
+      setStep(4);
+      if (isMobileDemo()) {
+        vPlus.classList.add('pressed');
+        ph.textContent = PH_PICKER;
+        timers.push(setTimeout(function () {
+          vPlus.classList.remove('pressed');
+          search.classList.add('on');
+        }, 300));
+      } else {
+        search.classList.add('on');
+      }
+    });
     at(20700, function () { typeInto(typed, QUERY_SEARCH, 42, ph); });
     at(22000, function () { vsEmpty.classList.add('on'); });
     at(22800, function () { vsSem.classList.add('pulse'); });
     at(23600, function () {
       vsSem.classList.remove('pulse');
       vsSem.classList.add('on');
-      vsSem.textContent = '⇥ semantic: on';
+      setSemLabel('on');
       vsBox.classList.add('glow');
     });
     at(24200, function () {
@@ -1308,12 +1440,12 @@ var REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
       streamAnswer(ANSWER2, extendSugg);
     });
     at(32400, function () {
-      var btn = chat.querySelector('.sugg-btn.acc');
+      var btn = pending.querySelector('.pcb-accept');
       if (btn) btn.classList.add('pressed');
     });
     at(33000, function () {
-      var sugg = chat.querySelector('.sugg');
-      if (sugg) sugg.closest('.msg').remove();
+      /* Accepted: the bar clears, because there is nothing left pending. */
+      pending.innerHTML = '';
       addMsg('<div class="act ok">✓ Added to <em>Exam checklist</em> — approved by you</div>');
     });
 
@@ -1350,7 +1482,7 @@ var REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     addMsg('<div class="act ok">✓ Added to <em>Exam checklist</em> — approved by you</div>');
     typed.textContent = QUERY_SEARCH;
     ph.classList.add('off');
-    vsSem.textContent = '⇥ semantic: on';
+    setSemLabel('on');
     vsSem.classList.add('on');
     resEls.forEach(function (r) { r.classList.add('on'); });
     ['lec7', 'lec8', 'checklist'].forEach(function (id) { graph.glow(id, 1); });
