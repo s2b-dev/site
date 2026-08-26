@@ -146,9 +146,25 @@ Delegation is **one level deep**. A subagent's own subagents are ignored.
 
 ## Attachments and multimodal
 
+Drop files straight onto the chat to attach them — the whole chat pane is the
+drop target, not just the composer, and it outlines itself while you drag.
+Dragging works from **inside Obsidian** (the file explorer, search results, and
+other file lists) and from **outside** it (Finder, Explorer, your desktop).
+Pasting a file into the composer attaches it too.
+
+Dragging a vault file **attaches its content**. That is different from typing a
+`[[wikilink]]`, which adds a reference the agent can follow — so drag when you
+want the file itself in the conversation.
+
+Accepted: `txt`, `md`, `csv`, `json`, `pdf`, and images (`png`, `jpg`, `jpeg`,
+`gif`, `webp`). Anything else is flagged during the drag rather than failing
+after it. Folders are skipped — drag the files inside them.
+
 Vision and PDF support is resolved **per model at runtime**, not assumed from
 the provider. A model that accepts images will accept them without extra
-configuration; one that doesn't won't be offered the option.
+configuration; one that doesn't won't be offered the option. If you drag an
+image onto a model that has no vision support, the drop is refused up front and
+tells you to switch models, rather than being sent and rejected.
 
 PDF text is extracted locally before anything is sent.
 
