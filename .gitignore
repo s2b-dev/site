@@ -16,5 +16,8 @@ pnpm-debug.log*
 .env
 .env.production
 
+# local agent settings
+.claude/settings.local.json
+
 # macOS
 .DS_Store

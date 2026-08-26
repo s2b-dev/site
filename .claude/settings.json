@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(bun run build)",
+      "Bash(bun run check)",
+      "Bash(bun run preview)",
+      "Bash(bunx astro check *)",
+      "Bash(bunx tsc --noEmit *)",
+      "Bash(bunx btca ask *)",
+      "Bash(obsidian vault=\"S2B Test Vault\" command *)",
+      "Bash(obsidian vault=\"S2B Test Vault\" dev:dom *)",
+      "Bash(obsidian vault=\"S2B Test Vault\" dev:screenshot *)",
+      "Bash(obsidian vault=\"S2B Test Vault\" dev:errors)",
+      "Bash(gh api graphql *)",
+      "Bash(grep *)",
+      "Bash(egrep *)",
+      "Bash(rg *)"
+    ]
+  }
+}
