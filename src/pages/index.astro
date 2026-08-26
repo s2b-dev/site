@@ -241,6 +241,18 @@ const starLabel =
 	        plugin adds to Obsidian. The storyline is driven by landing.js. */}
 	    <div class="vault" id="vault">
 	      <div class="vault-bar"><i></i><i></i><i></i><span>My vault — Obsidian</span></div>
+	      {/* Obsidian's own toast, top-right of the WINDOW (not of a pane) —
+	          the real `.notice-container` is `position: fixed; top: 22px`
+	          with 10px padding, and the notice inside it settles 9px from the
+	          right edge. Wording is verbatim from PendingChangesBar's
+	          handleAcceptAll: with a single pending entry `count === 1`, so
+	          the string is "Applied the change" (the plural branch reads
+	          "Applied all N changes"). Accepting hunks one at a time in the
+	          note is SILENT in the plugin — acceptChangeGroup fires no
+	          Notice — so this appears only once the last group resolves the
+	          entry, which is exactly when the real bar's own accept would
+	          have fired it. */}
+	      <div class="v-notice" id="vNotice" aria-hidden="true">Applied the change</div>
 	      {/* data-pane drives the mobile one-pane-at-a-time view; the storyline
 	          moves it graph → chat → graph. Ignored on desktop. */}
 	      <div class="vault-body" data-pane="graph">
@@ -253,6 +265,24 @@ const starLabel =
 	            <span class="v-cursor" id="vCursor" aria-hidden="true">
 	              <svg viewBox="0 0 24 24"><path d="M5 2.5 19 12.2l-6.1.7-3.2 5.6z"/></svg>
 	            </span>
+	            {/* The one piece of the real top-right toolbar the story
+	                needs: the show-topics wand (GraphControls' `wand-sparkles`
+	                toggle, tooltip verbatim). The demo opens with topics
+	                hidden — the raw web of links you already made — so this
+	                press is the visible CAUSE of the grouping. In the plugin
+	                the wand starts on; starting it off is the demo's one
+	                liberty here, taken so the clustering reads as something
+	                the plugin does to your web, not something the animation
+	                was always going to do. */}
+	            <div class="v-gbar" aria-hidden="true">
+	              <span class="v-gbtn" id="vWand" title="Show topics — colour notes by their detected topic">
+	                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+	                  <path d="m21.64 3.64-1.28-1.28a1.21 1.21 0 0 0-1.72 0L2.36 18.64a1.21 1.21 0 0 0 0 1.72l1.28 1.28a1.2 1.2 0 0 0 1.72 0L21.64 5.36a1.2 1.2 0 0 0 0-1.72"/>
+	                  <path d="m14 7 3 3"/><path d="M5 6v4"/><path d="M19 14v4"/><path d="M10 2v2"/>
+	                  <path d="M7 8H3"/><path d="M21 16h-4"/><path d="M11 3H9"/>
+	                </svg>
+	              </span>
+	            </div>
 	            {/* Selection and exit bars live inside the graph pane so they
 	                centre on the graph, not on the whole window. */}
 	            {/* Mobile only: the sheet's dismiss layer. Deliberately
@@ -326,10 +356,10 @@ const starLabel =
 	                tick it off once you can explain it without the notes.</p>
 	              <h2>Encoding</h2>
 	              <p>Levels of processing — lecture 4.</p>
-	              <h2>Consolidation</h2>
-	              {/* Group 1: the staged addition under Consolidation. The action
-	                  bar sits above its first changed line, as the CM6 block
-	                  widget does. */}
+	              <h2>Long-term memory</h2>
+	              {/* Group 1: the staged addition under Long-term memory. The
+	                  action bar sits above its first changed line, as the CM6
+	                  block widget does. */}
 	              <div class="v-diff-group" id="vDiff1">
 	                <div class="v-diff-bar">
 	                  <span class="v-diff-label">Pending change</span>
@@ -351,10 +381,10 @@ const starLabel =
 	                    the widget card"), and that card renders its markdown
 	                    through MarkdownRenderer.render. So the reader sees a
 	                    link, not source. The underlying text is still
-	                    [[Lecture 7 — Consolidation]] etc. — see LINKED_NOTES in
+	                    [[Lecture 7 — Long-term memory]] etc. — see LINKED_NOTES in
 	                    landing.js. */}
 	                <div class="v-diff-detail">
-	                  <span class="v-diff-add">Three stages — <span class="v-wl">Lecture 7 — Consolidation</span>.</span>
+	                  <span class="v-diff-add">Three stages — <span class="v-wl">Lecture 7 — Long-term memory</span>.</span>
 	                  {/* Links to a PDF by name; the real link carries the
 	                      extension, which the rendered form drops. */}
 	                  <br /><span class="v-diff-add">Hippocampus diagram — <span class="v-wl">Week 7 slides.pdf</span>, slide 18.</span>
@@ -457,8 +487,11 @@ const starLabel =
 	              <span class="vs-ph" id="vsPh">Search notes with #tag or /folder…</span>
 	            </div>
 	            <div class="vs-empty" id="vsEmpty">No notes contain those words.</div>
-	            {/* Selection summary, as the real modal shows above the results. */}
-	            <div class="vs-sum" id="vsSum" aria-hidden="true">1 selected: Lecture 8 — Sleep</div>
+	            {/* No selection-summary pill here. The real modal has one
+	                (button.s2b-search-selection-summary, "n selected"), but the
+	                demo picks exactly one note and the picked row is already
+	                highlighted — a badge counting to 1 restates what the
+	                highlight shows, and it landed on top of the hints row. */}
 	            <div class="vs-results" id="vsResults"></div>
 	            {/* The real modal's instructions row. Obsidian doesn't render it
 	                on mobile — there's no keyboard to hint at — so at ≤720px the
@@ -480,12 +513,19 @@ const starLabel =
 	      </div>
 	    </div>
 
-	    {/* Each card jumps the storyline to its phase — landing.js binds them. */}
+	    {/* A progress timeline, not cards: clicking an entry jumps the storyline
+        to its phase — landing.js binds them and marks only the active one;
+        the CSS derives done/upcoming (dots and rail fill) from that with
+        sibling selectors. */}
 	    <ol class="steps" id="steps">
 	      <li data-step="1">
 	        <button type="button">
-	          <strong>It connects itself</strong>
-	          <span>No folders, no tagging. Related notes find each other and group into topics, named for what they're about.</span>
+	          {/* "Groups", not "connects": the connections already exist —
+	              the links you wrote plus the meaning-based ones — and the
+	              plugin's contribution is finding the topics in that web.
+	              The wand is the toggle the demo presses to do it. */}
+	          <strong>It groups itself</strong>
+	          <span>No folders, no tagging. Your notes are already a web of links — one press of the wand gathers it into topics, named for what they're about.</span>
 	        </button>
 	      </li>
 	      {/* "Immerse" is the plugin's own word for the button, but it is
@@ -672,11 +712,11 @@ const starLabel =
 	        <div class="vs-results">
 	          <div class="vs-res on">
 	            <div class="vs-res-top"><span class="vs-res-name">Lecture 8 — Sleep</span><span class="vs-res-path">· Psych 101</span></div>
-	            <div class="vs-res-snip">deep sleep and its role in <mark>consolidation</mark></div>
+	            <div class="vs-res-snip">deep sleep and its role in <mark>retaining what you learn</mark></div>
 	          </div>
 	          <div class="vs-res on">
 	            <div class="vs-res-top"><span class="vs-res-name">Week 7 slides.pdf</span><span class="vs-res-path">· Psych 101</span></div>
-	            <div class="vs-res-snip">slide 18 — the hippocampus and <mark>consolidation</mark></div>
+	            <div class="vs-res-snip">slide 18 — the hippocampus and <mark>storing memories</mark></div>
 	          </div>
 	        </div>
 	        <div class="vs-hints">

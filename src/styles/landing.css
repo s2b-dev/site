@@ -322,12 +322,42 @@
   /* ---------- integrated workspace demo ----------
      Everything inside .vault uses the --ob-* palette (matched to the
      plugin's real in-app look), not the site palette. */
+  /* Narrower than the page's 1120px content column ON PURPOSE. At full width
+     the window was 1072×552 — a 1.94:1 letterbox, against a real Obsidian
+     window's ~1.21:1 (measured: 1053×866). It read as "way wider than it is
+     tall", and the graph pane alone was 2.10:1, which the camera's 1.3× zoom
+     cap turns into horizontal dead space rather than a bigger graph. 920×642
+     is 1.43:1 — much closer to the app, and still fits a 1366×768 laptop with
+     the timeline below it (900×620 does not). Widen this and the mock stops
+     looking like the application it is mocking. */
   .vault {
+    /* Anchors the notice toast, which belongs to the WINDOW rather than to
+       any pane — as Obsidian's fixed `.notice-container` does. */
+    position: relative;
+    max-width: 920px; margin-inline: auto;
     border: 1px solid var(--border); border-radius: 16px;
     background: var(--ob-bg); overflow: hidden;
     box-shadow: var(--window-shadow);
     color: var(--ob-text);
   }
+  /* Obsidian's toast, measured off the running plugin: rgba(0,0,0,.9) fill,
+     #fafafa text, 9.75px/13px padding, 8px radius, 13px text, 300px max,
+     `0 2px 8px rgba(0,0,0,.3)`. It sits 9px from the right edge; the top is
+     scaled to this smaller window (the real 32px is below a 22px-tall app
+     chrome, here the title bar is 40px). Slides in from the right, as the
+     real one does. */
+  .v-notice {
+    position: absolute; top: 52px; right: 9px; z-index: 8;
+    max-width: 300px; padding: 9.75px 13px;
+    border-radius: 8px;
+    background: rgba(0, 0, 0, 0.9); color: #fafafa;
+    font-size: 13px; line-height: 1.3;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    opacity: 0; transform: translateX(calc(100% + 9px));
+    pointer-events: none;
+    transition: opacity .25s ease, transform .3s cubic-bezier(.2,.8,.3,1);
+  }
+  .v-notice.on { opacity: 1; transform: none; }
   .vault-bar {
     display: flex; align-items: center; gap: 8px; height: 40px;
     padding: 0 14px; border-bottom: 1px solid var(--ob-border);
@@ -343,8 +373,8 @@
        attachments — while the graph stays legible when smaller.
        The column animates from 0 so the chat slides in when the storyline
        opens it, rather than sitting empty from the start. */
-    display: grid; grid-template-columns: minmax(0, 1fr) 380px;
-    height: 510px;
+    display: grid; grid-template-columns: minmax(0, 1fr) 320px;
+    height: 600px;
     transition: grid-template-columns .55s cubic-bezier(.4,.1,.25,1);
   }
   .vault-body[data-pane="graph"] { grid-template-columns: minmax(0, 1fr) 0px; }
@@ -358,8 +388,18 @@
      transcript rewrapped to one word per line ("Read / Lecture / 8 — /
      Sleep") for the whole 0.55s. Fixing the width makes the chat slide out
      rigidly, the way a real pane does. Same reasoning as the context tray's
-     `nowrap` below — both are this transition squeezing live text. */
-  .v-chat > * { width: 380px; flex-shrink: 0; }
+     `nowrap` below — both are this transition squeezing live text.
+
+     The width is a variable, not a literal, because the composer and the
+     pending-changes bar carry `margin: 0 12px`: margins sit OUTSIDE a
+     border-box width, so pinning those children to the full pane width
+     pushed them 13px past the right edge and the send button lost its
+     rim. Children with side margins subtract them below. */
+  .v-chat { --chat-w: 320px; }
+  .v-chat > * { width: var(--chat-w); flex-shrink: 0; }
+  /* The two inset children: same pinned width, minus their own margins. */
+  .v-chat > .v-composer,
+  .v-chat > .v-pending { width: calc(var(--chat-w) - 24px); }
 
   /* graph pane */
   /* `relative` is load-bearing: the note view is absolutely positioned inside
@@ -390,8 +430,46 @@
     fill: var(--ob-text); stroke: var(--ob-bg); stroke-width: 1.6;
     stroke-linejoin: round;
   }
-  /* The real view has a toolbar at top-right (fit, lasso, collapse…) —
-     deliberately not reproduced; it's chrome the story doesn't need. */
+  /* The real view's top-right toolbar (fit, lasso, collapse…) is chrome the
+     story mostly doesn't need — only the show-topics wand is reproduced,
+     because phase 1 presses it. Same quiet transparent-at-rest treatment as
+     the selection bars' buttons; `on` is the toggle's lit state, matching
+     the real toolbar's active toggles. */
+  .v-gbar {
+    position: absolute; top: 10px; right: 10px; z-index: 4;
+    display: flex;
+  }
+  /* Larger than the real toolbar's buttons on purpose: this is the one
+     control the storyline presses, and at the real 26px it read as chrome
+     the eye skips. It carries a resting surface + border too, so it is
+     legible as a button before the cursor arrives. */
+  .v-gbtn {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 34px; height: 34px; border-radius: 8px;
+    color: var(--ob-text-2);
+    background: color-mix(in srgb, var(--ob-surface) 82%, transparent);
+    border: 1px solid var(--ob-border);
+    transition: transform .15s ease, background .15s ease, color .15s ease,
+      border-color .15s ease, box-shadow .15s ease;
+  }
+  .v-gbtn svg { width: 19px; height: 19px; display: block; }
+  .v-gbtn.pressed { transform: scale(0.85); }
+  .v-gbtn.on {
+    color: var(--ob-accent);
+    background: var(--ob-accent-soft);
+    border-color: var(--ob-accent-edge);
+  }
+  /* A slow breathing ring while the graph sits ungrouped — the storyline is
+     about to press this, and without it the wand is a static glyph in a
+     corner nobody is looking at. Removed the moment it is pressed. */
+  .v-gbtn.hint { animation: gbtn-hint 2s ease-in-out infinite; }
+  @keyframes gbtn-hint {
+    0%, 100% { box-shadow: 0 0 0 0 var(--ob-accent-soft); }
+    50% { box-shadow: 0 0 0 6px transparent; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .v-gbtn.hint { animation: none; }
+  }
 
   /* chat pane */
   /* min-height:0 on both — without it a flex/grid child refuses to shrink
@@ -400,11 +478,24 @@
     border-left: 1px solid var(--ob-border); background: var(--ob-bg);
     display: flex; flex-direction: column; min-width: 0; min-height: 0;
   }
+  /* Top-anchored, growing downward. A chat normally pins its newest message
+     to the composer, but this transcript starts EMPTY and fills over ~20s:
+     bottom-anchoring left 76% of the pane blank when the first message
+     arrived (still 59% four messages in), which reads as a rendering fault
+     rather than a new conversation. Growing from the top means the pane is
+     never mostly void, and by the end the transcript overflows anyway — at
+     which point `justify-content: flex-end` takes over below and the oldest
+     messages scroll off the top, exactly as before. */
   .v-chat-body {
     flex: 1; min-height: 0; padding: 16px 14px 10px; overflow: hidden;
     display: flex; flex-direction: column; gap: 6px;
-    justify-content: flex-end; /* newest message sits at the composer, like a real chat */
+    justify-content: flex-start;
   }
+  /* Once the transcript is taller than the pane, flex-start would pin the
+     OLDEST message and hide the newest under the composer. Flipping to
+     flex-end past that point keeps the newest visible; the switch is
+     invisible because at the crossover both rules agree. */
+  .v-chat-body.overflowing { justify-content: flex-end; }
   /* Older messages scroll off the top rather than stretching the pane. */
   .v-chat-body > .msg { flex-shrink: 0; }
   /* Open up the turn boundaries. Within a turn the base 6px holds things
@@ -636,7 +727,6 @@
      Consecutive lines read as one block, so they sit tighter than bubbles. */
   .act { padding: 0 2px; font-size: 12.5px; color: var(--ob-text-2); }
   .msg:has(.act) + .msg:has(.act) { margin-top: -3px; }
-  .act.ok { color: var(--green); }
   .msg-ai { font-size: 14px; color: var(--ob-text); line-height: 1.5; }
   /* Streaming cursor — trails the text while tokens arrive, then is removed. */
   .ai-caret {
@@ -835,19 +925,6 @@
     transition: max-height .3s ease, opacity .3s ease, padding .3s ease;
   }
   .vs-empty.on { max-height: 40px; opacity: 1; padding: 4px 20px 14px; }
-  /* Selection summary: accent text in a tinted, rounded strip. */
-  .vs-sum {
-    max-height: 0; opacity: 0; overflow: hidden;
-    margin: 0 12px; padding: 0 12px; border-radius: 8px;
-    background: var(--ob-accent-soft); border: 1px solid transparent;
-    color: var(--ob-accent); font-size: 11.5px; line-height: 1.4;
-    white-space: nowrap; text-overflow: ellipsis;
-    transition: max-height .3s ease, opacity .3s ease, padding .3s ease, margin .3s ease;
-  }
-  .vs-sum.on {
-    max-height: 34px; opacity: 1; padding: 7px 12px; margin-bottom: 8px;
-    border-color: var(--ob-accent);
-  }
   /* Inline SVG needs explicit dimensions or it collapses to 0×0. */
   .vs-ic { width: 18px; height: 18px; flex-shrink: 0; color: var(--ob-text-2); }
   /* Full line-height, not a shorter bar. typeInto() hides the placeholder
@@ -908,43 +985,76 @@
   .vs-sem.on, .vs-att.on { color: var(--ob-accent); font-weight: 600; }
   @keyframes askPulse { 50% { opacity: 0.55; } }
 
-  /* the three phases, captioned under the window */
+  /* the four phases: a progress timeline under the window, not cards.
+     landing.js only marks the active phase (`li.on`); done and upcoming —
+     dots and rail alike — are derived here with sibling selectors, so the
+     reset (no .on) and reduced-motion (`all` .on) states fall out of the
+     same rules with no extra JS. The fill is DISCRETE by choice: a segment
+     sweeps once when its phase completes. A continuous per-frame fill was
+     tried and pulled the eye off the demo window, which is this
+     screenful's one moving thing. */
+  @property --p {
+    syntax: '<number>'; inherits: false; initial-value: 0;
+  }
   .steps {
     list-style: none; counter-reset: s;
     display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;
-    margin-top: 26px;
+    margin-top: 30px;
   }
-  .steps li {
-    position: relative;
-    border: 1px solid var(--border); border-radius: 11px; background: var(--bg-2);
-    transition: border-color .4s ease, background .4s ease;
-  }
-  .steps li:hover { border-color: var(--border-2); }
-  /* The whole card is the hit target; the button carries the padding. */
+  .steps li { position: relative; border-radius: 11px; }
+  /* The whole entry is the hit target; the button carries the padding, with
+     the top clearing the dot row. Dot and text are centred per column, so
+     the rail reads as one line through the middle of the timeline. */
   .steps li button {
-    display: block; width: 100%; padding: 16px 18px 16px 48px;
+    display: block; width: 100%; padding: 34px 6px 2px;
     border: 0; border-radius: inherit; background: none;
-    font: inherit; color: inherit; text-align: left; cursor: pointer;
+    font: inherit; color: inherit; text-align: center; cursor: pointer;
   }
-  /* The ring belongs on the li, which owns the border and the radius: an
-     outline on the inner button traces a box inset 1px at the same 11px
-     radius, so its corners never sit concentric with the card's. */
   .steps li button:focus-visible { outline: none; }
   .steps li:has(button:focus-visible) {
     outline: 2px solid var(--accent); outline-offset: 2px;
   }
+  /* Numbered dot, centred on its column, sitting on the rail. Both pseudos
+     belong to the li, not the button, so they'd swallow its clicks —
+     pointer-events lets the dot (and the rail beside it) click through. */
+  .steps li::before, .steps li::after { pointer-events: none; }
   .steps li::before {
     counter-increment: s; content: counter(s);
-    position: absolute; left: 15px; top: 17px;
+    position: absolute; left: calc(50% - 11px); top: 0;
     width: 22px; height: 22px; border-radius: 50%;
     display: flex; align-items: center; justify-content: center;
     font-size: 11.5px; font-weight: 600;
     background: var(--surface-2); color: var(--text-2); border: 1px solid var(--border-2);
     transition: background .4s ease, color .4s ease, border-color .4s ease;
   }
-  .steps li.on { border-color: var(--accent); background: var(--accent-soft); }
+  /* Rail segment from this dot toward the next: from just right of this
+     dot (centre + radius + 6px breathing room) to just left of the next
+     dot's centre — the columns are equal 1fr tracks with a 12px gap, so
+     that lands at calc(5px - 50%) from this entry's right edge. Last
+     phase has nowhere to lead. The purple fill is a hard-stop gradient at
+     `--p`, registered above so the sweep can transition; where @property is
+     unsupported the fill lands instantly, which is fine. Under reduced
+     motion `--p` is pinned to 1 below. */
+  .steps li:not(:last-child)::after {
+    content: "";
+    position: absolute; top: 10px; height: 2px;
+    left: calc(50% + 17px); right: calc(5px - 50%);
+    border-radius: 1px;
+    background: linear-gradient(var(--rail-dir, to right),
+      var(--accent) calc(var(--p, 0) * 100%), var(--border) 0);
+    transition: --p .6s ease;
+  }
+  .steps li:hover::before { border-color: var(--accent); color: var(--text); }
+  /* done: outlined dot, swept trailing segment */
+  .steps li:has(~ .on)::before {
+    background: var(--accent-soft); border-color: var(--accent); color: var(--accent);
+  }
+  .steps li:has(~ .on)::after { --p: 1; }
+  /* active */
   .steps li.on::before { background: var(--accent-2); border-color: var(--accent-2); color: #fff; }
-  .steps strong { display: block; font-size: 14.5px; font-weight: 600; margin-bottom: 4px; }
+  /* upcoming: dimmed heading, so the eye lands on where the story is */
+  .steps li.on ~ li strong { color: var(--text-2); }
+  .steps strong { display: block; font-size: 14.5px; font-weight: 600; margin-bottom: 4px; transition: color .4s ease; }
   .steps span { font-size: 12.5px; color: var(--text-2); line-height: 1.5; display: block; }
 
   /* ---------- privacy ---------- */
@@ -1219,18 +1329,12 @@
   .foot a:hover { color: var(--text); }
   .foot div { display: flex; gap: 20px; }
 
-  @media (max-width: 980px) {
-    /* Must stay narrower than the base rule but still collapse for the
-       slide-in — hence repeating the [data-pane] case here. */
-    .vault-body { grid-template-columns: minmax(0, 1fr) 320px; }
-    .vault-body[data-pane="graph"] { grid-template-columns: minmax(0, 1fr) 0px; }
-    /* Track the narrower column, or the pinned contents overflow it. */
-    .v-chat > * { width: 320px; }
-  }
+  /* No 980px chat-column override any more: the base rule is already 320px
+     (it used to be 380px, narrowed here), so repeating it only risked the two
+     drifting apart. The pinned-content width tracks `--chat-w` in one place. */
   @media (max-width: 820px) {
     .nav-links { display: none; }
     section { padding: 66px 0; }
-    .steps { grid-template-columns: 1fr; }
     /* One column: the visual and its points stack, keeping the .split gap as
        the space between them. Stacked captions get their columns back —
        four single-line-ish notes in one tall stack reads as a list, not
@@ -1254,8 +1358,19 @@
        wraps to three lines here, so the graph has to clear more of the box. */
     .hero-mask { --fog-w: 105%; --fog-h: 46%; --fog-a1: 0.97; --fog-a2: 0.8; }
   }
-  @media (max-width: 1000px) and (min-width: 821px) {
-    .steps { grid-template-columns: repeat(2, 1fr); }
+  @media (max-width: 1000px) {
+    /* Vertical timeline: a 2×2 grid would break the rail, and four unboxed
+       entries stack shorter than the old cards did. Dot moves left of the
+       text; the rail segment turns vertical and bridges the row gap,
+       stopping short of the next dot as it does horizontally. */
+    .steps { grid-template-columns: 1fr; gap: 18px; }
+    .steps li button { padding: 0 0 0 38px; text-align: left; }
+    .steps li::before { left: 0; }
+    .steps li:not(:last-child)::after {
+      top: 28px; bottom: -12px; left: 10px; right: auto;
+      width: 2px; height: auto;
+      --rail-dir: to bottom;
+    }
   }
   @media (max-width: 720px) {
     /* One pane at a time, storyline-driven: the phases are pane-sequential
@@ -1273,7 +1388,6 @@
        the chat fill the phone. */
     .v-chat > * { width: auto; }
     .v-chat-body { padding: 12px 14px 8px; }
-    .steps li button { padding: 14px 16px 14px 44px; }
     /* ── Mobile selection sheet ─────────────────────────────────────────
        The floating bar is ~610px — nearly twice a phone's width — so on
        mobile the plugin replaces it outright with a bottom sheet, and so
@@ -1395,7 +1509,6 @@
        results take the slack, so the rows sit at the top and the input
        stays pinned to the bottom whatever the count. */
     .v-search .vs-empty { order: 1; }
-    .v-search .vs-sum { order: 2; }
     .v-search .vs-results { order: 3; flex: 1 1 auto; min-height: 0; overflow: hidden; }
     .v-search .vs-hints { order: 4; }
     .v-search .vs-input {
@@ -1404,10 +1517,6 @@
       background: var(--ob-bg); border: 1px solid var(--ob-border);
       box-shadow: var(--modal-shadow);
     }
-    /* No multi-select on mobile — you tap one note — so the selection
-       summary strip has no state to summarise and is never rendered. The
-       story's `.on` add is harmless against display:none. */
-    .v-search .vs-sum { display: none; }
     /* The pill's circular clear button. */
     .v-search .vs-input::after {
       content: '✕'; margin-left: auto; flex-shrink: 0;
@@ -1431,5 +1540,7 @@
     .privacy-list li { animation: none !important; }
     .shield-mark .shield-check { transition: none !important; }
     .vs-caret, .vs-ask.pulse { animation: none !important; }
-    .v-search, .vs-res, .msg, .steps li, .steps li::before { transition: none !important; }
+    .v-search, .vs-res, .msg, .steps li, .steps li::before, .steps li::after, .steps strong { transition: none !important; }
+    /* No rail sweep: the demo is a finished still, so the rail is full. */
+    .steps li:not(:last-child)::after { --p: 1; }
   }

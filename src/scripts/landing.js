@@ -435,7 +435,8 @@ function roundRectPath(ctx, x, y, w, h, r) {
 /* ---------- integrated workspace demo ----------
    One looping storyline in four phases, each carrying a differentiating
    feature, all mirroring real plugin behaviour:
-   1. the graph opens scattered and clusters itself into labelled topics
+   1. the graph opens as the linked-but-ungrouped web the vault already is,
+      and pressing the wand (show topics) gathers it into labelled topics
       (automatic topic detection),
    2. a lasso selects the Memory topic and Immerse re-groups its own notes
       into the finer topics inside it (lasso selection, immerse),
@@ -456,15 +457,26 @@ function roundRectPath(ctx, x, y, w, h, r) {
   var vault = document.getElementById('vault');
   if (!vault) return;
 
+  /* How long a lasso takes to draw. Shared by the STROKE (graph.step advances
+     lassoP over this many ms) and the simulated CURSOR that traces it
+     (cursorTraceLasso) — they must use one number or the hand and the line it
+     is drawing drift apart. */
+  var LASSO_MS = 560;
+
   var QUERY_SEARCH = 'why do we forget';
-  var QUERY_CHAT = 'Draft the consolidation part of my checklist';
+  /* "Long-term memory", not "Consolidation". Consolidation is the correct
+     term for the process and the notes are a psych course — but a first-time
+     viewer watching an AGENT work reads "consolidation" as something the
+     agent is doing to their notes, not as the subject the notes are about.
+     At demo speed there is no time to recover from that misreading. */
+  var QUERY_CHAT = 'Draft the long-term memory part of my checklist';
   var QUERY_CHAT2 = 'Fold this in too';
 
   /* None of these snippets contain the query's words — that gap is the
      entire point of the semantic phase. */
   var RESULTS = [
-    { id: 'lec8', n: 'Lecture 8 — Sleep',  p: 'Psych 101', t: 'deep sleep and its role in consolidation' },
-    { id: 'slides', n: 'Week 7 slides.pdf', p: 'Psych 101', t: 'slide 18 — the hippocampus and consolidation' }
+    { id: 'lec8', n: 'Lecture 8 — Sleep',  p: 'Psych 101', t: 'deep sleep and its role in retaining what you learn' },
+    { id: 'slides', n: 'Week 7 slides.pdf', p: 'Psych 101', t: 'slide 18 — the hippocampus and storing memories' }
   ];
 
   /* --- element refs --- */
@@ -506,7 +518,6 @@ function roundRectPath(ctx, x, y, w, h, r) {
     if (key) vsSem.insertBefore(key, vsSem.firstChild);
   }
   var vsAtt = document.getElementById('vsAtt');
-  var vsSum = document.getElementById('vsSum');
   var vAttach = document.getElementById('vAttach');
   var vcTyped = document.getElementById('vcTyped');
   var vcPh = document.getElementById('vcPh');
@@ -518,6 +529,8 @@ function roundRectPath(ctx, x, y, w, h, r) {
   var vExitBtn = document.getElementById('vExitBtn');
   var vSel2 = document.getElementById('vSel2');
   var vOpen = document.getElementById('vOpen');
+  var vWand = document.getElementById('vWand');
+  var vNotice = document.getElementById('vNotice');
   var vGchip = document.getElementById('vGchip');
   var vLchip = document.getElementById('vLchip');
   var vaultBody = document.querySelector('.vault-body');
@@ -619,7 +632,7 @@ function roundRectPath(ctx, x, y, w, h, r) {
        group sizes of Memory's own nodes (9 + 8 + 7 = 24), assigned in build(),
        not decorative labels — immersing re-groups the same dots rather than
        conjuring new ones, which is what the plugin's Immerse actually does. */
-    var SUBLABELS = [['Consolidation', 9], ['Recall & testing', 8], ['Sleep & memory', 7]];
+    var SUBLABELS = [['Long-term memory', 9], ['Recall & testing', 8], ['Sleep & memory', 7]];
     var SUBHUE_OFFSETS = [0, 34, -34];
     /* Index of each cluster's first node, filled by build(). Lets the named
        story notes (and anything else) address a node by cluster + offset now
@@ -635,7 +648,9 @@ function roundRectPath(ctx, x, y, w, h, r) {
     var organize = 0, organizeT = 0, orgE = 0;
     var imm = 0, immT = 0;
     var lassoP = 0, lassoT = 0;
-    /* Second lasso, drawn inside the immersion around the Consolidation
+    /* Previous frame's timestamp — the lasso sweeps by elapsed time. */
+    var lastT = performance.now();
+    /* Second lasso, drawn inside the immersion around the Long-term memory
        sub-topic — the selection that gets opened in the chat. */
     var lasso2P = 0, lasso2T = 0;
 
@@ -800,7 +815,7 @@ function roundRectPath(ctx, x, y, w, h, r) {
     var nodes = [], edges = [], storyEdges = [];
     /* Notes the storyline names, as {cluster, offset} — resolved against
        CLUSTER_AT at use time, since clusters are now different sizes. The
-       first four sit inside Memory's Consolidation sub-group (offsets below
+       first four sit inside Memory's Long-term memory sub-group (offsets below
        SUBLABELS[0]'s 9), which is the group the chat is handed; lec8 is the
        Sleep cluster's hub. */
     var named = {
@@ -827,6 +842,13 @@ function roundRectPath(ctx, x, y, w, h, r) {
       n.x = (Math.random() - 0.5) * 560;
       n.y = (Math.random() - 0.5) * 360;
       n.vx = 0; n.vy = 0;
+    }
+
+    /** Offset of sub-topic `sc`'s first node within Memory — its hub. */
+    function subStart(sc) {
+      var at = 0;
+      for (var s = 0; s < sc; s++) at += SUBLABELS[s][1];
+      return at;
     }
 
     /** Which of Memory's three sub-topics its j-th node belongs to. */
@@ -879,13 +901,34 @@ function roundRectPath(ctx, x, y, w, h, r) {
       for (var a = 0; a < nodes.length; a++) {
         for (var b = a + 1; b < nodes.length; b++) {
           var na = nodes[a], nb = nodes[b];
-          var hub = a === CLUSTER_AT[na.home] || b === CLUSTER_AT[nb.home];
+          /* Which of the pair (if either) is its group's hub. Memory's
+             sub-topics each get their own hub — their first node — since
+             immersing has to leave three legible groups, not one. */
+          var aHub = na.home === 0
+            ? a === CLUSTER_AT[0] + subStart(na.subc)
+            : a === CLUSTER_AT[na.home];
+          var bHub = nb.home === 0
+            ? b === CLUSTER_AT[0] + subStart(nb.subc)
+            : b === CLUSTER_AT[nb.home];
           var p;
-          if (na.home !== nb.home) p = 0.0016;
-          else if (na.home === 0) {
-            p = na.subc === nb.subc ? (hub ? 0.45 : 1.4 / SUBLABELS[na.subc][1])
-              : (hub ? 0.12 : 0.03);
-          } else p = hub ? 0.35 : 1.1 / LABELS[na.home][1];
+          if (na.home !== nb.home) {
+            /* Weak ties across topics. Only hubs make them: in a real vault
+               the note that reaches outside its subject is the index note,
+               and routing them through hubs keeps the cross-links from
+               reading as noise sprayed over the gaps. */
+            p = (aHub || bHub) ? 0.010 : 0.0004;
+          } else if (na.home === 0 && na.subc !== nb.subc) {
+            /* Across Memory's sub-topics: sparse, and hub-led — this is the
+               seam Immerse pulls apart, so it must be visibly thinner than
+               the links inside each sub-topic. */
+            p = (aHub || bHub) ? 0.14 : 0.012;
+          } else {
+            /* Inside one group. The hub links to nearly everything — that is
+               what makes it read AS a hub, and what gives Leiden something
+               to find; peripheral pairs link rarely, so the spokes stay the
+               dominant shape rather than being lost in a mesh. */
+            p = (aHub || bHub) ? 0.82 : 0.055;
+          }
           if (Math.random() < p) {
             var link = {
               source: na, target: nb, weight: 1,
@@ -927,6 +970,7 @@ function roundRectPath(ctx, x, y, w, h, r) {
     /* Visual timekeeping only — colour flood, fades, lasso sweeps, glow.
        All node MOTION comes from the plugin's simulation via tickSim. */
     function step() {
+      var now = performance.now();
       tickSim(simState);
       cameraFollow(cam, cameraTarget(simState.nodes, W, H), false, simState.rate);
 
@@ -942,11 +986,22 @@ function roundRectPath(ctx, x, y, w, h, r) {
       imm += (immT - imm) * 0.085 * (simState.rate || 1);
       /* Linear, not eased: an eased sweep never quite reaches 1, so the loop
          would hang open. A person draws a lasso at a fairly even speed
-         anyway. ~0.9s at 60fps. */
-      if (lassoP < lassoT) lassoP = Math.min(lassoT, lassoP + 0.032);
+         anyway.
+
+         Advanced by ELAPSED TIME over LASSO_MS, not by a per-frame constant.
+         The simulated cursor traces the same loop over the same duration
+         (cursorTraceLasso), so a per-frame step desynced the two: the old
+         0.032/frame finished in ~520ms at 60fps but ~260ms at 120Hz, while
+         the cursor always took 560ms — the stroke ran ahead of the hand
+         drawing it, and by a different amount on every display. Sharing the
+         clock is what keeps them aligned. */
+      var dt = Math.min(50, now - lastT);
+      if (lassoP < lassoT) lassoP = Math.min(lassoT, lassoP + dt / LASSO_MS);
       else lassoP += (lassoT - lassoP) * 0.2;
-      if (lasso2P < lasso2T) lasso2P = Math.min(lasso2T, lasso2P + 0.032);
+      if (lasso2P < lasso2T) lasso2P = Math.min(lasso2T, lasso2P + dt / LASSO_MS);
       else lasso2P += (lasso2T - lasso2P) * 0.2;
+
+      lastT = now;
 
       for (var i = 0; i < nodes.length; i++) {
         var n = nodes[i];
@@ -1163,14 +1218,23 @@ function roundRectPath(ctx, x, y, w, h, r) {
     }
 
     var api = {
-      organize: function () {
-        /* The clustering moment: communities exist now, so the cohesion force
-           starts to feel them — a fresh layout settle from the scatter.
-           Played at a third speed: this is the page's opening beat and the
-           one thing every visitor watches, and at real time the plugin's own
-           settle is essentially a snap (see tickSim). */
-        assignOverviewClusters();
+      /* Topics hidden, layout live: no clusters are assigned, so the
+         cohesion force is silent and the link structure alone lays the
+         graph out — the plugin's own wand-off state, and the state the wand
+         press then acts on. Played at a third speed: this is the page's
+         opening beat, and at real time the plugin's own settle is
+         essentially a snap (see tickSim). */
+      untangle: function () {
         startFresh(simState, 0.34);
+      },
+      organize: function () {
+        /* The wand press: communities are assigned, so the cohesion force
+           starts to feel them. The web is already laid out by untangle(),
+           so this is the plugin's re-cluster transition — the groups
+           tighten OUT of the web — rather than a fresh settle from
+           scatter. */
+        assignOverviewClusters();
+        startRecluster(simState, 0.55);
         organizeT = 1;
       },
       immerse: function () {
@@ -1267,7 +1331,10 @@ function roundRectPath(ctx, x, y, w, h, r) {
         assignOverviewClusters();
         startFresh(simState);
         settleSim(simState);
-        organize = 1; orgE = 1;
+        /* organizeT too, not just the current value — step() eases
+           `organize` toward it every frame, so a target left at 0 would
+           drain the colour back out over the seconds after a phase jump. */
+        organize = 1; organizeT = 1; orgE = 1;
         cameraFollow(cam, cameraTarget(simState.nodes, W, H), true);
       },
       /* Reduced motion: jump straight to the organized end state. */
@@ -1303,13 +1370,52 @@ function roundRectPath(ctx, x, y, w, h, r) {
   })();
 
   /* --- chat helpers --- */
+  /* Obsidian's toast. The real Notice auto-dismisses on a timeout (the bar
+     passes none, so it takes Obsidian's default); here it clears well before
+     the loop restarts so a fresh cycle never opens with a stale toast. */
+  function showNotice() {
+    vNotice.classList.add('on');
+    timers.push(setTimeout(function () { vNotice.classList.remove('on'); }, 4000));
+  }
+
+  /* The transcript grows from the TOP while it is shorter than the pane, then
+     switches to bottom-anchored once it overflows — see .v-chat-body. Without
+     the switch a full conversation would pin its oldest message and hide the
+     newest behind the composer. scrollHeight vs clientHeight is the test, and
+     it has to run after layout, hence the rAF. */
+  function syncChatAnchor() {
+    /* Measure the CONTENT, not the scroller. `scrollHeight` is a function of
+       the current justify-content: once flex-end applies, the overflow is
+       resolved by clipping at the top and scrollHeight collapses back to the
+       pane height — so testing it flips the class off, which flips it on
+       again, and the transcript flaps every frame with the newest message
+       jumping out of view. Summing the children is anchor-independent.
+       One-way latch: a transcript that has outgrown the pane never fits
+       again (nothing is ever removed), and re-measuring during the streaming
+       answer's reflow is what produced the flap in the first place. */
+    if (chat.classList.contains('overflowing')) return;
+    var kids = chat.children, h = 0;
+    for (var i = 0; i < kids.length; i++) h += kids[i].offsetHeight;
+    /* The 6px flex gap between messages, plus the body's vertical padding. */
+    h += Math.max(0, kids.length - 1) * 6;
+    var cs = getComputedStyle(chat);
+    h += parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom);
+    if (h > chat.getBoundingClientRect().height) chat.classList.add('overflowing');
+  }
   function addMsg(html, cls) {
     var d = document.createElement('div');
     d.className = 'msg' + (cls ? ' ' + cls : '');
     d.innerHTML = html;
     chat.appendChild(d);
-    if (REDUCED) d.classList.add('on');
-    else requestAnimationFrame(function () { requestAnimationFrame(function () { d.classList.add('on'); }); });
+    if (REDUCED) {
+      d.classList.add('on');
+      syncChatAnchor();
+    } else {
+      requestAnimationFrame(function () {
+        syncChatAnchor();
+        requestAnimationFrame(function () { d.classList.add('on'); });
+      });
+    }
     return d;
   }
   /* Lucide `git-fork` — a graph selection is ambient context, not a file
@@ -1320,8 +1426,8 @@ function roundRectPath(ctx, x, y, w, h, r) {
      notes support and names what they don't cover. That gap is what sends the
      story to search — without it, phase 4 arrives to solve a problem nobody
      had, and the agent would be "discovering" sleep after already citing it. */
-  var ANSWER = 'From your 9 Consolidation notes — the three stages, and the hippocampus diagram. None of them say what triggers it, so the section stops there:';
-  var ANSWER2 = 'That’s the trigger — consolidation runs during deep sleep. Folded into the same draft:';
+  var ANSWER = 'From your 9 Long-term memory notes — the three stages, and the hippocampus diagram. None of them say what triggers it, so the section stops there:';
+  var ANSWER2 = 'That’s the trigger — it happens during deep sleep. Folded into the same draft:';
   /* The staged edit, shaped like the real PendingChangesBar: a summary row
      ("1 update pending" + Accept All / Reject All) over a collapsible entry
      carrying the change type and the note it touches. The entry shows no
@@ -1423,6 +1529,9 @@ function roundRectPath(ctx, x, y, w, h, r) {
       var take = 1 + Math.floor(Math.random() * 3);
       txt.textContent += (txt.textContent ? ' ' : '') + words.slice(i, i + take).join(' ');
       i += take;
+      /* A streaming answer grows an EXISTING message, so it can push the
+         transcript past the pane without addMsg ever running. */
+      syncChatAnchor();
       timers.push(setTimeout(chunk, 55 + Math.random() * 85));
     })();
     return el;
@@ -1454,11 +1563,18 @@ function roundRectPath(ctx, x, y, w, h, r) {
     timers.forEach(clearTimeout); timers = [];
     stopTyping();
     chat.innerHTML = '';
+    /* Back to top-anchored — an empty transcript can't be overflowing. */
+    chat.classList.remove('overflowing');
+    vNotice.classList.remove('on');
     pending.innerHTML = '';
     typed.textContent = '';
     ph.classList.remove('off');
     ph.textContent = PH_SEARCH;
     vPlus.classList.remove('pressed');
+    /* Topics start hidden again — phase 1 presses the wand to turn them on,
+       so a loop that left it lit would show the grouping arriving with the
+       toggle already in its post-press state. */
+    vWand.classList.remove('on', 'pressed', 'hint');
     /* Close the note view and re-arm its diff groups for the next pass. */
     vNote.classList.remove('on');
     vNoteClose.classList.remove('pressed');
@@ -1470,7 +1586,6 @@ function roundRectPath(ctx, x, y, w, h, r) {
     setSemLabel('off');
     vsSem.classList.remove('pulse', 'on');
     vsAtt.classList.remove('pulse', 'on');
-    vsSum.classList.remove('on');
     vAttach.classList.remove('on');
     vGchip.hidden = true;
     vLchip.hidden = true;
@@ -1500,14 +1615,17 @@ function roundRectPath(ctx, x, y, w, h, r) {
 
   /* Where each phase begins on the timeline. Jumping to a phase replays from
      that offset, after fast-forwarding whatever earlier phases established. */
-  var PHASE_AT = { 1: 0, 2: 4200, 3: 10400, 4: 19900 };
+  var PHASE_AT = { 1: 0, 2: 5100, 3: 9200, 4: 22200 };
 
   /* Put the world into the state phase `n` expects to start from, without
      any of the animation that normally gets it there. */
   function catchUpTo(n) {
     if (n <= 1) return;
-    /* topics already formed */
-    graph.organize();
+    /* the wand was pressed and the topics formed. settle() does the
+       assignment and runs the layout to rest in one go — organize()'s
+       transition would only be discarded by it. */
+    vWand.classList.add('on');
+    vWand.classList.remove('hint');
     graph.settle();
     if (n >= 3) {
       /* the lasso + immerse happened */
@@ -1518,7 +1636,7 @@ function roundRectPath(ctx, x, y, w, h, r) {
       /* the first exchange happened: draft pending, still immersed */
       setPane('chat', true);
       postFirstExchange();
-      addMsg('<div class="act">Read 9 notes in <em>Consolidation</em></div>');
+      addMsg('<div class="act">Read 9 notes in <em>Long-term memory</em></div>');
       addMsg('<div class="msg-ai">' + ANSWER + '</div>');
       /* Fast-forward: this beat is already in the past, so the bar lands
          settled and open rather than replaying its arrival. */
@@ -1540,26 +1658,49 @@ function roundRectPath(ctx, x, y, w, h, r) {
       timers.push(setTimeout(fn, t - start));
     }
 
-    /* 1 — the map connects itself */
-    /* Starts almost immediately: the clustering now plays at a third speed
-       (see graph.organize), so it needs most of the ~4s before the lasso to
-       finish gathering. The step card lights with it. */
-    at(150, function () { setStep(1); graph.organize(); });
+    /* 1 — the vault is already a web; the wand groups it.
+       The graph opens un-grouped, every connection drawn from the first
+       frame (links you wrote solid, meaning-based ones dashed), and lays
+       itself out grey — the plugin's topics-off state. It holds that shape
+       long enough to register, and then the cursor presses the wand and
+       THAT assigns the topics: the grouping arrives as something the
+       plugin did to your web, not a reveal that was always scheduled. */
+    at(150, function () { setStep(1); graph.untangle(); vWand.classList.add('hint'); });
+    /* The cursor materialises short of the button and travels the last
+       stretch — popping in on top of it would read as a cut. */
+    at(2100, function () {
+      var g = graphPane.getBoundingClientRect();
+      var r = vWand.getBoundingClientRect();
+      cursorAt(r.left - g.left - 54, r.top - g.top + r.height + 42, true);
+      cursorShow();
+    });
+    at(2400, function () { cursorToEl(vWand); });
+    at(3050, function () {
+      vWand.classList.add('pressed');
+      vWand.classList.remove('hint');
+      cursorClick();
+    });
+    at(3250, function () {
+      vWand.classList.remove('pressed');
+      vWand.classList.add('on');
+      graph.organize();
+    });
+    at(3900, function () { cursorHide(); });
 
     /* 2 — lasso the Memory topic and immerse into it */
-    at(4200, function () {
+    at(5100, function () {
       setStep(2);
       cursorAt(graph.lassoPoint(1, 0).x - 3, graph.lassoPoint(1, 0).y - 2, true);
       cursorShow();
     });
-    at(4400, function () {
+    at(5300, function () {
       graph.lasso();
-      cursorTraceLasso(function (p) { return graph.lassoPoint(1, p); }, 560);
+      cursorTraceLasso(function (p) { return graph.lassoPoint(1, p); }, LASSO_MS);
     });
-    at(5400, function () { vSel.classList.add('on'); syncDismiss(); });
-    at(5900, function () { cursorToEl(vImm); });
-    at(6500, function () { vImm.classList.add('pressed'); cursorClick(); });
-    at(7000, function () {
+    at(6300, function () { vSel.classList.add('on'); syncDismiss(); });
+    at(6800, function () { cursorToEl(vImm); });
+    at(7400, function () { vImm.classList.add('pressed'); cursorClick(); });
+    at(7900, function () {
       vSel.classList.remove('on');
       syncDismiss();
       graph.immerse();
@@ -1575,20 +1716,20 @@ function roundRectPath(ctx, x, y, w, h, r) {
     /* 3 — select a sub-topic inside the immersion and open it in the chat.
        The lassoed notes reach the composer as the ambient graph-selection
        chip, exactly how the real bar's "Open in Chat" works. */
-    at(10500, function () {
+    at(9200, function () {
       setStep(3);
       vExit.classList.remove('on');   /* make room for the selection bar */
       cursorAt(graph.lassoPoint(2, 0).x - 3, graph.lassoPoint(2, 0).y - 2, true);
       cursorShow();
     });
-    at(10700, function () {
+    at(9400, function () {
       graph.lasso2();
-      cursorTraceLasso(function (p) { return graph.lassoPoint(2, p); }, 560);
+      cursorTraceLasso(function (p) { return graph.lassoPoint(2, p); }, LASSO_MS);
     });
-    at(11600, function () { vSel2.classList.add('on'); syncDismiss(); });
-    at(12000, function () { cursorToEl(vOpen); });
-    at(12600, function () { vOpen.classList.add('pressed'); cursorClick(); });
-    at(13100, function () {
+    at(10300, function () { vSel2.classList.add('on'); syncDismiss(); });
+    at(10700, function () { cursorToEl(vOpen); });
+    at(11300, function () { vOpen.classList.add('pressed'); cursorClick(); });
+    at(11800, function () {
       vOpen.classList.remove('pressed');
       vSel2.classList.remove('on');
       syncDismiss();
@@ -1601,11 +1742,11 @@ function roundRectPath(ctx, x, y, w, h, r) {
     });
     /* Wait out the pane's slide-in (0.55s) before typing, so the question
        isn't being written into a composer that's still moving. */
-    at(14000, function () {
+    at(12700, function () {
       vcCaret.hidden = false;
       typeInto(vcTyped, QUERY_CHAT, 32, vcPh);
     });
-    at(15800, function () {
+    at(14500, function () {
       vSend.classList.add('pressed');
       stopTyping();
       vcCaret.hidden = true;
@@ -1615,11 +1756,15 @@ function roundRectPath(ctx, x, y, w, h, r) {
       vGchip.hidden = true;
       postFirstExchange();
     });
-    at(16100, function () { vSend.classList.remove('pressed'); });
-    at(16600, function () { addMsg('<div class="act">Read 9 notes in <em>Consolidation</em></div>'); });
+    at(14800, function () { vSend.classList.remove('pressed'); });
+    at(17500, function () { addMsg('<div class="act">Read 9 notes in <em>Long-term memory</em></div>'); });
     /* The draft card follows the stream rather than racing a fixed delay —
-       streaming duration varies with the random chunking. */
-    at(17500, function () {
+       streaming duration varies with the random chunking.
+       ANSWER is 25 words at 1–3 words per 55–140ms tick: ~1240ms typical,
+       ~1830ms at p99.9, ~2340ms absolute worst, and the card lands 450ms
+       after that. Phase 4 must not open its search modal before all of that
+       has landed — see the budget on the phase-4 beat below. */
+    at(18400, function () {
       streamAnswer(ANSWER, function () {
         timers.push(setTimeout(showSugg, 450));
       });
@@ -1631,8 +1776,19 @@ function roundRectPath(ctx, x, y, w, h, r) {
        is no ⌥A, so the + button in the composer opens the vault picker (the
        same sheet, in picker mode — its placeholder says so). The press is a
        scale dip like the send button's; deliberately no cursor here, the
-       touch dot is scoped to the graph's direct manipulations. */
-    at(20200, function () {
+       touch dot is scoped to the graph's direct manipulations.
+
+       The start time is a BUDGET, not a guess. The answer starts streaming
+       at 18400; the stream + the card's 450ms must both fit before the modal
+       opens, which gives the stream 3350ms — against a measured worst case
+       of ~2340ms over 200k runs, so it cannot race. A measured live run
+       lands: stream ends 19801, card 20241, search 22241.
+       This was wrong once: at 19600 the modal opened WHILE the agent was
+       still writing. The reader has to finish the answer and see the draft
+       before the story can say a piece is missing from it — the causal chain
+       depends on having read the gap first. If ANSWER gets longer, or the
+       chunk timing in streamAnswer changes, re-derive this. */
+    at(22200, function () {
       setStep(4);
       if (isMobileDemo()) {
         vPlus.classList.add('pressed');
@@ -1645,42 +1801,49 @@ function roundRectPath(ctx, x, y, w, h, r) {
         search.classList.add('on');
       }
     });
-    at(20700, function () { typeInto(typed, QUERY_SEARCH, 42, ph); });
-    at(22000, function () { vsEmpty.classList.add('on'); });
-    at(22800, function () { vsSem.classList.add('pulse'); });
-    at(23600, function () {
+    /* The causal order here is load-bearing and must not be reshuffled: the
+       query is typed → keyword search MISSES ("No notes contain those
+       words") → that miss is what motivates reaching for the semantic
+       toggle → semantic on, the box glows while the pass runs → the miss
+       clears and the results it found arrive. Reordering these (or letting
+       the clear land before the add) leaves the empty-state message sitting
+       above a full result list, which is exactly the claim the beat is
+       supposed to disprove. */
+    at(22700, function () { typeInto(typed, QUERY_SEARCH, 42, ph); });
+    at(23800, function () { vsEmpty.classList.add('on'); });
+    at(24500, function () { vsSem.classList.add('pulse'); });
+    at(25200, function () {
       vsSem.classList.remove('pulse');
       vsSem.classList.add('on');
       setSemLabel('on');
       vsBox.classList.add('glow');
     });
-    at(24200, function () {
+    at(25800, function () {
       vsBox.classList.remove('glow');
       vsEmpty.classList.remove('on');
       resEls.forEach(function (r, k) {
         timers.push(setTimeout(function () { r.classList.add('on'); }, k * 150));
       });
     });
-    at(25400, function () {
-      resEls[0].classList.add('picked');
-      timers.push(setTimeout(function () { vsSum.classList.add('on'); }, 380));
-    });
-    at(26100, function () { vsAtt.classList.add('pulse'); });
-    at(26800, function () {
+    at(26800, function () { resEls[0].classList.add('picked'); });
+    /* Attach comes AFTER the pick — the hint highlights because there is now
+       a selection to attach. */
+    at(27700, function () { vsAtt.classList.add('pulse'); });
+    at(28400, function () {
       vsAtt.classList.remove('pulse');
       vsAtt.classList.add('on');
     });
-    at(27200, function () {
+    at(28800, function () {
       search.classList.remove('on');
       vLchip.hidden = false;
       vAttach.classList.add('on');
     });
     /* Typed in the composer, like the first question — not conjured. */
-    at(27700, function () {
+    at(29300, function () {
       vcCaret.hidden = false;
       typeInto(vcTyped, QUERY_CHAT2, 34, vcPh);
     });
-    at(28900, function () {
+    at(30500, function () {
       vSend.classList.add('pressed');
       stopTyping();
       vcCaret.hidden = true;
@@ -1691,9 +1854,9 @@ function roundRectPath(ctx, x, y, w, h, r) {
       addMsg('<div class="msg-atts"><span class="msg-att">📝 Lecture 8 — Sleep.md</span></div>');
       addMsg('<div class="msg-user">' + QUERY_CHAT2 + '</div>');
     });
-    at(29200, function () { vSend.classList.remove('pressed'); });
-    at(29700, function () { addMsg('<div class="act">Read <em>Lecture 8 — Sleep</em></div>'); });
-    at(30500, function () {
+    at(30800, function () { vSend.classList.remove('pressed'); });
+    at(31300, function () { addMsg('<div class="act">Read <em>Lecture 8 — Sleep</em></div>'); });
+    at(32100, function () {
       /* The bar pulses only once the answer has finished streaming, so the
          two acknowledgements don't arrive on top of each other. */
       streamAnswer(ANSWER2, pulseSugg);
@@ -1703,11 +1866,11 @@ function roundRectPath(ctx, x, y, w, h, r) {
        the graph, scrolled to the pending change — revealAndScroll(), as the
        real link does. Each group carries its own Accept, so the two additions
        are approved individually: per-hunk control is the point of this beat. */
-    at(32200, function () {
+    at(33200, function () {
       var link = document.getElementById('vNoteLink');
       if (link) link.classList.add('pressed');
     });
-    at(32500, function () {
+    at(33500, function () {
       var link = document.getElementById('vNoteLink');
       if (link) link.classList.remove('pressed');
       /* The note replaces the GRAPH only — the chat stays open beside it, so
@@ -1717,27 +1880,32 @@ function roundRectPath(ctx, x, y, w, h, r) {
       vNote.classList.add('on');
       if (isMobileDemo()) setPane('graph');
     });
-    at(33600, function () {
+    at(34600, function () {
       var b = vNote.querySelector('#vDiff1 .v-diff-acc');
       if (b) b.classList.add('pressed');
     });
-    at(33950, function () {
+    at(34950, function () {
       var g = document.getElementById('vDiff1');
       if (g) g.classList.add('done');
     });
-    at(34700, function () {
+    at(35700, function () {
       var b = vNote.querySelector('#vDiff2 .v-diff-acc');
       if (b) b.classList.add('pressed');
     });
-    at(35050, function () {
+    at(36050, function () {
       var g = document.getElementById('vDiff2');
       if (g) g.classList.add('done');
-      /* Both groups resolved: the entry is settled, so the bar goes. */
+      /* Both groups resolved: the entry is settled, so the bar goes. The
+         confirmation is an Obsidian NOTICE, not a chat message — the plugin
+         posts nothing to the transcript here. Accepting groups one at a time
+         is silent (acceptChangeGroup fires no Notice); the toast is what the
+         bar's own accept shows once the entry resolves, and with a single
+         pending entry its wording is "Applied the change". */
       pending.innerHTML = '';
-      addMsg('<div class="act ok">✓ Added to <em>Exam checklist</em> — approved by you</div>');
+      showNotice();
     });
-    at(35800, function () { vNoteClose.classList.add('pressed'); });
-    at(36100, function () {
+    at(36800, function () { vNoteClose.classList.add('pressed'); });
+    at(37100, function () {
       vNoteClose.classList.remove('pressed');
       vNote.classList.remove('on');
     });
@@ -1749,16 +1917,16 @@ function roundRectPath(ctx, x, y, w, h, r) {
        after the overview settles, and the loop then holds for ~2.6s more.
        At the previous timing they appeared 1.2s before the restart, which was
        too brief to connect them to the approval that caused them. */
-    at(36500, function () { cursorToEl(vExitBtn); cursorShow(); });
-    at(37000, function () { vExitBtn.classList.add('pressed'); cursorClick(); });
-    at(37500, function () {
+    at(37500, function () { cursorToEl(vExitBtn); cursorShow(); });
+    at(38000, function () { vExitBtn.classList.add('pressed'); cursorClick(); });
+    at(38500, function () {
       vExitBtn.classList.remove('pressed');
       vExit.classList.remove('on');
       setPane('graph');
       graph.unimmerse();
       cursorHide();
     });
-    at(38900, function () {
+    at(39900, function () {
       /* The notes the approved edit now cites light up, and the checklist
          pops — the map changing is the consequence of the approval, which is
          why this is the last thing the loop shows. Glow and edges are driven
@@ -1768,16 +1936,17 @@ function roundRectPath(ctx, x, y, w, h, r) {
       graph.linkedNotes().forEach(function (id) { graph.glow(id, 0.6); });
       graph.link();
     });
-    at(41500, function () { run(1); });
+    at(42500, function () { run(1); });
   }
 
   /* Reduced motion: no storyline — show the finished, organized state. */
   function renderFinal() {
     setStep('all');
     setPane('chat', true);
+    vWand.classList.add('on');
     graph.final();
     postFirstExchange();
-    addMsg('<div class="act">Read 9 notes in <em>Consolidation</em></div>');
+    addMsg('<div class="act">Read 9 notes in <em>Long-term memory</em></div>');
     addMsg('<div class="msg-ai">' + ANSWER + '</div>');
     addMsg('<div class="msg-atts"><span class="msg-att">📝 Lecture 8 — Sleep.md</span></div>');
     addMsg('<div class="msg-user">' + QUERY_CHAT2 + '</div>');
@@ -1786,7 +1955,9 @@ function roundRectPath(ctx, x, y, w, h, r) {
        being named and then closed with nothing said in between, which reads
        as a dropped turn rather than a finished exchange. */
     addMsg('<div class="msg-ai">' + ANSWER2 + '</div>');
-    addMsg('<div class="act ok">✓ Added to <em>Exam checklist</em> — approved by you</div>');
+    /* The approval's confirmation is a toast, not a transcript line — and a
+       still frame should show it resting, not mid-timeout. */
+    vNotice.classList.add('on');
     typed.textContent = QUERY_SEARCH;
     ph.classList.add('off');
     setSemLabel('on');
@@ -1857,7 +2028,7 @@ function roundRectPath(ctx, x, y, w, h, r) {
      simulation, and sibling groups end up near each other because they share
      links (see the edge generation in build), not because a grid says so. */
   var LEAVES = [
-    { name: 'Consolidation',    n: 9 },
+    { name: 'Long-term memory', n: 9 },
     { name: 'Recall & testing', n: 8 },
     { name: 'Sleep & memory',   n: 7 },
     { name: 'Attention',        n: 11 },
@@ -1884,7 +2055,10 @@ function roundRectPath(ctx, x, y, w, h, r) {
     {
       label: 'Fine',
       of: [0, 0, 1, 2, 3, 4, 4, 5],
-      names: ['Consolidation', 'Sleep & memory', 'Attention', 'Illusions', 'Statistics', 'Essays']
+      /* Leaves 0+1 (Long-term memory + Recall & testing) merge here, so the
+         parent's name has to cover both — "Long-term memory" does; a narrower
+         mechanism name would not. */
+      names: ['Long-term memory', 'Sleep & memory', 'Attention', 'Illusions', 'Statistics', 'Essays']
     },
     {
       label: 'Finest',

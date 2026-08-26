@@ -86,22 +86,91 @@ was ported from a hand-written mockup, so:
   (`framingTransform` over full bounds, centred on the outlier-trimmed core),
   which is also why resizes never rebuild — see the gotchas below.
 - **The demo** (`#demo`) is one looping storyline across a mock Obsidian
-  window, in four phases the step cards below it can jump to. The graph
-  clusters itself → a lasso immerses into a topic → a sub-topic is opened in
-  the chat and the agent drafts a staged edit → semantic search finds a
-  missing note, which the agent folds into the same draft before one approval.
+  window, in four phases the progress timeline below it can jump to. The
+  timeline's dots and rail derive done/active/upcoming purely in CSS from
+  the one `.on` class landing.js sets; the fill is deliberately discrete —
+  a continuous per-frame fill was tried and pulled the eye off the demo
+  window. The graph opens as the linked-but-ungrouped web the vault already
+  is, and **pressing the wand** groups it → a lasso immerses into a topic →
+  a sub-topic is opened in the chat and the agent drafts a staged edit →
+  semantic search finds a missing note, which the agent folds into the same
+  draft before one approval.
+  That first beat is deliberately a *press*, not a reveal: the notes are
+  already connected (by the links you wrote and by meaning), so what the
+  plugin contributes is finding the **topics** in that web — hence "It
+  groups itself", never "connects itself". The demo's one liberty is
+  starting with the wand off; the plugin ships it on.
   The phases are **one causal story, not four features**: the agent's first
   answer names the gap it cannot fill, which is what sends the story to
   search. Preserve that chain when editing — the header comment in
   `landing.js` says so too.
+- **Never bulk-shift the storyline's `at()` times.** The beats are a causal
+  chain, not a playlist: a script that adds an offset "to everything after
+  N" splits linked pairs and silently inverts them. Doing exactly that has
+  produced a button released before it was pressed, a composer typed into
+  before its pane opened, and an empty-state message cleared 600ms *before*
+  it was set (so "No notes contain those words" sat permanently above a full
+  result list). Renumber a phase explicitly, then verify monotonicity:
+
+  ```bash
+  grep -n "^    at([0-9]" src/scripts/landing.js | sed 's/:.*at(\([0-9]*\).*/:\1/' | awk -F: 'NR>1 && $2<p {print "OUT OF ORDER line " $1 ": " $2 " after " p} {p=$2}'
+  ```
+
+  Ordering is necessary but not sufficient: beats that *wait on streamed
+  content* also need a duration budget. `streamAnswer` chunks 1–3 words per
+  55–140ms tick, so `ANSWER` takes ~1240ms typically but ~2340ms worst case,
+  and `showSugg` lands 450ms after it. Phase 4's start carries that budget in
+  a comment — it once opened the search modal while the agent was still
+  writing. Re-derive it if `ANSWER` or the chunk timing changes.
   The demo deliberately mirrors real plugin behaviour (ambient graph
   selection, `⌥A` attach, semantic toggle, staged edits, topic hulls built
   with the plugin's own convex-hull construction) — keep it truthful to the
   plugin when editing; verify against the live vault rather than guessing.
+- **Demo topic names must not read as things the agent is doing.** The
+  sub-topic the agent drafts from was once "Consolidation" — the correct
+  psychology term, but a first-time viewer watching an agent work parses it
+  as the agent *consolidating* their notes, and at demo speed there is no
+  time to recover from that. It is now "Long-term memory", which also has to
+  subsume "Recall & testing" (they merge at the explorer's Fine level, so the
+  parent name must cover both children). The name appears in seven places
+  that must agree: the sub-topic pill, `QUERY_CHAT`, `ANSWER`, the three
+  "Read 9 notes in …" activity lines, the note's `<h2>`, the cited wikilink,
+  and both `LEAVES`/`LEVELS` in the granularity explorer.
+  Watch the same trap for verbs generally — "indexing", "syncing",
+  "summarising" would all misread as plugin activity.
+- **The search snippets must share no words with the query.** "why do we
+  forget" against "deep sleep and its role in retaining what you learn" is
+  what makes the keyword miss honest and the semantic hit meaningful. They
+  are duplicated in two places that must stay identical: `RESULTS` in
+  `landing.js` (the live modal) and `.search-still` in `index.astro`.
 - Node counts on the demo's topic pills are the number of dots actually drawn
   in each hull. They were once inflated (five 9-node clusters labelled 12–24)
   and a reader who counts catches that instantly. If you change a count,
   change the cluster.
+- **Every group in the demo graph has a visible hub**, because the first
+  beat now shows the graph *before* clustering and a reader looks straight
+  at the link structure. Leiden would not find communities in an even mesh,
+  so `build()` links each group's first node to ~82% of its members while
+  peripheral pairs link at ~5.5%; cross-topic ties are hub-to-hub. That
+  yields roughly a 6× degree ratio (hubs ~12 links, ordinary notes ~2), and
+  since node radius is degree-driven the hubs also draw larger. Memory's
+  three sub-topics each get **their own** hub — immersing has to leave three
+  legible groups, not one. Flatten these probabilities and the opening beat
+  goes back to looking like a random graph.
+- **The approval's confirmation is an Obsidian NOTICE, not a chat message.**
+  The plugin posts nothing to the transcript when changes are applied; it
+  shows a toast top-right of the window. The demo once invented a
+  `✓ Added to Exam checklist — approved by you` line, which no code path
+  produces. The wording is verbatim from `PendingChangesBar.svelte`
+  (`handleAcceptAll`): one pending entry means `count === 1`, so it reads
+  **"Applied the change"** (the plural branch is "Applied all N changes"; the
+  per-row accept is `Applied: <path>`). Note that accepting hunks one at a
+  time in the note — which is what the demo shows — is **silent**:
+  `acceptChangeGroup` fires no Notice at all, so the toast stands in for the
+  moment the entry resolves. `.v-notice`'s styling is measured off the
+  running plugin, not guessed (`rgba(0,0,0,.9)`, `#fafafa`, 8px radius, 13px
+  text, `9.75px 13px` padding, 300px max, `0 2px 8px rgba(0,0,0,.3)`, 9px
+  from the right edge).
 - **The closing graph edges must have wikilinks behind them.** The finale
   draws a new link from *Exam checklist* to each note the approved edit cites,
   and the graph builds wiki edges from Obsidian's `resolvedLinks`
@@ -120,6 +189,17 @@ was ported from a hand-written mockup, so:
   `makeSim`/`retune`, `startFresh`/`startRecluster`/`tickSim`/`settleSim`,
   the camera) lives at **module scope** in `landing.js` and is shared by both
   graph canvases. Keep the harness free of story state.
+- **The mock window is deliberately narrower than the page's content column**
+  (`max-width: 920px` on `.vault`, against `--max: 1120px`), and 600px tall.
+  At full width it was 1072×552 — a **1.94:1** letterbox against a real
+  Obsidian window's **~1.21:1** (measured live: 1053×866), which reads as
+  "way wider than it is tall". 920×642 is 1.43:1, and the graph pane with the
+  chat open is ~1:1 instead of 2.1:1 — the camera's 1.3× zoom cap means a
+  wide pane turns into horizontal dead space rather than a bigger graph.
+  600px is the tallest that still fits a 1366×768 laptop with the timeline
+  below (620 does not). The chat column is 320px in the base rule; there is
+  no longer a 980px override narrowing it, so `--chat-w` is the single place
+  the pinned content width is set.
 - The demo's mock UI uses its own `--ob-*` palette (both themes) matched to
   Obsidian's real values, not the site palette. One canvas gotcha: assigning
   `canvas.width` **clears** it, so any resize path must repaint synchronously
@@ -127,6 +207,35 @@ was ported from a hand-written mockup, so:
   without firing a window `resize`, so a `ResizeObserver` covers it. Resizes
   only re-fit the camera (layouts are world-space), so the story never
   restarts on resize.
+- **The chat pane's children are pinned to a fixed width** (`--chat-w` on
+  `.v-chat`) so the column can slide closed without reflowing live text —
+  unpinned, a full transcript rewraps to one word per line for the whole
+  0.55s slide. Two of those children (`.v-composer`, `.v-pending`) carry
+  `margin: 0 12px`, and **margins sit outside a border-box width**, so they
+  subtract 24px from the pinned value. Pinning them to the full pane width
+  pushed both 13px past the right edge and shaved the send button. If the
+  pane's width changes, change `--chat-w` — it is a variable precisely so
+  the two can't disagree.
+- **The transcript grows from the top, then flips to bottom-anchored.** It
+  starts empty and fills over ~20s, so bottom-anchoring (a real chat's
+  behaviour) left 76% of the pane blank when the first message landed, which
+  reads as a rendering fault. `.v-chat-body` is `flex-start` until the
+  content outgrows the pane, then `.overflowing` switches it to `flex-end`
+  so the newest message stays visible and old ones scroll off the top.
+  The overflow test must measure the **children's summed height**, not
+  `scrollHeight`: `scrollHeight` depends on the current `justify-content`,
+  so testing it flips the class off, which flips it on again — the
+  transcript flaps every frame and the newest message jumps out of view.
+  The latch is one-way (nothing is ever removed) and `streamAnswer` re-checks
+  it as text arrives, since a streaming answer grows an existing message
+  without `addMsg` ever running.
+- **The lasso stroke and the cursor tracing it share one clock** (`LASSO_MS`).
+  The stroke used to advance by a per-frame constant while the cursor ran on
+  a fixed duration, so the line finished in ~520ms at 60Hz but ~260ms at
+  120Hz against the cursor's 560ms — the stroke outran the hand drawing it,
+  by a different amount per display. `graph.step` now advances `lassoP` by
+  elapsed time over `LASSO_MS`, and `cursorTraceLasso` takes the same
+  constant. Don't reintroduce a per-frame step here.
 - The page is written for non-technical readers (students, writers,
   researchers): no mono-font "dev" styling, no jargon in demo content or copy.
   Inter throughout — clean and minimal is the brief; display faces have been
@@ -218,6 +327,19 @@ The mobile bottom-sheet rules for the search modal are scoped to `.v-search`
 same `.vs-*` classes — and flipped the marketing still upside down on phones,
 putting its results above its search box.
 
+The demo's search modal has **no selection-summary pill**, though the real one
+does (`button.s2b-search-selection-summary`, `"n selected"` from
+`getSelectionSummaryText`). It was tried both places the real modal allows and
+dropped from both: the demo picks exactly one note and the picked row is
+already highlighted, so a badge counting to 1 restates the highlight. At the
+plugin's own `bottom: 10px; right: 14px` it also sat on top of "esc Close" —
+that corner is free in the real modal only because its input carries a clear
+button. Don't re-add it without a reason the count itself carries.
+
+If a selection indicator ever is needed here, it must be **absolutely
+positioned**: an in-flow strip shoves every result row down the moment a note
+is picked, which the real modal never does.
+
 **Every claim in the pillar cells is checked against plugin source.** The
 sources are the same table under "Verifying facts about the plugin" below —
 `GraphControls.svelte` for the graph controls, `SearchModal.ts` for search
@@ -275,6 +397,7 @@ in the plugin repo, checked out alongside this one at `../smart-second-brain`:
 | Graph selection bar verbs, immerse | `src/components/graph/SmartGraphView.svelte` (`handleImmerse`, the selection-bar markup) |
 | Search affordances (filter chips, semantic toggle, attach, ask agent) | `src/components/modal/SearchModal.ts` |
 | Staged edits (bar copy, per-hunk accept, same-note merging) | `src/components/chat/PendingChangesBar.svelte`, `src/editor/inlineDiffExtension.ts`, `src/stores/pendingChangesStore.svelte.ts` (`addChanges`) |
+| Notice/toast wording | the `new Notice(...)` call for that action — e.g. `PendingChangesBar.svelte` `handleAcceptAll` |
 | Platform support, min app version | `manifest.json` |
 | Architecture | `AGENTS.md` (the plugin's own, under "Architecture") |
 
