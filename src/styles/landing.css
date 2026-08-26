@@ -1385,8 +1385,14 @@
     .v-chat { border-left: none; flex: 1; min-height: 0; }
     /* Panes swap with display:none here rather than animating a column, so
        there is no squeeze to guard against — drop the pinned width and let
-       the chat fill the phone. */
-    .v-chat > * { width: auto; }
+       the chat fill the phone. The composer and pending bar need naming
+       explicitly: their desktop rule is a more specific selector than
+       `.v-chat > *`, so this reset alone left them pinned at 296px in a
+       650px pane — full-width body, two stranded boxes on the left. Their
+       side margins do the insetting here. */
+    .v-chat > *,
+    .v-chat > .v-composer,
+    .v-chat > .v-pending { width: auto; }
     .v-chat-body { padding: 12px 14px 8px; }
     /* ── Mobile selection sheet ─────────────────────────────────────────
        The floating bar is ~610px — nearly twice a phone's width — so on

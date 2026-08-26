@@ -216,6 +216,11 @@ was ported from a hand-written mockup, so:
   pushed both 13px past the right edge and shaved the send button. If the
   pane's width changes, change `--chat-w` — it is a variable precisely so
   the two can't disagree.
+  Below 720px the pane goes full-width and the pinning is dropped. That
+  reset must name `.v-composer` and `.v-pending` **explicitly**: their
+  desktop rule is a more specific selector than `.v-chat > *`, so resetting
+  only the latter left them stranded at 296px inside a 650px pane — a
+  full-width transcript above two narrow boxes hugging the left edge.
 - **The transcript grows from the top, then flips to bottom-anchored.** It
   starts empty and fills over ~20s, so bottom-anchoring (a real chat's
   behaviour) left 76% of the pane blank when the first message landed, which
