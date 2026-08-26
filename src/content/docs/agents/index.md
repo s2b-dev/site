@@ -80,6 +80,13 @@ Two more tools appear situationally: `load_skill`, which pulls in a skill's full
 instructions on demand, and a delegation tool when an agent has subagents
 configured.
 
+`search_notes` is not a second, weaker search. It runs the same ranking pipeline
+as the search modal you open yourself — the same strategies, the same filters,
+the same fusion — so the agent sees the results you would have seen. See
+[Search](/search/). The one difference is the starting point: the agent searches
+lexically unless it asks for `semantic` or `hybrid`, and if no embedding index is
+ready, it's told so in the result rather than being left to guess.
+
 Tool names and descriptions are editable per agent, so you can rename a tool or
 sharpen its description if your model responds better to different wording.
 
