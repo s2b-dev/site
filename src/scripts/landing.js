@@ -1,3 +1,15 @@
+/* ---------- plugin physics & geometry (vendored) ----------
+   The demo's graphs run the plugin's OWN layout code, not an imitation of it.
+   `scripts/vendor/` holds verbatim copies of the plugin's pure modules — the
+   d3-force assembly (graphLayout), its density/radius tuning (graphUtils), the
+   camera framing (graphAnimation) and the topic-region geometry (convexHull).
+   The plugin extracted those from its canvas precisely so the identical
+   physics can run headlessly; this is that seam, used for marketing. */
+import { applyLayoutForces, createLayoutSimulation, clusterCohesionForce } from './vendor/graphLayout';
+import { autoNodeSize, densityForceProfile, nodeDrawRadius, zoomNodeScale } from './vendor/graphUtils';
+import { computeCoreNodeBounds, computeNodeBounds, framingTransform } from './vendor/graphAnimation';
+import { buildTopicRegion, centroid } from './vendor/convexHull';
+
 /* ---------- intro offset measurement ---------- */
 (function () {
   var logo = document.querySelector('.hero .logo-lockup');
@@ -13,6 +25,220 @@
 })();
 
 var REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ---------- shared physics harness ----------
+   The wiring both graph canvases share around the vendored modules: the
+   plugin's default force settings, its transition regimes, and a fitted
+   camera. Numbers are the plugin's, with their source noted — change them
+   there, not here. */
+
+/* DEFAULT_SMART_GRAPH_SETTINGS (types/graph.ts): the physics a user gets out
+   of the box, tuned for the fused wiki+semantic graph.
+   `representedCount` sizes the nodes and may exceed the visible count: a
+   collapsed topic counts as its members, not as one node, so folding doesn't
+   change the sizing regime — the canvas's representedNoteCount. */
+function simConfigFor(visibleNodeCount, representedCount) {
+  return {
+    linkDistance: 60,
+    chargeStrength: -120,
+    centerStrength: 0.07,
+    linkStrength: 1,
+    clusterCohesionStrength: 0.45,
+    nodeSize: autoNodeSize(representedCount || visibleNodeCount),
+    visibleNodeCount: visibleNodeCount
+  };
+}
+
+/* GraphCanvas.svelte's simulation lifecycle. FRESH is the initial layout
+   (setupForceSimulation's isFreshLayout branch); RECLUSTER is the granularity
+   transition — same nodes, new topic ids — with its slower decay, higher drag
+   and a 3× cohesion boost eased back by smoothstep so freshly split topics
+   separate instead of staying interleaved. */
+var FRESH = { alphaDecay: 0.04, velocityDecay: 0.5 };
+var RECLUSTER = {
+  alpha: 0.22, alphaDecay: 0.012, velocityDecay: 0.55,
+  boost: 3, rampEnd: 0.02
+};
+/* GraphCanvas's collapse/expand transition: alpha held at RETARGET_ALPHA for
+   RETARGET_HOLD_MS so a distant node has time to travel, then released to
+   decay normally. 72 ticks ≈ 1200ms at 60fps. */
+var RETARGET = { alpha: 0.3, holdTicks: 72 };
+
+/** GraphCanvas's reclusterBoostFactor: full boost early, easing to 1. */
+function reclusterBoostFactor(alpha) {
+  if (alpha >= RECLUSTER.alpha) return RECLUSTER.boost;
+  if (alpha <= RECLUSTER.rampEnd) return 1;
+  var t = (RECLUSTER.alpha - alpha) / (RECLUSTER.alpha - RECLUSTER.rampEnd);
+  var s = t * t * (3 - 2 * t);
+  return RECLUSTER.boost + (1 - RECLUSTER.boost) * s;
+}
+
+/**
+ * One simulation with the demo's bookkeeping: which transition regime is
+ * active, and the per-tick recluster boost. `retune(count)` re-applies the
+ * full force set for a changed node set — what the plugin's rebuild does.
+ */
+function makeSim(nodes, links, count, represented) {
+  var sim = createLayoutSimulation(nodes, links, simConfigFor(count, represented));
+  sim.alphaDecay(FRESH.alphaDecay).velocityDecay(FRESH.velocityDecay);
+  var state = {
+    sim: sim,
+    nodes: nodes,
+    links: links,
+    count: count,
+    reclustering: false,
+    retargetTicks: 0,
+    /** The cohesion the boost multiplies — base × the density profile's. */
+    baseCohesion: 0.45 * densityForceProfile(count).cohesion
+  };
+  return state;
+}
+
+function retune(state, nodes, links, count, represented) {
+  state.nodes = nodes; state.links = links; state.count = count;
+  state.baseCohesion = 0.45 * densityForceProfile(count).cohesion;
+  state.sim.nodes(nodes);
+  applyLayoutForces(state.sim, nodes, links, simConfigFor(count, represented));
+}
+
+/** Kick off a fresh-layout settle (initial clustering). */
+function startFresh(state, rate) {
+  state.reclustering = false; state.retargetTicks = 0;
+  state.rate = rate || 1; state.tickAcc = 0;
+  state.sim.alphaTarget(0);
+  state.sim.alphaDecay(FRESH.alphaDecay).velocityDecay(FRESH.velocityDecay);
+  state.sim.alpha(1);
+}
+
+/** Kick off the plugin's re-cluster transition (new topic ids, same notes). */
+function startRecluster(state, rate) {
+  state.reclustering = true; state.retargetTicks = 0;
+  state.rate = rate || 1; state.tickAcc = 0;
+  state.sim.alphaTarget(0);
+  state.sim
+    .alpha(RECLUSTER.alpha)
+    .alphaDecay(RECLUSTER.alphaDecay)
+    .velocityDecay(RECLUSTER.velocityDecay);
+}
+
+/** Kick off the collapse/expand transition: a held alpha, then release. */
+function startRetarget(state, rate) {
+  state.reclustering = false;
+  state.rate = rate || 1; state.tickAcc = 0;
+  state.retargetTicks = RETARGET.holdTicks;
+  /* The recluster's heavier drag, not FRESH's: at velocityDecay 0.5 the nodes
+     covered the whole fold in a handful of ticks — so the dots arrived at the
+     topic point while the hull and camera were still easing after them, and
+     the two halves of one motion looked unrelated. Damped, the nodes travel
+     over the same span as everything else. */
+  state.sim.alphaDecay(FRESH.alphaDecay).velocityDecay(RECLUSTER.velocityDecay);
+  state.sim.alpha(Math.max(state.sim.alpha(), RETARGET.alpha)).alphaTarget(RETARGET.alpha);
+}
+
+/**
+ * Advance the simulation one frame, mirroring GraphCanvas's tick handler:
+ * while reclustering, the cohesion force rides the smoothstep boost, and the
+ * base decays come back once the transition has settled; a retarget holds its
+ * alpha for its window, then releases the target so the sim can rest.
+ */
+function tickSim(state) {
+  var sim = state.sim;
+  if (state.retargetTicks > 0) {
+    state.retargetTicks--;
+    if (state.retargetTicks === 0) sim.alphaTarget(0);
+  } else if (sim.alpha() < sim.alphaMin()) return false;
+  /* Slow motion, not weaker physics. d3's alpha curve is exponential, so a
+     settle front-loads its travel: at the plugin's own settings ~99% of the
+     movement happens in the first second, which is a snap rather than
+     something you can watch. Every attempt to spread it by tuning — slower
+     decay, more drag, lower starting alpha, a tighter scatter — either just
+     appended dead time or (in the low-alpha case) never delivered enough
+     force to separate the clusters at all.
+     So the forces stay EXACTLY the plugin's and we advance them at a
+     fraction of a tick per frame instead. Same trajectory, same end state,
+     played at a speed the eye can follow. `rate` is 1 (real time) unless a
+     beat asks otherwise. */
+  state.tickAcc = (state.tickAcc || 0) + (state.rate || 1);
+  if (state.tickAcc < 1) return true;
+  state.tickAcc -= 1;
+  sim.tick();
+  if (state.reclustering) {
+    var a = sim.alpha();
+    var cluster = sim.force('cluster');
+    if (cluster) cluster.strength(state.baseCohesion * reclusterBoostFactor(a));
+    if (a < RECLUSTER.rampEnd) {
+      state.reclustering = false;
+      sim.alphaDecay(FRESH.alphaDecay).velocityDecay(FRESH.velocityDecay);
+    }
+  }
+  return true;
+}
+
+/** Run the simulation to rest in one go — phase jumps and reduced motion. */
+function settleSim(state) {
+  /* Fast-forward: run at real time whatever the playback rate, since this is
+     "arrive at the end state now", not something anyone watches. */
+  var rate = state.rate;
+  state.rate = 1; state.tickAcc = 0;
+  var guard = 600;
+  while (guard-- > 0 && tickSim(state)) { /* advance */ }
+  state.rate = rate;
+  var cluster = state.sim.force('cluster');
+  if (cluster) cluster.strength(state.baseCohesion);
+  state.reclustering = false;
+}
+
+/**
+ * A camera that keeps the world-space layout framed in the canvas — the
+ * plugin's framingTransform over full bounds, centred on the outlier-trimmed
+ * core, glided per-frame the way its overlapping 150ms refits read. `pad`
+ * scales GRAPH_FIT_PADDING's shape (labels above need the most room) down to
+ * the demo's smaller canvases.
+ */
+function makeCamera() {
+  return { x: 0, y: 0, scale: 1, started: false };
+}
+
+function cameraTarget(nodes, W, H, filter) {
+  var bounds = computeNodeBounds(nodes, filter);
+  if (!bounds) return null;
+  var pad = { top: 44, right: 30, bottom: 26, left: 30 };
+  return framingTransform(bounds, { width: W, height: H }, pad, 1.3,
+    computeCoreNodeBounds(nodes, filter));
+}
+
+function cameraFollow(cam, target, snap, rate) {
+  if (!target) return;
+  if (snap || !cam.started) {
+    cam.x = target.x; cam.y = target.y; cam.scale = target.scale;
+    cam.started = true;
+    return;
+  }
+  /* Approximates the canvas's continuous overlapping eases. Scaled by the
+     playback rate: a fixed per-frame ease against slowed physics makes the
+     camera the fastest thing on screen, so the framing arrives before the
+     nodes it is framing — which reads as the region lagging the dots. */
+  var k = 0.14 * (rate || 1);
+  cam.x += (target.x - cam.x) * k;
+  cam.y += (target.y - cam.y) * k;
+  cam.scale += (target.scale - cam.scale) * k;
+}
+
+/** The padded, smoothed outline drawn around a topic's notes (world space). */
+function topicRegion(pts, pad) {
+  return buildTopicRegion(pts, pad);
+}
+
+/** Rounded-rectangle path. Takes its context, unlike the callers' locals. */
+function roundRectPath(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
 
 /* ---------- theme toggle ----------
    The initial theme is set pre-paint by an inline script in index.astro.
@@ -171,8 +397,12 @@ var REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
       var a = nodes[edges[e][0]], b = nodes[edges[e][1]], intra = edges[e][2];
       ctx.beginPath();
       ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y);
+      /* Neutral, never cluster-tinted — edges are one colour in the real
+         graph (pixiRenderer's c.graphLine), and the backdrop follows suit.
+         Hue 0 at 0% saturation is grey; the L/A tokens still tune weight
+         per theme. */
       ctx.strokeStyle = intra
-        ? hsla(a.c, PALETTE.edgeL, PALETTE.edgeA)
+        ? 'hsla(0, 0%, ' + PALETTE.edgeL + ', ' + PALETTE.edgeA + ')'
         : PALETTE.bridge;
       ctx.lineWidth = intra ? 0.8 : 0.6;
       ctx.stroke();
@@ -207,12 +437,21 @@ var REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
    feature, all mirroring real plugin behaviour:
    1. the graph opens scattered and clusters itself into labelled topics
       (automatic topic detection),
-   2. a keyword search finds nothing, Tab flips semantic on, and notes that
-      never use those words appear (SearchModal's semantic toggle),
-   3. a question typed into the chat composer sends the agent reading notes
-      and slide PDFs, and its edit waits for approval (staged edits),
-   4. a lasso selects a cluster and Immerse opens it into finer sub-topics
-      (lasso selection, immerse, the granularity ladder). */
+   2. a lasso selects the Memory topic and Immerse re-groups its own notes
+      into the finer topics inside it (lasso selection, immerse),
+   3. a second lasso picks one sub-topic and opens it in the chat, where the
+      agent drafts an edit that waits for approval (ambient graph selection,
+      staged edits),
+   4. the draft is short one fact, so search finds the note that has it —
+      by meaning, not by words — and the agent folds it into the SAME staged
+      change, which is then approved hunk by hunk in the note itself.
+
+   The phases are one story, not four features: each begins from the state the
+   last one left. Phase 4 in particular is caused by phase 3 — the agent's
+   first answer names the gap it can't fill (see ANSWER), so the search
+   resolves a tension the story already has rather than introducing a new
+   feature. Keep that causal chain intact when editing; it is the difference
+   between a storyline and a feature reel. */
 (function () {
   var vault = document.getElementById('vault');
   if (!vault) return;
@@ -371,19 +610,27 @@ var REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     var W = 0, H = 0, DPR = Math.min(window.devicePixelRatio || 1, 2);
 
     var K = 5;
+    /* Every pill's count is the number of dots actually drawn in that hull —
+       a reader who counts them must not catch the demo lying. Memory's 24 is
+       load-bearing beyond the pill: the selection bar says "24 notes selected"
+       and the three sub-topics below have to sum to it. */
     var LABELS = [['Memory', 24], ['Sleep', 18], ['Perception', 21], ['Statistics', 19], ['Essays', 12]];
-    /* The finer topics Immerse reveals inside Memory — counts sum to 24. */
-    /* Counts sum to the Memory pill's 24. The cluster only holds PER nodes on
-       screen, so immersing spawns extras (see `subExtras`) — otherwise three
-       dots per group would contradict these labels. */
+    /* The finer topics Immerse reveals inside Memory. These are the real
+       group sizes of Memory's own nodes (9 + 8 + 7 = 24), assigned in build(),
+       not decorative labels — immersing re-groups the same dots rather than
+       conjuring new ones, which is what the plugin's Immerse actually does. */
     var SUBLABELS = [['Consolidation', 9], ['Recall & testing', 8], ['Sleep & memory', 7]];
     var SUBHUE_OFFSETS = [0, 34, -34];
-    var SUBCENTERS = [{ fx: 0.30, fy: 0.34 }, { fx: 0.72, fy: 0.33 }, { fx: 0.50, fy: 0.72 }];
-    var PER = 9;
+    /* Index of each cluster's first node, filled by build(). Lets the named
+       story notes (and anything else) address a node by cluster + offset now
+       that clusters are different sizes. */
+    var CLUSTER_AT = [];
     var HUES = [];
     for (var i = 0; i < K; i++) HUES.push(Math.round(i * 360 / K));
 
-    /* organize 0→1 scatter→clustered, imm 0→1 overview→immersed,
+    /* The physics is the plugin's own d3-force simulation (see the vendored
+       modules at the top of this file); everything below drives VISUALS only.
+       organize 0→1 grey→coloured, imm 0→1 overview→immersed fades,
        lassoP 0→1 selection stroke sweep. */
     var organize = 0, organizeT = 0, orgE = 0;
     var imm = 0, immT = 0;
@@ -391,6 +638,15 @@ var REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     /* Second lasso, drawn inside the immersion around the Consolidation
        sub-topic — the selection that gets opened in the chat. */
     var lasso2P = 0, lasso2T = 0;
+
+    /* The simulation and its fitted camera. `simState.nodes` is the ACTIVE
+       set — all 94 in the overview, Memory's 24 while immersed, exactly like
+       the plugin rebuilding its graph on Immerse. The camera frames only the
+       active set, so immersing zooms into the expanding sub-topics. */
+    var simState = null;
+    var cam = makeCamera();
+    var NODE_SIZE = 3;              /* autoNodeSize(94), fixed in build() */
+    var HULL_PAD = 29;              /* nodeDrawRadius(degree 0) + HULL_PADDING(26) */
 
     /* Per-lasso wobble. Only two harmonics, both low-frequency (2–4 lobes):
        the real selection region is a big lazy blob, so extra harmonics just
@@ -473,16 +729,15 @@ var REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
         return v || fallback;
       }
       /* --gm-* are the mini-graph's own node values: the real in-app graph is
-         far more saturated than the hero's backdrop treatment. */
+         far more saturated than the hero's backdrop treatment. Edges are one
+         neutral token (--gm-edge), never cluster-tinted — see the edge pass. */
       PALETTE = {
         nodeL: tok('--gm-node-l', '62%'),
         nodeA: tok('--gm-node-a', '0.95'),
         hubL: tok('--g-hub-l', '62%'),
         hubA: tok('--g-hub-a', '0.95'),
-        edgeL: tok('--g-edge-l', '55%'),
-        edgeA: tok('--g-edge-a', '0.16'),
-        hullA: tok('--g-hull-a', '0.13'),
-        bridge: tok('--g-bridge', 'rgba(150,145,180,0.07)')
+        edge: tok('--gm-edge', 'rgba(150,150,150,0.45)'),
+        hullA: tok('--g-hull-a', '0.13')
       };
       ACCENT = tok('--ob-accent', '#7f6df2');
     }
@@ -505,76 +760,17 @@ var REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     }
     readChrome();
 
-    function unitOf() { return Math.sqrt(W * H); }
-
-    /* --- topic regions: ported from the plugin's utils/convexHull.ts --- */
-
-    /** Monotone chain convex hull. */
-    function convexHull(pts) {
-      if (pts.length < 3) return pts.slice();
-      var p = pts.map(function (n) { return { x: n.x, y: n.y }; })
-        .sort(function (a, b) { return a.x - b.x || a.y - b.y; });
-      var cross = function (o, a, b) {
-        return (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x);
-      };
-      var lower = [];
-      for (var i = 0; i < p.length; i++) {
-        while (lower.length >= 2 && cross(lower[lower.length - 2], lower[lower.length - 1], p[i]) <= 0) lower.pop();
-        lower.push(p[i]);
-      }
-      var upper = [];
-      for (var j = p.length - 1; j >= 0; j--) {
-        while (upper.length >= 2 && cross(upper[upper.length - 2], upper[upper.length - 1], p[j]) <= 0) upper.pop();
-        upper.push(p[j]);
-      }
-      lower.pop(); upper.pop();
-      return lower.concat(upper);
+    /* World → screen, through the fitted camera. */
+    function TX(x) { return x * cam.scale + cam.x; }
+    function TY(y) { return y * cam.scale + cam.y; }
+    /* Screen radius of a node: the plugin's degree-driven world radius, under
+       the camera, with its partial counter-zoom (zoomNodeScale) so a fitted
+       overview doesn't shrink dots to dust. */
+    function screenR(n) {
+      return nodeDrawRadius(n, NODE_SIZE) * cam.scale * zoomNodeScale(cam.scale);
     }
 
-    /** Push each hull vertex outward from the centroid by `pad`. */
-    function expandHull(hull, pad) {
-      var cx = 0, cy = 0;
-      hull.forEach(function (p) { cx += p.x; cy += p.y; });
-      cx /= hull.length; cy /= hull.length;
-      return hull.map(function (p) {
-        var dx = p.x - cx, dy = p.y - cy;
-        var d = Math.hypot(dx, dy) || 1;
-        return { x: p.x + (dx / d) * pad, y: p.y + (dy / d) * pad };
-      });
-    }
-
-    /** Chaikin corner-cutting — the plugin's smoothClosedPath, 2 iterations. */
-    function smoothClosed(points, iterations) {
-      if (points.length < 3) return points;
-      var cur = points;
-      for (var it = 0; it < (iterations || 2); it++) {
-        var next = [];
-        for (var i = 0; i < cur.length; i++) {
-          var a = cur[i], b = cur[(i + 1) % cur.length];
-          next.push({ x: a.x * 0.75 + b.x * 0.25, y: a.y * 0.75 + b.y * 0.25 });
-          next.push({ x: a.x * 0.25 + b.x * 0.75, y: a.y * 0.25 + b.y * 0.75 });
-        }
-        cur = next;
-      }
-      return cur;
-    }
-
-    function topicRegion(pts, pad) {
-      if (!pts.length) return null;
-      var hull = convexHull(pts);
-      if (hull.length < 3) return null;
-      return smoothClosed(expandHull(hull, pad), 2);
-    }
-
-    function roundRect(x, y, w, h, r) {
-      ctx.beginPath();
-      ctx.moveTo(x + r, y);
-      ctx.arcTo(x + w, y, x + w, y + h, r);
-      ctx.arcTo(x + w, y + h, x, y + h, r);
-      ctx.arcTo(x, y + h, x, y, r);
-      ctx.arcTo(x, y, x + w, y, r);
-      ctx.closePath();
-    }
+    function roundRect(x, y, w, h, r) { roundRectPath(ctx, x, y, w, h, r); }
 
     function drawLabelPill(text, x, y, hue, alpha) {
       if (alpha < 0.03) return;
@@ -601,161 +797,149 @@ var REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
       ctx.globalAlpha = 1;
     }
 
-    var nodes = [], edges = [], centers = [], storyEdges = [];
-    /* Notes the storyline names, mapped to fixed node slots. lec7/slides/
-       checklist/sg sit in the Memory cluster; lec8 is the Sleep hub. */
-    var named = { lec7: 0, slides: 2, checklist: 4, sg: 6, lec8: PER };
-
-    function scatterNode(n) {
-      n.sx = W * (0.06 + Math.random() * 0.88);
-      n.sy = H * (0.08 + Math.random() * 0.84);
+    var nodes = [], edges = [], storyEdges = [];
+    /* Notes the storyline names, as {cluster, offset} — resolved against
+       CLUSTER_AT at use time, since clusters are now different sizes. The
+       first four sit inside Memory's Consolidation sub-group (offsets below
+       SUBLABELS[0]'s 9), which is the group the chat is handed; lec8 is the
+       Sleep cluster's hub. */
+    var named = {
+      lec7: [0, 0], slides: [0, 2], checklist: [0, 4], sg: [0, 6], lec8: [1, 0]
+    };
+    /* The notes the approved edit links to, and therefore the edges the graph
+       gains at the end. This list must match the [[wikilinks]] in the staged
+       diff in index.astro — the graph's wiki edges come from Obsidian's
+       resolvedLinks (graphDataBuilder.ts buildWikiEdges), so an edge with no
+       corresponding link in the note is an edge that would never exist.
+       Two land inside Memory and one crosses to Sleep, which is also what
+       stops them reading as a single stroke. */
+    var LINKED_NOTES = ['lec7', 'slides', 'lec8'];
+    /** Resolve a named note to its live node, or null before the first build. */
+    function namedNode(id) {
+      var ref = named[id];
+      if (!ref || CLUSTER_AT[ref[0]] === undefined) return null;
+      return nodes[CLUSTER_AT[ref[0]] + ref[1]] || null;
     }
 
+    /* Scatter in world units: the box the un-clustered vault opens on. The
+       camera fits whatever box we pick, so only its aspect matters. */
+    function scatterNode(n) {
+      n.x = (Math.random() - 0.5) * 560;
+      n.y = (Math.random() - 0.5) * 360;
+      n.vx = 0; n.vy = 0;
+    }
+
+    /** Which of Memory's three sub-topics its j-th node belongs to. */
+    function subGroupOf(j) {
+      var at = 0;
+      for (var s = 0; s < SUBLABELS.length; s++) {
+        at += SUBLABELS[s][1];
+        if (j < at) return s;
+      }
+      return SUBLABELS.length - 1;
+    }
+
+    /* Links for the ACTIVE node set — the immersion swaps to Memory-internal
+       ones, the way the plugin rebuilds with only the selected notes. */
+    var memLinks = [];
+
     function build() {
-      nodes = []; edges = []; centers = [];
-      /* Geometric mean, so the layout holds its proportions whether the pane
-         is wide (desktop, side by side) or tall (mobile, stacked). */
-      var unit = unitOf();
-      var spacing = W < 560 ? 0.34 : 0.28;
+      nodes = []; edges = []; CLUSTER_AT = []; memLinks = [];
       for (var c = 0; c < K; c++) {
-        var a = (c / K) * Math.PI * 2 - Math.PI / 2;
-        var rad = unit * spacing;
-        var ct = { x: W / 2 + Math.cos(a) * rad, y: H / 2 + Math.sin(a) * rad * 0.82 };
-        centers.push(ct);
-        for (var j = 0; j < PER; j++) {
-          var spread = unit * 0.075;
-          /* ox/oy: the node's own spot within the cluster. Cohesion targets
-             this, not the bare centre, so communities stay spread. */
+        CLUSTER_AT.push(nodes.length);
+        /* As many dots as the pill claims. The clusters differ in size, which
+           is also truer to a real vault than five identical blobs. */
+        var count = LABELS[c][1];
+        for (var j = 0; j < count; j++) {
           var n = {
-            c: c, subc: j % 3,
-            ox: (Math.random() - 0.5) * spread * 2,
-            oy: (Math.random() - 0.5) * spread * 2,
-            iox: (Math.random() - 0.5) * unit * 0.14,
-            ioy: (Math.random() - 0.5) * unit * 0.14,
-            vx: 0, vy: 0,
-            r: 1.8 + Math.random() * 2.3,
-            hub: j === 0,
+            /* `home` is the story's topic (colour, hulls, fades). `cluster` is
+               what the plugin's cohesion force reads — null until the
+               clustering beat assigns it, exactly as an un-partitioned graph
+               feels no cohesion. */
+            home: c, cluster: null,
+            /* Memory's sub-groups are contiguous runs sized by SUBLABELS, so
+               each immersed hull holds exactly the count on its own pill. */
+            subc: c === 0 ? subGroupOf(j) : 0,
+            degree: 0,
             glow: 0, glowT: 0, pop: 0
           };
           scatterNode(n);
-          n.x = n.sx; n.y = n.sy;
           nodes.push(n);
         }
       }
-      /* Extra Memory nodes that only exist while immersed, so each sub-topic
-         shows roughly as many dots as its label claims. They start at the
-         cluster centre (invisible at imm=0) and fan out on immerse. */
-      var perSub = [6, 5, 4];
-      for (var s = 0; s < 3; s++) {
-        for (var e2 = 0; e2 < perSub[s]; e2++) {
-          var ex = {
-            c: 0, subc: s, extra: true,
-            ox: 0, oy: 0,
-            iox: (Math.random() - 0.5) * unit * 0.15,
-            ioy: (Math.random() - 0.5) * unit * 0.15,
-            vx: 0, vy: 0,
-            r: 1.8 + Math.random() * 2.0,
-            hub: false,
-            glow: 0, glowT: 0, pop: 0
-          };
-          ex.sx = centers[0].x; ex.sy = centers[0].y;
-          ex.x = ex.sx; ex.y = ex.sy;
-          nodes.push(ex);
+
+      /* Edges are the structure the physics reads — communities cohere
+         because their notes actually link. Probability falls with cluster
+         size so every hull is about equally dense. Inside Memory the links
+         respect the sub-topics (dense within, sparse across): that structure
+         is WHY immersing separates them, rather than a choreographed split.
+         Each cluster's first node is its HUB — a well-linked note the topic
+         forms around, the way a vault's MOC or index note behaves (and the
+         note the plugin's default topic label is named after). */
+      for (var a = 0; a < nodes.length; a++) {
+        for (var b = a + 1; b < nodes.length; b++) {
+          var na = nodes[a], nb = nodes[b];
+          var hub = a === CLUSTER_AT[na.home] || b === CLUSTER_AT[nb.home];
+          var p;
+          if (na.home !== nb.home) p = 0.0016;
+          else if (na.home === 0) {
+            p = na.subc === nb.subc ? (hub ? 0.45 : 1.4 / SUBLABELS[na.subc][1])
+              : (hub ? 0.12 : 0.03);
+          } else p = hub ? 0.35 : 1.1 / LABELS[na.home][1];
+          if (Math.random() < p) {
+            var link = {
+              source: na, target: nb, weight: 1,
+              type: na.home === nb.home ? 'wiki' : 'semantic',
+              intra: na.home === nb.home
+            };
+            edges.push(link);
+            na.degree++; nb.degree++;
+            if (na.home === 0 && nb.home === 0) memLinks.push(link);
+          }
         }
       }
 
-      for (var n2 = 0; n2 < nodes.length; n2++) {
-        if (nodes[n2].extra) continue;
-        for (var m = n2 + 1; m < nodes.length; m++) {
-          if (nodes[m].extra) continue;
-          var same = nodes[n2].c === nodes[m].c;
-          if (same && Math.random() < 0.16) edges.push([n2, m, 1]);
-          else if (!same && Math.random() < 0.005) edges.push([n2, m, 0]);
-        }
-      }
+      NODE_SIZE = autoNodeSize(nodes.length);
+      simState = makeSim(nodes, edges, nodes.length);
+      simState.sim.alpha(0);   /* scattered and still until the story starts */
     }
 
-    /** Match the backing store to the CSS box. Returns the previous size. */
-    function syncCanvasSize(r) {
-      var prev = { w: W, h: H };
-      W = r.width; H = r.height;
-      cv.width = W * DPR; cv.height = H * DPR;
-      ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
-      return prev;
+    /** Memory's nodes — the set the immersion rebuilds the graph around. */
+    function memNodes() {
+      return nodes.filter(function (n) { return n.home === 0; });
     }
 
+    /** Match the backing store to the CSS box and repaint synchronously —
+        setting cv.width wipes the canvas, and during the chat pane's slide
+        this runs every frame, so waiting for the next rAF would flicker.
+        The layout itself lives in world space and never needs a rebuild; the
+        camera simply re-fits to the new box. */
     function resize() {
       var r = cv.getBoundingClientRect();
       if (!r.width || !r.height) return;
-      syncCanvasSize(r);
-      var keep = storyEdges.length > 0;
-      build();
-      if (keep) api.link();
-      if (REDUCED) api.final();
-      else draw();   /* the size change cleared the canvas — repaint now */
-    }
-
-    /**
-     * Re-fit to a new pane size *without* rebuilding — used while the chat
-     * pane slides, which changes the canvas box every frame. A full build()
-     * there would re-scatter the nodes and restart the story, and leaving the
-     * backing store stale stretches the old bitmap into the new box.
-     * Node positions are remapped proportionally so the layout keeps its
-     * shape as the pane grows or shrinks.
-     */
-    function refit() {
-      var r = cv.getBoundingClientRect();
-      if (!r.width || !r.height || !nodes.length) return;
-      var prev = syncCanvasSize(r);
-      if (!prev.w || !prev.h) return;
-      var fx = W / prev.w, fy = H / prev.h;
-      if (fx === 1 && fy === 1) return;
-      for (var i = 0; i < nodes.length; i++) {
-        var n = nodes[i];
-        n.x *= fx; n.y *= fy;
-        n.sx *= fx; n.sy *= fy;
-      }
-      for (var c = 0; c < centers.length; c++) {
-        centers[c].x *= fx; centers[c].y *= fy;
-      }
-      /* Setting cv.width above wipes the canvas. Repaint synchronously — if we
-         waited for the next animation frame the pane would show a blank graph
-         for that frame, which reads as a flicker across the whole slide. */
+      W = r.width; H = r.height;
+      cv.width = W * DPR; cv.height = H * DPR;
+      ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+      cameraFollow(cam, cameraTarget(simState.nodes, W, H), true);
       draw();
     }
 
-    /** Where a node wants to be now, blending scatter → home → immersed. */
-    function targetOf(n) {
-      var ct = centers[n.c];
-      var tx = n.sx + (ct.x + n.ox - n.sx) * orgE;
-      var ty = n.sy + (ct.y + n.oy - n.sy) * orgE;
-      if (imm > 0.001 && n.c === 0) {
-        var sc = SUBCENTERS[n.subc];
-        tx += (W * sc.fx + n.iox - tx) * imm;
-        ty += (H * sc.fy + n.ioy - ty) * imm;
-      }
-      return { x: tx, y: ty };
-    }
-
-    var t = 0;
-    /* Simulation heat. The drift force is scaled by this, so the layout
-       settles instead of wobbling forever: it's reheated whenever something
-       actually moves the nodes (clustering, immersing, exiting) and decays to
-       zero once they've arrived — the way a real force sim cools. */
-    var heat = 1;
-    function reheat() { heat = 1; }
-
+    /* Visual timekeeping only — colour flood, fades, lasso sweeps, glow.
+       All node MOTION comes from the plugin's simulation via tickSim. */
     function step() {
-      t += 0.004;
-      var prevOrg = organize, prevImm = imm;
-      /* 0.06, up from 0.035: the exponential IS the fast-start/slow-settle
-         shape, but at the old rate it moved at ~the spring's own tracking
-         speed, so the spring low-passed it into a constant crawl. Faster
-         target + heat-scaled stiffness below let the surge show. (0.08 read
-         as lurching; this is the calmer of the two that still cools.) */
-      organize += (organizeT - organize) * 0.06;
+      tickSim(simState);
+      cameraFollow(cam, cameraTarget(simState.nodes, W, H), false, simState.rate);
+
+      /* Colour and hulls arrive as the layout firms up, the way topics land
+         in the real graph. Slowed to match the settle's playback rate — at
+         the old 0.035 the colour was fully in well before the nodes had
+         finished gathering, which read as the palette announcing a result
+         the graph hadn't reached yet. */
+      organize += (organizeT - organize) * 0.016;
       orgE = organize < 0 ? 0 : organize > 1 ? 1 : organize;
-      imm += (immT - imm) * 0.085;
+      /* The immersion crossfade rides the transition's playback rate, so the
+         old topics clear as the new ones arrive rather than well before. */
+      imm += (immT - imm) * 0.085 * (simState.rate || 1);
       /* Linear, not eased: an eased sweep never quite reaches 1, so the loop
          would hang open. A person draws a lasso at a fairly even speed
          anyway. ~0.9s at 60fps. */
@@ -764,31 +948,8 @@ var REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
       if (lasso2P < lasso2T) lasso2P = Math.min(lasso2T, lasso2P + 0.032);
       else lasso2P += (lasso2T - lasso2P) * 0.2;
 
-      /* Still transitioning? Hold full heat. Otherwise cool toward stillness. */
-      if (Math.abs(organize - prevOrg) > 0.0004 || Math.abs(imm - prevImm) > 0.0004) heat = 1;
-      else heat *= 0.972;
-      if (heat < 0.002) heat = 0;
-
-      /* Spring stiffness rides the heat, the way a force sim's alpha scales
-         its forces: hot = a stronger pull, cooling = it relaxes toward the
-         gentle base value, so arrival reads as deceleration into stillness
-         rather than a constant-speed crawl. Damping rises with heat in step —
-         a stronger spring under the same damping is underdamped (ζ≈0.3) and
-         visibly overshot its cluster; 3× pull with 0.90 damping keeps the
-         hot system near critical (ζ≈0.7): fast, but no bounce. */
-      var pull = 0.0016 * (1 + 2 * heat);
-      var damp = 0.94 - 0.04 * heat;
       for (var i = 0; i < nodes.length; i++) {
         var n = nodes[i];
-        var tg = targetOf(n);
-        n.vx += (tg.x - n.x) * pull;
-        n.vy += (tg.y - n.y) * pull;
-        if (heat > 0) {
-          n.vx += Math.cos(t * 1.7 + i * 0.7) * 0.008 * heat;
-          n.vy += Math.sin(t * 1.4 + i * 0.9) * 0.008 * heat;
-        }
-        n.vx *= damp; n.vy *= damp;
-        n.x += n.vx; n.y += n.vy;
         n.glow += (n.glowT - n.glow) * 0.08;
         n.pop *= 0.95;
       }
@@ -798,31 +959,40 @@ var REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
       }
     }
 
-    /* Extras are excluded: they sit at the cluster centre until immersion, so
-       including them would distort the overview hull and its label position. */
     function clusterPts(c) {
       var pts = [];
-      for (var q = 0; q < nodes.length; q++) if (nodes[q].c === c && !nodes[q].extra) pts.push(nodes[q]);
+      for (var q = 0; q < nodes.length; q++) if (nodes[q].home === c) pts.push(nodes[q]);
       return pts;
     }
 
     function subPts(sc) {
       var pts = [];
-      for (var q = 0; q < nodes.length; q++) if (nodes[q].c === 0 && nodes[q].subc === sc) pts.push(nodes[q]);
+      for (var q = 0; q < nodes.length; q++) if (nodes[q].home === 0 && nodes[q].subc === sc) pts.push(nodes[q]);
       return pts;
     }
 
+    /** A group's centroid in SCREEN coordinates (for lassos and pills). */
     function centroidOf(pts) {
-      var cx = 0, cy = 0;
-      pts.forEach(function (p) { cx += p.x; cy += p.y; });
-      return { x: cx / pts.length, y: cy / pts.length };
+      var c = centroid(pts);
+      return { x: TX(c.x), y: TY(c.y) };
+    }
+
+    /** Screen-space bounding box of a group — sizes lassos and anchors pills. */
+    function screenBox(pts) {
+      var minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+      for (var i = 0; i < pts.length; i++) {
+        var x = TX(pts[i].x), y = TY(pts[i].y);
+        if (x < minX) minX = x; if (x > maxX) maxX = x;
+        if (y < minY) minY = y; if (y > maxY) maxY = y;
+      }
+      return { minX: minX, minY: minY, maxX: maxX, maxY: maxY,
+        cx: (minX + maxX) / 2, cy: (minY + maxY) / 2 };
     }
 
     function draw() {
       ctx.clearRect(0, 0, W, H);
       /* Hulls and labels only appear once the topics have actually formed. */
       var labelA = Math.max(0, Math.min(1, (orgE - 0.75) / 0.25));
-      var unit = unitOf();
       /* Non-focused clusters recede while immersed. */
       /* Fully hidden, not faded: at a few percent the other topics read as
          noise and compete with the sub-topics you immersed into. The exit
@@ -841,17 +1011,18 @@ var REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
          over the sub-topics as they arrive. */
       var leaving = Math.max(0, 1 - imm / 0.8);
 
-      /* Topic hulls: a real padded, smoothed convex hull over each cluster's
-         live node positions — the same construction the plugin uses. Fill 0.1
-         / stroke 0.35 at 1.5px match pixiRenderer's drawHulls. */
+      /* Topic hulls: the plugin's own buildTopicRegion over live positions,
+         padded in WORLD units (nodeDrawRadius(degree 0) + HULL_PADDING, as
+         GraphCanvas computes it) and projected through the camera. Fill 0.1 /
+         stroke 0.35 at 1.5px match pixiRenderer's drawHulls. */
       function paintHull(pts, hue, alpha) {
         if (alpha < 0.02 || pts.length < 3) return;
-        var path = topicRegion(pts, unit * 0.055);
+        var path = topicRegion(pts, HULL_PAD);
         if (!path) return;
         ctx.globalAlpha = alpha;
         ctx.beginPath();
-        ctx.moveTo(path[0].x, path[0].y);
-        for (var s = 1; s < path.length; s++) ctx.lineTo(path[s].x, path[s].y);
+        ctx.moveTo(TX(path[0].x), TY(path[0].y));
+        for (var s = 1; s < path.length; s++) ctx.lineTo(TX(path[s].x), TY(path[s].y));
         ctx.closePath();
         ctx.fillStyle = hslaH(hue, Math.round(70 * orgE), PALETTE.nodeL, PALETTE.hullA);
         ctx.fill();
@@ -871,25 +1042,35 @@ var REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
         }
       }
 
+      /* One neutral colour for every edge, as pixiRenderer draws them —
+         cluster hue belongs to nodes and hulls, and the accent is reserved
+         for hover/story highlights. Authored vs inferred is the DASH, not
+         the colour: inferred edges carry the same weight because that
+         structure is worth reading, not just hinting at. */
+      ctx.strokeStyle = PALETTE.edge;
+      ctx.lineWidth = 1;
       for (var e = 0; e < edges.length; e++) {
-        var a = nodes[edges[e][0]], b = nodes[edges[e][1]], intra = edges[e][2];
-        ctx.globalAlpha = (a.c === 0 && b.c === 0) ? 1 : away;
+        var le = edges[e];
+        var a = le.source, b = le.target;
+        ctx.globalAlpha = (a.home === 0 && b.home === 0) ? 1 : away;
+        if (ctx.globalAlpha < 0.02) continue;
+        ctx.setLineDash(le.intra ? [] : [5, 4]);
         ctx.beginPath();
-        ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y);
-        ctx.strokeStyle = intra ? hsla(a.c, PALETTE.edgeL, PALETTE.edgeA) : PALETTE.bridge;
-        ctx.lineWidth = intra ? 0.8 : 0.6;
+        ctx.moveTo(TX(a.x), TY(a.y)); ctx.lineTo(TX(b.x), TY(b.y));
         ctx.stroke();
-        ctx.globalAlpha = 1;
       }
+      ctx.setLineDash([]);
+      ctx.globalAlpha = 1;
 
       /* New connections drawn by the accepted edit. */
       for (var s2 = 0; s2 < storyEdges.length; s2++) {
         var se = storyEdges[s2];
         if (se.p < 0.01) continue;
-        var na = nodes[se.a], nb = nodes[se.b];
+        var nax = TX(se.a.x), nay = TY(se.a.y);
+        var nbx = TX(se.b.x), nby = TY(se.b.y);
         ctx.beginPath();
-        ctx.moveTo(na.x, na.y);
-        ctx.lineTo(na.x + (nb.x - na.x) * se.p, na.y + (nb.y - na.y) * se.p);
+        ctx.moveTo(nax, nay);
+        ctx.lineTo(nax + (nbx - nax) * se.p, nay + (nby - nay) * se.p);
         ctx.strokeStyle = ACCENT;
         ctx.globalAlpha = 0.9 * leaving;
         ctx.lineWidth = 2;
@@ -897,27 +1078,28 @@ var REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
         ctx.globalAlpha = 1;
       }
 
-      /* Lasso: a dashed accent loop sweeping around the Memory cluster. */
+      /* Lassos are gestures over the SCREEN, so they size themselves from the
+         group's screen footprint rather than a fixed fraction of the canvas. */
       if (lassoP > 0.01 && imm < 0.9) {
-        var mem = centroidOf(clusterPts(0));
-        strokeLasso(mem, unit * 0.16, unit * 0.14, lassoP, lassoJit, leaving * 0.9);
+        var g1 = lassoGeom(1);
+        strokeLasso(g1, g1.rx, g1.ry, lassoP, lassoJit, leaving * 0.9);
       }
-
-      /* Sub-topic lasso, only meaningful once immersed. */
       if (lasso2P > 0.01 && imm > 0.5) {
-        var sub = centroidOf(subPts(0));
-        strokeLasso(sub, unit * 0.135, unit * 0.12, lasso2P, lasso2Jit, imm * 0.9);
+        var g2 = lassoGeom(2);
+        strokeLasso(g2, g2.rx, g2.ry, lasso2P, lasso2Jit, imm * 0.9);
       }
 
       for (var i = 0; i < nodes.length; i++) {
         var n = nodes[i];
-        var r = (n.hub ? n.r * 1.9 : n.r) + n.pop * 5;
-        /* Extras only exist inside the immersion; everything outside the
-           focused cluster fades out entirely. */
-        var fade = n.extra ? imm : (n.c === 0 ? 1 : away);
+        var r = screenR(n) + n.pop * 5;
+        /* Everything outside the focused cluster fades out entirely while
+           immersed; Memory's own nodes are the ones being re-grouped. */
+        var fade = n.home === 0 ? 1 : away;
+        if (fade < 0.02) continue;
+        var x = TX(n.x), y = TY(n.y);
         if (n.glow > 0.02) {
           ctx.beginPath();
-          ctx.arc(n.x, n.y, r + 3.5 + n.glow * 2.5, 0, Math.PI * 2);
+          ctx.arc(x, y, r + 3.5 + n.glow * 2.5, 0, Math.PI * 2);
           ctx.strokeStyle = ACCENT;
           ctx.globalAlpha = 0.85 * n.glow * fade;
           ctx.lineWidth = 1.5;
@@ -925,80 +1107,138 @@ var REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
         }
         ctx.globalAlpha = fade;
         ctx.beginPath();
-        ctx.arc(n.x, n.y, r, 0, Math.PI * 2);
-        ctx.fillStyle = n.hub
-          ? hsla(n.c, PALETTE.hubL, PALETTE.hubA)
-          : hsla(n.c, PALETTE.nodeL, PALETTE.nodeA);
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        ctx.fillStyle = hsla(n.home, PALETTE.nodeL, PALETTE.nodeA);
         ctx.fill();
         ctx.globalAlpha = 1;
       }
 
-      /* Labels ride their cluster's live centroid. */
+      /* Label pills sit just above their group's hull — anchored to the
+         group's live screen extent, so however the layout settles the pill
+         clears its own dots. */
+      function pillFor(pts, text, hue, alpha) {
+        if (alpha < 0.03 || !pts.length) return;
+        var box = screenBox(pts);
+        var gap = HULL_PAD * cam.scale + 13;
+        drawLabelPill(text, box.cx, box.minY - gap, hue, alpha);
+      }
       for (var c2 = 0; c2 < K; c2++) {
-        var ce = centroidOf(clusterPts(c2));
-        drawLabelPill(LABELS[c2][0] + ' · ' + LABELS[c2][1], ce.x, ce.y - unit * 0.135,
+        pillFor(clusterPts(c2), LABELS[c2][0] + ' · ' + LABELS[c2][1],
           HUES[c2], labelA * (c2 === 0 ? leaving : away));
       }
       if (imm > 0.02) {
         for (var sc2 = 0; sc2 < 3; sc2++) {
-          var ce2 = centroidOf(subPts(sc2));
-          drawLabelPill(SUBLABELS[sc2][0] + ' · ' + SUBLABELS[sc2][1], ce2.x, ce2.y - unit * 0.11,
+          pillFor(subPts(sc2), SUBLABELS[sc2][0] + ' · ' + SUBLABELS[sc2][1],
             HUES[0] + SUBHUE_OFFSETS[sc2], imm);
         }
       }
     }
 
+    /** Centre and radii (screen px) for a lasso around a group. */
+    function lassoGeom(which) {
+      var pts = which === 2 ? subPts(0) : clusterPts(0);
+      var box = screenBox(pts);
+      return {
+        x: box.cx, y: box.cy,
+        rx: (box.maxX - box.minX) / 2 + 20,
+        ry: (box.maxY - box.minY) / 2 + 18
+      };
+    }
+
+    /* Assign the overview's topics — what Leiden landing feels like. */
+    function assignOverviewClusters() {
+      for (var i = 0; i < nodes.length; i++) nodes[i].cluster = nodes[i].home;
+    }
+    /* Assign Memory's sub-topics and rebuild the sim around only its notes —
+       handleImmerse rebuilds the graph with the selection, then the finer
+       partition lands as a re-cluster. */
+    function assignImmersion() {
+      var mem = memNodes();
+      for (var i = 0; i < mem.length; i++) mem[i].cluster = 10 + mem[i].subc;
+      retune(simState, mem, memLinks, mem.length);
+    }
+    function assignExit() {
+      assignOverviewClusters();
+      retune(simState, nodes, edges, nodes.length);
+    }
+
     var api = {
-      organize: function () { organizeT = 1; reheat(); },
-      immerse: function () { immT = 1; reheat(); },
+      organize: function () {
+        /* The clustering moment: communities exist now, so the cohesion force
+           starts to feel them — a fresh layout settle from the scatter.
+           Played at a third speed: this is the page's opening beat and the
+           one thing every visitor watches, and at real time the plugin's own
+           settle is essentially a snap (see tickSim). */
+        assignOverviewClusters();
+        startFresh(simState, 0.34);
+        organizeT = 1;
+      },
+      immerse: function () {
+        /* Same notes, finer topics: the plugin's re-cluster transition, over
+           a graph rebuilt to hold only the selection. Less slowed than the
+           opening beat — a recluster already starts at alpha 0.22 with heavy
+           drag, so it reads far less like a snap to begin with. */
+        assignImmersion();
+        startRecluster(simState, 0.55);
+        immT = 1;
+      },
       /* Ease back out to the overview — the Exit immersion beat. */
       unimmerse: function () {
+        assignExit();
+        startRecluster(simState, 0.55);
         immT = 0; lassoT = 0; lassoP = 0; lasso2T = 0; lasso2P = 0;
-        reheat();
       },
       /* Sweep the sub-topic lasso (used while immersed). */
       lasso2: function () { lasso2T = 1; },
       /* The selection was consumed by Open in chat — retire the stroke. */
       clearLasso2: function () { lasso2T = 0; lasso2P = 0; },
-      /* Jump straight into the settled immersion (phase-jump catch-up).
-         Nodes are placed at their targets, so the layout is already at rest. */
+      /* Jump straight into the settled immersion (phase-jump catch-up). */
       immerseSnap: function () {
+        assignImmersion();
+        startRecluster(simState);
+        settleSim(simState);
         imm = 1; immT = 1;
-        for (var i = 0; i < nodes.length; i++) {
-          var n = nodes[i], tg = targetOf(n);
-          n.x = tg.x; n.y = tg.y; n.vx = 0; n.vy = 0;
-        }
-        heat = 0;
+        cameraFollow(cam, cameraTarget(simState.nodes, W, H), true);
       },
       lasso: function () { lassoT = 1; },
       /* Point on a lasso's stroke at progress `p` (0–1), in canvas
          coordinates — lets the simulated cursor ride the loop as it draws. */
       lassoPoint: function (which, p) {
-        var c, rx, ry, jit;
-        /* Radii must match strokeLasso's, or the cursor drifts off the line. */
-        if (which === 2) {
-          c = centroidOf(subPts(0)); rx = unitOf() * 0.135; ry = unitOf() * 0.12; jit = lasso2Jit;
-        } else {
-          c = centroidOf(clusterPts(0)); rx = unitOf() * 0.16; ry = unitOf() * 0.14; jit = lassoJit;
-        }
+        var g = lassoGeom(which);
+        var jit = which === 2 ? lasso2Jit : lassoJit;
         var a = jit.start + Math.PI * 2 * p;
         var w = jitterAt(jit, a);
-        return { x: c.x + Math.cos(a) * rx * (1 + w), y: c.y + Math.sin(a) * ry * (1 + w) };
+        return { x: g.x + Math.cos(a) * g.rx * (1 + w), y: g.y + Math.sin(a) * g.ry * (1 + w) };
       },
       glow: function (id, amt) {
-        var n = nodes[named[id]];
+        var n = namedNode(id);
         if (n) n.glowT = amt;
         if (REDUCED) { if (n) n.glow = amt; draw(); }
       },
       pop: function (id) {
-        var n = nodes[named[id]];
+        var n = namedNode(id);
         if (n) n.pop = 1;
       },
-      /* The checklist's new links to the notes it now cites. */
+      /* The checklist's new links to the notes it now cites. Held as node
+         references rather than indices, so a rebuild can't leave them
+         pointing at whatever now sits at an old slot.
+
+         lec7 and lec8 rather than lec7 and slides: lec8 is the note phase 4
+         went looking for, so the edge to it is the visible consequence of the
+         search AND of the approval. It also crosses from Memory to Sleep,
+         which is the only one of these links that reads at a glance — two
+         short edges inside one hull looked like a single line. */
+      /* The notes the accepted edit links to — so the storyline can light up
+         exactly the notes it also draws edges to. */
+      linkedNotes: function () { return LINKED_NOTES.slice(); },
       link: function () {
-        storyEdges = ['lec7', 'slides'].map(function (id) {
-          return { a: named.checklist, b: named[id], p: REDUCED ? 1 : 0, t: 1 };
-        });
+        var from = namedNode('checklist');
+        storyEdges = from
+          ? LINKED_NOTES
+              .map(function (id) { return namedNode(id); })
+              .filter(Boolean)
+              .map(function (to) { return { a: from, b: to, p: REDUCED ? 1 : 0, t: 1 }; })
+          : [];
         if (REDUCED) draw();
       },
       reset: function () {
@@ -1009,50 +1249,49 @@ var REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
         lasso2T = 0; lasso2P = 0;
         /* A fresh squiggle each cycle — a person wouldn't draw it identically. */
         lassoJit = makeJitter(); lasso2Jit = makeJitter();
-        reheat();
         for (var i = 0; i < nodes.length; i++) {
-          nodes[i].glowT = 0; nodes[i].glow = 0;
-          /* Extras stay parked at the cluster centre — they're invisible until
-             immersion, so scattering them would drag their hull around. */
-          if (nodes[i].extra) { nodes[i].sx = centers[0].x; nodes[i].sy = centers[0].y; }
-          else scatterNode(nodes[i]);
-          nodes[i].x = nodes[i].sx; nodes[i].y = nodes[i].sy;
+          nodes[i].glowT = 0; nodes[i].glow = 0; nodes[i].pop = 0;
+          nodes[i].cluster = null;
+          scatterNode(nodes[i]);
         }
+        /* Back to the full graph, still and un-partitioned, until the story
+           starts it — alpha 0 means tickSim is a no-op. */
+        retune(simState, nodes, edges, nodes.length);
+        simState.sim.alpha(0);
+        simState.reclustering = false;
+        cameraFollow(cam, cameraTarget(nodes, W, H), true);
         if (REDUCED) draw();
       },
       /* Snap the clustering to done — used when jumping past phase 1. */
       settle: function () {
+        assignOverviewClusters();
+        startFresh(simState);
+        settleSim(simState);
         organize = 1; orgE = 1;
-        for (var i = 0; i < nodes.length; i++) {
-          var n = nodes[i], tg = targetOf(n);
-          n.x = tg.x; n.y = tg.y; n.vx = 0; n.vy = 0;
-        }
-        heat = 0;
+        cameraFollow(cam, cameraTarget(simState.nodes, W, H), true);
       },
       /* Reduced motion: jump straight to the organized end state. */
       final: function () {
+        assignOverviewClusters();
+        retune(simState, nodes, edges, nodes.length);
+        startFresh(simState);
+        settleSim(simState);
         organize = 1; organizeT = 1; orgE = 1; imm = 0; immT = 0;
-        for (var i = 0; i < nodes.length; i++) {
-          var n = nodes[i], tg = targetOf(n);
-          n.x = tg.x; n.y = tg.y;
-        }
+        cameraFollow(cam, cameraTarget(nodes, W, H), true);
         draw();
       }
     };
 
+    build();
     resize();
-    /* A window resize is a genuine layout change — rebuild for it. The pane
-       slide, by contrast, resizes the canvas with no window event, so the
-       observer refits (rescales) instead of rebuilding. The flag keeps the
-       observer from also firing a refit for the rebuild it just caused. */
-    var rebuilding = false;
-    window.addEventListener('resize', function () {
-      rebuilding = true;
-      resize();
-      requestAnimationFrame(function () { rebuilding = false; });
-    });
+    /* The layout lives in world space, so EVERY size change — a window
+       resize or the chat pane's slide — is the same operation: sync the
+       backing store and let the camera re-fit. No rebuild, so the story
+       never restarts, and no proportional remapping either. The observer
+       covers the pane slide, which fires no window resize. */
+    window.addEventListener('resize', resize);
     if (window.ResizeObserver) {
-      new ResizeObserver(function () { if (!rebuilding) refit(); }).observe(cv);
+      new ResizeObserver(resize).observe(cv);
     }
     window.addEventListener('s2b-theme-change', function () {
       readPalette();
@@ -1077,8 +1316,12 @@ var REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
      attachment, so it carries the tray's icon rather than a file emoji. */
   var GRAPH_ICON =
     '<svg class="msg-att-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><circle cx="18" cy="6" r="3"/><path d="M18 9v2c0 .6-.4 1-1 1H7c-.6 0-1-.4-1-1V9M12 12v3"/></svg>';
-  var ANSWER = 'From your 9 Consolidation notes: it happens in deep sleep, in three stages — here’s your section:';
-  var ANSWER2 = 'Good addition — sleep is when consolidation runs. Updated:';
+  /* The first answer deliberately stops short: it drafts what the selected
+     notes support and names what they don't cover. That gap is what sends the
+     story to search — without it, phase 4 arrives to solve a problem nobody
+     had, and the agent would be "discovering" sleep after already citing it. */
+  var ANSWER = 'From your 9 Consolidation notes — the three stages, and the hippocampus diagram. None of them say what triggers it, so the section stops there:';
+  var ANSWER2 = 'That’s the trigger — consolidation runs during deep sleep. Folded into the same draft:';
   /* The staged edit, shaped like the real PendingChangesBar: a summary row
      ("1 update pending" + Accept All / Reject All) over a collapsible entry
      carrying the change type and the note it touches. The entry shows no
@@ -1298,7 +1541,10 @@ var REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     }
 
     /* 1 — the map connects itself */
-    at(400, function () { setStep(1); graph.organize(); });
+    /* Starts almost immediately: the clustering now plays at a third speed
+       (see graph.organize), so it needs most of the ~4s before the lasso to
+       finish gathering. The step card lights with it. */
+    at(150, function () { setStep(1); graph.organize(); });
 
     /* 2 — lasso the Memory topic and immerse into it */
     at(4200, function () {
@@ -1318,8 +1564,13 @@ var REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
       syncDismiss();
       graph.immerse();
       cursorHide();
+      /* The exit bar arrives WITH the immersion, not after it settles: in the
+         plugin `isImmersed` is derived from `immersePaths`, which
+         handleImmerse sets on its first line — before it even awaits the
+         rebuild. So the way out exists from the first frame of the
+         transition, which is exactly when it is most needed. */
+      vExit.classList.add('on');
     });
-    at(8200, function () { vExit.classList.add('on'); });
 
     /* 3 — select a sub-topic inside the immersion and open it in the chat.
        The lassoed notes reach the composer as the ambient graph-selection
@@ -1410,26 +1661,26 @@ var REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
         timers.push(setTimeout(function () { r.classList.add('on'); }, k * 150));
       });
     });
-    at(25600, function () {
+    at(25400, function () {
       resEls[0].classList.add('picked');
       timers.push(setTimeout(function () { vsSum.classList.add('on'); }, 380));
     });
-    at(26400, function () { vsAtt.classList.add('pulse'); });
-    at(27200, function () {
+    at(26100, function () { vsAtt.classList.add('pulse'); });
+    at(26800, function () {
       vsAtt.classList.remove('pulse');
       vsAtt.classList.add('on');
     });
-    at(27600, function () {
+    at(27200, function () {
       search.classList.remove('on');
       vLchip.hidden = false;
       vAttach.classList.add('on');
     });
     /* Typed in the composer, like the first question — not conjured. */
-    at(28100, function () {
+    at(27700, function () {
       vcCaret.hidden = false;
       typeInto(vcTyped, QUERY_CHAT2, 34, vcPh);
     });
-    at(29300, function () {
+    at(28900, function () {
       vSend.classList.add('pressed');
       stopTyping();
       vcCaret.hidden = true;
@@ -1440,9 +1691,9 @@ var REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
       addMsg('<div class="msg-atts"><span class="msg-att">📝 Lecture 8 — Sleep.md</span></div>');
       addMsg('<div class="msg-user">' + QUERY_CHAT2 + '</div>');
     });
-    at(29600, function () { vSend.classList.remove('pressed'); });
-    at(30100, function () { addMsg('<div class="act">Read <em>Lecture 8 — Sleep</em></div>'); });
-    at(30900, function () {
+    at(29200, function () { vSend.classList.remove('pressed'); });
+    at(29700, function () { addMsg('<div class="act">Read <em>Lecture 8 — Sleep</em></div>'); });
+    at(30500, function () {
       /* The bar pulses only once the answer has finished streaming, so the
          two acknowledgements don't arrive on top of each other. */
       streamAnswer(ANSWER2, pulseSugg);
@@ -1452,11 +1703,11 @@ var REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
        the graph, scrolled to the pending change — revealAndScroll(), as the
        real link does. Each group carries its own Accept, so the two additions
        are approved individually: per-hunk control is the point of this beat. */
-    at(32600, function () {
+    at(32200, function () {
       var link = document.getElementById('vNoteLink');
       if (link) link.classList.add('pressed');
     });
-    at(32900, function () {
+    at(32500, function () {
       var link = document.getElementById('vNoteLink');
       if (link) link.classList.remove('pressed');
       /* The note replaces the GRAPH only — the chat stays open beside it, so
@@ -1466,48 +1717,58 @@ var REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
       vNote.classList.add('on');
       if (isMobileDemo()) setPane('graph');
     });
-    at(34000, function () {
+    at(33600, function () {
       var b = vNote.querySelector('#vDiff1 .v-diff-acc');
       if (b) b.classList.add('pressed');
     });
-    at(34350, function () {
+    at(33950, function () {
       var g = document.getElementById('vDiff1');
       if (g) g.classList.add('done');
     });
-    at(35100, function () {
+    at(34700, function () {
       var b = vNote.querySelector('#vDiff2 .v-diff-acc');
       if (b) b.classList.add('pressed');
     });
-    at(35450, function () {
+    at(35050, function () {
       var g = document.getElementById('vDiff2');
       if (g) g.classList.add('done');
       /* Both groups resolved: the entry is settled, so the bar goes. */
       pending.innerHTML = '';
       addMsg('<div class="act ok">✓ Added to <em>Exam checklist</em> — approved by you</div>');
     });
-    at(36200, function () { vNoteClose.classList.add('pressed'); });
-    at(36500, function () {
+    at(35800, function () { vNoteClose.classList.add('pressed'); });
+    at(36100, function () {
       vNoteClose.classList.remove('pressed');
       vNote.classList.remove('on');
     });
 
     /* Finale: exit the immersion, back to the overview — where the approved
-       note draws its new connections. Closes the loop where it began. */
-    at(36900, function () { cursorToEl(vExitBtn); cursorShow(); });
-    at(37400, function () { vExitBtn.classList.add('pressed'); cursorClick(); });
-    at(37900, function () {
+       note draws its new connections. Closes the loop where it began.
+       This is the payoff for the whole storyline (the edit you approved is
+       what changes the map), so it is paced to be READ: the edges land ~1.4s
+       after the overview settles, and the loop then holds for ~2.6s more.
+       At the previous timing they appeared 1.2s before the restart, which was
+       too brief to connect them to the approval that caused them. */
+    at(36500, function () { cursorToEl(vExitBtn); cursorShow(); });
+    at(37000, function () { vExitBtn.classList.add('pressed'); cursorClick(); });
+    at(37500, function () {
       vExitBtn.classList.remove('pressed');
       vExit.classList.remove('on');
       setPane('graph');
       graph.unimmerse();
       cursorHide();
     });
-    at(39100, function () {
+    at(38900, function () {
+      /* The notes the approved edit now cites light up, and the checklist
+         pops — the map changing is the consequence of the approval, which is
+         why this is the last thing the loop shows. Glow and edges are driven
+         by the same list, so a note can never light up without gaining a link
+         or vice versa. */
       graph.glow('checklist', 1); graph.pop('checklist');
-      graph.glow('lec7', 0.6); graph.glow('lec8', 0.6);
+      graph.linkedNotes().forEach(function (id) { graph.glow(id, 0.6); });
       graph.link();
     });
-    at(42200, function () { run(1); });
+    at(41500, function () { run(1); });
   }
 
   /* Reduced motion: no storyline — show the finished, organized state. */
@@ -1521,13 +1782,17 @@ var REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     addMsg('<div class="msg-atts"><span class="msg-att">📝 Lecture 8 — Sleep.md</span></div>');
     addMsg('<div class="msg-user">' + QUERY_CHAT2 + '</div>');
     addMsg('<div class="act">Read <em>Lecture 8 — Sleep</em></div>');
+    /* The second answer belongs here too: without it the still shows the gap
+       being named and then closed with nothing said in between, which reads
+       as a dropped turn rather than a finished exchange. */
+    addMsg('<div class="msg-ai">' + ANSWER2 + '</div>');
     addMsg('<div class="act ok">✓ Added to <em>Exam checklist</em> — approved by you</div>');
     typed.textContent = QUERY_SEARCH;
     ph.classList.add('off');
     setSemLabel('on');
     vsSem.classList.add('on');
     resEls.forEach(function (r) { r.classList.add('on'); });
-    ['lec7', 'lec8', 'checklist'].forEach(function (id) { graph.glow(id, 1); });
+    graph.linkedNotes().concat('checklist').forEach(function (id) { graph.glow(id, 1); });
     graph.link();
   }
 
@@ -1558,6 +1823,623 @@ var REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   }, { threshold: 0.25 });
   io.observe(vault);
 })();
+
+/* ---------- granularity explorer ----------
+   The one control on this page the visitor drives themselves. It mirrors the
+   graph's Granularity slider (GraphControls.svelte, `name="Granularity"`):
+   dragging it re-groups the SAME notes into fewer, bigger topics or more,
+   smaller ones — the plugin re-runs community detection per step and serves
+   every level from cache, so it re-groups under the knob rather than after
+   release (SmartGraphView.svelte handleGranularityChange).
+
+   Faithful in the ways that matter and simplified in the ways that don't: the
+   levels here are a fixed hierarchy rather than a live Leiden run, but they
+   MERGE — every split group's notes stay together inside one parent as you
+   move up, which is the property that makes the control legible. Random
+   re-partitioning per level would read as a shuffle, not a zoom.
+   The MOTION between levels is not simplified at all: it is the plugin's own
+   re-cluster transition over its own force simulation (see the vendored
+   modules and the shared harness at the top of this file). */
+(function () {
+  var cv = document.getElementById('granGraph');
+  if (!cv) return;
+  var slider = document.getElementById('granRange');
+  var nameEl = document.getElementById('granLevelName');
+  /* The wand (show/hide topics) and chevrons (collapse/expand) — the same
+     two controls the plugin's toolbar carries next to its lasso. */
+  var btnTopics = document.getElementById('granTopics');
+  var btnCollapse = document.getElementById('granCollapse');
+  var ctx = cv.getContext('2d');
+  var W = 0, H = 0, DPR = Math.min(window.devicePixelRatio || 1, 2);
+
+  /* The eight finest groups, in the demo's Psych-101 vault. Where each sits
+     on screen is no longer scripted — the layout is the plugin's own force
+     simulation, and sibling groups end up near each other because they share
+     links (see the edge generation in build), not because a grid says so. */
+  var LEAVES = [
+    { name: 'Consolidation',    n: 9 },
+    { name: 'Recall & testing', n: 8 },
+    { name: 'Sleep & memory',   n: 7 },
+    { name: 'Attention',        n: 11 },
+    { name: 'Illusions',        n: 10 },
+    { name: 'Distributions',    n: 10 },
+    { name: 'Significance',     n: 9 },
+    { name: 'Essays',           n: 12 }
+  ];
+
+  /* Each level maps leaf index → group index, plus that level's group names.
+     Level 4 is the leaves themselves; every step down merges whole groups, so
+     nothing is ever split across two parents. */
+  var LEVELS = [
+    {
+      label: 'Broadest',
+      of: [0, 0, 0, 0, 0, 1, 1, 1],
+      names: ['Psychology', 'Coursework']
+    },
+    {
+      label: 'Broad',
+      of: [0, 0, 0, 1, 1, 2, 2, 3],
+      names: ['Memory', 'Perception', 'Statistics', 'Essays']
+    },
+    {
+      label: 'Fine',
+      of: [0, 0, 1, 2, 3, 4, 4, 5],
+      names: ['Consolidation', 'Sleep & memory', 'Attention', 'Illusions', 'Statistics', 'Essays']
+    },
+    {
+      label: 'Finest',
+      of: [0, 1, 2, 3, 4, 5, 6, 7],
+      names: LEAVES.map(function (l) { return l.name; })
+    }
+  ];
+
+  var level = 1;                 /* index into LEVELS; matches the slider */
+
+  /* Eight labelled topics need room the phone layout doesn't have — at 290px
+     tall the pills overlap each other and the point of the control is lost. So
+     a narrow canvas stops at the 6-topic level and the slider's range shrinks
+     to match: fewer stops, all of them legible, rather than a stop that draws
+     a mess. The levels themselves are unchanged; this only limits how far the
+     control goes. */
+  function maxLevel() {
+    return W && W < 520 ? LEVELS.length - 2 : LEVELS.length - 1;
+  }
+  function syncSliderRange() {
+    if (!slider) return;
+    var max = maxLevel();
+    slider.max = String(max);
+    if (Number(slider.value) > max) {
+      slider.value = String(max);
+      setLevel(max);
+    }
+  }
+  var PALETTE = {}, ACCENT = '#7f6df2', TEXT = '#ddd', FOG = '30, 30, 30';
+
+  function readTokens() {
+    var cs = getComputedStyle(document.documentElement);
+    function tok(name, fallback) {
+      var v = cs.getPropertyValue(name).trim();
+      return v || fallback;
+    }
+    /* Same tokens as the demo's mini graph, so the two canvases agree. */
+    PALETTE = {
+      nodeL: tok('--gm-node-l', '62%'),
+      nodeA: tok('--gm-node-a', '0.95'),
+      hubL: tok('--g-hub-l', '62%'),
+      hubA: tok('--g-hub-a', '0.95'),
+      edge: tok('--gm-edge', 'rgba(150,150,150,0.45)'),
+      hullA: tok('--g-hull-a', '0.13')
+    };
+    ACCENT = tok('--ob-accent', '#7f6df2');
+    TEXT = tok('--ob-text', '#dddddd');
+    FOG = tok('--ob-fog', '30, 30, 30');
+  }
+  readTokens();
+
+  /* The plugin's cluster colours: evenly spaced hues at 70% saturation
+     (generateClusterColors in src/types/graph.ts).
+
+     Hue follows the CURRENT GROUP, not the leaf. Colouring by leaf was tried
+     first — it preserves a note's identity across levels — but it makes a
+     merged topic a bag of four colours, which contradicts the outline saying
+     "this is one topic". In the plugin a colour IS a topic, so the colour has
+     to change when the topics do. */
+  /* Spread the level's groups over the wheel, so adjacent topics stay
+     distinguishable however many there are. */
+  function hueOfGroup(g, total) { return Math.round((g * 360) / Math.max(1, total)); }
+  /* Saturation rides the wand toggle's fade: at 0 every colour collapses to
+     the same grey — the raw graph, with the clustering's colour taken away. */
+  function hsla(hue, l, a) {
+    return 'hsla(' + hue + ', ' + Math.round(70 * topicsVis) + '%, ' + l + ', ' + a + ')';
+  }
+
+  /* Playback rate for this canvas's transitions — slow motion, as the demo
+     uses (see tickSim). Every regroup here is a re-cluster, which already
+     starts gentler than a fresh settle, so it needs less slowing than the
+     demo's opening beat: enough to watch groups migrate, not so much that a
+     control you are dragging feels laggy. */
+  var PLAY = 0.5;
+  /* Slightly quicker for slider moves: that transition answers a control the
+     visitor is actively dragging, so it has to keep up with them. */
+  var DRAG_PLAY = 0.65;
+
+  var nodes = [], edges = [];
+  /* Collapsed-view state: when `collapsed`, the sim runs over one synthetic
+     node per topic (kind 'topic', as mergeNodes' buildCollapsedGraph makes
+     them) instead of the notes. `topicsOn` mirrors the plugin's wand toggle,
+     and it is physical: topics off strips every node's cluster (segments
+     resolve to "none"), the cohesion force skips unclustered nodes, and the
+     layout relaxes — see setTopics. */
+  var topicNodes = [], topicLinks = [];
+  var collapsed = false;
+  var topicsOn = true, topicsVis = 1;
+  var simState = null;
+  var cam = makeCamera();
+  var NODE_SIZE = 3;
+  var HULL_PAD = 29;   /* nodeDrawRadius(degree 0) + HULL_PADDING, as the canvas */
+  /* Spawn-grow for nodes born in a change (expand's notes, collapse's topic
+     nodes): NODE_SPAWN_MS 320 ≈ 19 frames from 25% of final radius. */
+  /* The plugin's NODE_SPAWN_MS is 320ms (≈19 frames), which is right in an
+     app where the fold is instant feedback on a click. Here it IS the fold:
+     a topic node is born at its members' centroid, so it has nowhere to
+     travel and the grow-in is the whole animation. At 19 the discs finished
+     while the camera was still re-framing, which read as the dots snapping
+     and the region drifting after them. Stretched to cover the camera's
+     ease, so the two land together. */
+  var SPAWN_TICKS = 46;
+  /* How far a topic's notes are seeded from its collapsed position when
+     expanding — the visible outward travel IS the expand animation. */
+  var EXPAND_SCATTER = 18;
+
+  /* World → screen, through the fitted camera. */
+  function TX(x) { return x * cam.scale + cam.x; }
+  function TY(y) { return y * cam.scale + cam.y; }
+
+  /** The node set the simulation currently runs over. */
+  function activeNodes() { return collapsed ? topicNodes : nodes; }
+
+  function build() {
+    nodes = []; edges = [];
+    for (var l = 0; l < LEAVES.length; l++) {
+      for (var j = 0; j < LEAVES[l].n; j++) {
+        nodes.push({
+          leaf: l, cluster: LEVELS[level].of[l], degree: 0, spawn: 0,
+          hub: j === 0,
+          x: (Math.random() - 0.5) * 520,
+          y: (Math.random() - 0.5) * 340,
+          vx: 0, vy: 0
+        });
+      }
+    }
+    /* The link structure IS the hierarchy: densest inside a leaf (and denser
+       still around each leaf's HUB note — the MOC-like note a topic forms
+       around, which is also what gives topics their size gradient), sparser
+       between leaves sharing a Broad parent, sparser again across the
+       Broadest split, and a whisper of links between everything — a vault is
+       one loosely connected web, not disjoint islands. Those weak ties are
+       also what gives the collapsed view real weighted edges to draw. */
+    for (var a = 0; a < nodes.length; a++) {
+      for (var b = a + 1; b < nodes.length; b++) {
+        var na = nodes[a], nb = nodes[b];
+        var p, wiki = false;
+        if (na.leaf === nb.leaf) {
+          p = (na.hub || nb.hub) ? 0.4 : 1.0 / LEAVES[na.leaf].n;
+          wiki = true;
+        }
+        else if (LEVELS[1].of[na.leaf] === LEVELS[1].of[nb.leaf]) p = 0.03;
+        else if (LEVELS[0].of[na.leaf] === LEVELS[0].of[nb.leaf]) p = 0.008;
+        else p = 0.003;
+        if (p && Math.random() < p) {
+          edges.push({ source: na, target: nb, weight: 1, type: wiki ? 'wiki' : 'semantic', intra: wiki });
+          na.degree++; nb.degree++;
+        }
+      }
+    }
+    NODE_SIZE = autoNodeSize(nodes.length);
+    simState = makeSim(nodes, edges, nodes.length);
+    /* First paint is a settled layout, not the opening explosion — the same
+       reason the plugin briefly hides a fresh canvas while it settles. */
+    startFresh(simState);
+    settleSim(simState);
+  }
+
+  /**
+   * One synthetic node per topic at the current level, the way
+   * buildCollapsedGraph makes them: kind 'topic', degree = how many
+   * note-links cross its boundary, and one merged edge per topic pair whose
+   * weight sums the crossings. Each is seeded at the mean position of
+   * whatever currently represents its leaves, so folding reads as gathering.
+   */
+  function buildTopicNodes() {
+    var map = LEVELS[level].of;
+    var ids = [];
+    for (var l = 0; l < LEAVES.length; l++) if (ids.indexOf(map[l]) < 0) ids.push(map[l]);
+
+    var prev = activeNodes();
+    var made = ids.map(function (g) {
+      var sx = 0, sy = 0, c = 0;
+      for (var i = 0; i < prev.length; i++) {
+        var covers = prev[i].leaves
+          ? prev[i].leaves.some(function (lf) { return map[lf] === g; })
+          : map[prev[i].leaf] === g;
+        if (covers) { sx += prev[i].x; sy += prev[i].y; c++; }
+      }
+      var leaves = [];
+      for (var l2 = 0; l2 < LEAVES.length; l2++) if (map[l2] === g) leaves.push(l2);
+      var members = leaves.reduce(function (s, lf) { return s + LEAVES[lf].n; }, 0);
+      return {
+        kind: 'topic', g: g, cluster: g, leaves: leaves, members: members,
+        degree: 0, spawn: SPAWN_TICKS,
+        x: c ? sx / c : 0, y: c ? sy / c : 0, vx: 0, vy: 0
+      };
+    });
+    var byGroup = {};
+    made.forEach(function (t) { byGroup[t.g] = t; });
+
+    var links = {};
+    for (var e = 0; e < edges.length; e++) {
+      var ga = map[edges[e].source.leaf], gb = map[edges[e].target.leaf];
+      if (ga === gb) continue;
+      byGroup[ga].degree++; byGroup[gb].degree++;
+      var key = ga < gb ? ga + ':' + gb : gb + ':' + ga;
+      if (links[key]) links[key].weight++;
+      else links[key] = { source: byGroup[ga], target: byGroup[gb], weight: 1, type: 'wiki', intra: true };
+    }
+    topicNodes = made;
+    topicLinks = Object.keys(links).map(function (k) { return links[k]; });
+  }
+
+  function setCollapsed(next) {
+    if (next === collapsed || !topicsOn) return;
+    collapsed = next;
+    if (collapsed) {
+      buildTopicNodes();
+      retune(simState, topicNodes, topicLinks, topicNodes.length, nodes.length);
+    } else {
+      /* Members burst outward from their topic's point — seeded just off it
+         so the force sim has a gradient, with the travel as the animation. */
+      var map = LEVELS[level].of;
+      var byGroup = {};
+      topicNodes.forEach(function (t) { byGroup[t.g] = t; });
+      for (var i = 0; i < nodes.length; i++) {
+        var t = byGroup[map[nodes[i].leaf]];
+        var a = Math.random() * Math.PI * 2, r = Math.random() * EXPAND_SCATTER;
+        nodes[i].x = t.x + Math.cos(a) * r;
+        nodes[i].y = t.y + Math.sin(a) * r;
+        nodes[i].vx = 0; nodes[i].vy = 0;
+        nodes[i].cluster = map[nodes[i].leaf];
+        nodes[i].spawn = SPAWN_TICKS;
+      }
+      retune(simState, nodes, edges, nodes.length);
+    }
+    startRetarget(simState, PLAY);
+    if (btnCollapse) {
+      btnCollapse.setAttribute('aria-pressed', collapsed ? 'true' : 'false');
+      btnCollapse.classList.toggle('on', collapsed);
+      btnCollapse.title = collapsed
+        ? 'Expand all topics back into notes'
+        : 'Collapse all topics into single nodes';
+    }
+    if (REDUCED) {
+      settleSim(simState);
+      cameraFollow(cam, cameraTarget(activeNodes(), W, H), true);
+      draw();
+    }
+  }
+
+  function setTopics(on) {
+    if (on === topicsOn) return;
+    /* Collapsed topic nodes ARE the clustering — hiding it folds them back
+       out first, exactly as the plugin's handleSettingsChange clears the
+       folds when topics are switched off. */
+    if (!on && collapsed) setCollapsed(false);
+    topicsOn = on;
+    /* The toggle is PHYSICAL, not just visual: hiding topics resolves the
+       plugin's segments to "none", which strips every node's cluster — and
+       the cohesion force skips unclustered nodes, so with topics off the
+       layout relaxes to what links, charge and centering alone want. A
+       cluster change triggers the re-cluster transition in the canvas, both
+       directions. (GraphControls' "display-only" comment refers to Leiden
+       not being recomputed — the communities stay cached — not to the
+       layout, which visibly loosens and regathers.) */
+    for (var i = 0; i < nodes.length; i++) {
+      nodes[i].cluster = on ? LEVELS[level].of[nodes[i].leaf] : null;
+    }
+    startRecluster(simState, PLAY);
+    if (btnTopics) {
+      btnTopics.setAttribute('aria-pressed', on ? 'true' : 'false');
+      btnTopics.classList.toggle('on', on);
+      btnTopics.title = on
+        ? 'Hide topics — show the raw graph without clustering'
+        : 'Show topics — colour notes by their detected topic';
+    }
+    if (btnCollapse) {
+      btnCollapse.disabled = !on;
+      if (!on) btnCollapse.title = 'Turn topics on to collapse them';
+      else btnCollapse.title = collapsed
+        ? 'Expand all topics back into notes'
+        : 'Collapse all topics into single nodes';
+    }
+    /* Granularity decides which topics exist — with topics off it has
+       nothing to act on. (The plugin leaves its slider enabled but inert:
+       segment resolution stays "none", so dragging changes only the cached
+       communities. Inert-looking controls read as broken on a demo, so here
+       the dependency is shown instead.) */
+    if (slider) {
+      slider.disabled = !on;
+      slider.title = on ? '' : 'Turn topics on to change their granularity';
+    }
+    var row = slider && slider.closest('.g-ctl');
+    if (row) row.classList.toggle('topics-off', !on);
+    if (REDUCED) {
+      topicsVis = on ? 1 : 0;
+      settleSim(simState);
+      cameraFollow(cam, cameraTarget(activeNodes(), W, H), true);
+      draw();
+    }
+  }
+
+  function step() {
+    tickSim(simState);
+    cameraFollow(cam, cameraTarget(activeNodes(), W, H), false, simState.rate);
+    /* Colour fades with the motion rather than ahead of it — at the old 0.25
+       the grey/colour swap finished long before the layout had relaxed or
+       regathered, so the two halves of the wand toggle read as separate
+       events. The LAYOUT change rides the simulation. */
+    topicsVis += ((topicsOn ? 1 : 0) - topicsVis) * 0.25 * (simState.rate || 1);
+    /* Spawn-grow counts down with the playback too, so a node born in a fold
+       finishes growing as its group finishes moving. */
+    var act = activeNodes();
+    var d = simState.rate || 1;
+    for (var i = 0; i < act.length; i++) if (act[i].spawn > 0) act[i].spawn = Math.max(0, act[i].spawn - d);
+  }
+
+  function groupsAtLevel() {
+    var map = LEVELS[level].of;
+    var out = [];
+    for (var i = 0; i < nodes.length; i++) {
+      var g = map[nodes[i].leaf];
+      (out[g] || (out[g] = [])).push(nodes[i]);
+    }
+    return out;
+  }
+
+  /** The hue for a group at the current level. */
+  function groupHue(g) {
+    return hueOfGroup(g, LEVELS[level].names.length);
+  }
+
+  /** The hue a node currently wears — its group's. */
+  function nodeHue(n) {
+    return groupHue(LEVELS[level].of[n.leaf]);
+  }
+
+  function drawPill(text, x, y, hue) {
+    ctx.font = '500 11px Inter, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    var w = ctx.measureText(text).width + 18;
+    var h = 19, m = 3;
+    x = Math.max(w / 2 + m, Math.min(W - w / 2 - m, x));
+    y = Math.max(h / 2 + m, Math.min(H - h / 2 - m, y));
+    roundRectPath(ctx, x - w / 2, y - h / 2, w, h, h / 2);
+    ctx.fillStyle = 'rgba(' + FOG + ', 0.85)';
+    ctx.fill();
+    ctx.strokeStyle = hsla(hue, PALETTE.nodeL, 0.8);
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+    ctx.fillStyle = TEXT;
+    ctx.fillText(text, x, y);
+  }
+
+  /** Spawn-grow scale for a node born in a change (25% → full, eased out).
+      The countdown ticks in step(), which reduced motion never runs — there
+      a born node must simply be full-size. */
+  function spawnScale(n) {
+    if (REDUCED || !n.spawn) return 1;
+    var t = 1 - n.spawn / SPAWN_TICKS;
+    return 0.25 + 0.75 * (1 - (1 - t) * (1 - t));
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, W, H);
+    var nodeScale = cam.scale * zoomNodeScale(cam.scale);
+
+    if (collapsed) {
+      /* The folded view: one disc per topic, sized by how many links cross
+         its boundary (the topic radius curve in nodeDrawRadius), joined by
+         merged edges whose thickness carries the crossing count — "these two
+         areas are tightly related" as geometry. No hulls: the disc IS the
+         region. */
+      ctx.strokeStyle = PALETTE.edge;
+      for (var te = 0; te < topicLinks.length; te++) {
+        var tl = topicLinks[te];
+        ctx.beginPath();
+        ctx.moveTo(TX(tl.source.x), TY(tl.source.y));
+        ctx.lineTo(TX(tl.target.x), TY(tl.target.y));
+        /* pixiRenderer's topic-edge weight scale (log2, capped at 4×) over
+           its 1.2px base width — but the renderer divides that base by the
+           camera scale, and this camera sits near 1 on a 560px canvas, so
+           applying the multiplier to a full 1.2px read heavy at only a
+           handful of topics. 0.75px base keeps the coupling gradient legible
+           without the folded view turning into a web of cables. */
+        ctx.lineWidth = Math.min(4, 1 + Math.log2(Math.max(1, tl.weight)) * 0.45) * 0.75;
+        ctx.stroke();
+      }
+      for (var ti = 0; ti < topicNodes.length; ti++) {
+        var tn = topicNodes[ti];
+        var hue = groupHue(tn.g);
+        var r = nodeDrawRadius(tn, NODE_SIZE) * nodeScale * spawnScale(tn);
+        ctx.beginPath();
+        ctx.arc(TX(tn.x), TY(tn.y), r, 0, Math.PI * 2);
+        ctx.fillStyle = hsla(hue, PALETTE.nodeL, PALETTE.nodeA);
+        ctx.fill();
+        drawPill(LEVELS[level].names[tn.g] + ' · ' + tn.members,
+          TX(tn.x), TY(tn.y) - r - 15, hue);
+      }
+      return;
+    }
+
+    var groups = groupsAtLevel();
+
+    /* Hulls and labels are what the clustering ADDS — they ride the wand
+       toggle's fade, while the notes and their links stay. */
+    if (topicsVis > 0.03) {
+      ctx.globalAlpha = topicsVis;
+      for (var g = 0; g < groups.length; g++) {
+        if (!groups[g] || groups[g].length < 3) continue;
+        /* The plugin's own region construction, in world units, projected. */
+        var path = topicRegion(groups[g], HULL_PAD);
+        if (!path) continue;
+        var ghue = groupHue(g);
+        ctx.beginPath();
+        ctx.moveTo(TX(path[0].x), TY(path[0].y));
+        for (var s = 1; s < path.length; s++) ctx.lineTo(TX(path[s].x), TY(path[s].y));
+        ctx.closePath();
+        ctx.fillStyle = hsla(ghue, PALETTE.nodeL, PALETTE.hullA);
+        ctx.fill();
+        ctx.strokeStyle = hsla(ghue, PALETTE.nodeL, 0.35);
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
+    }
+
+    /* One neutral colour, hue-free — as pixiRenderer draws every edge. The
+       dash marks inferred links; colour never does. */
+    ctx.strokeStyle = PALETTE.edge;
+    ctx.lineWidth = 1;
+    for (var e = 0; e < edges.length; e++) {
+      var le = edges[e];
+      ctx.setLineDash(le.intra ? [] : [5, 4]);
+      ctx.beginPath();
+      ctx.moveTo(TX(le.source.x), TY(le.source.y));
+      ctx.lineTo(TX(le.target.x), TY(le.target.y));
+      ctx.stroke();
+    }
+    ctx.setLineDash([]);
+
+    for (var i = 0; i < nodes.length; i++) {
+      var n = nodes[i], nh = nodeHue(n);
+      ctx.beginPath();
+      /* Size encodes degree, exactly as the plugin draws it. */
+      ctx.arc(TX(n.x), TY(n.y), nodeDrawRadius(n, NODE_SIZE) * nodeScale * spawnScale(n), 0, Math.PI * 2);
+      ctx.fillStyle = hsla(nh, PALETTE.nodeL, PALETTE.nodeA);
+      ctx.fill();
+    }
+
+    /* Labels last so they sit above the dots, and each carries its group's
+       note count — the same "name · count" shape the graph's pills use.
+       Anchored to the group's live screen extent, so a pill never lands on
+       its own dots; if there is no room above, it flips below. */
+    if (topicsVis > 0.03) {
+      ctx.globalAlpha = topicsVis;
+      for (var g2 = 0; g2 < groups.length; g2++) {
+        if (!groups[g2] || !groups[g2].length) continue;
+        var members = groups[g2];
+        var minY = Infinity, maxY = -Infinity, sx = 0;
+        for (var m = 0; m < members.length; m++) {
+          var y = TY(members[m].y);
+          if (y < minY) minY = y; if (y > maxY) maxY = y;
+          sx += TX(members[m].x);
+        }
+        var gap = HULL_PAD * cam.scale + 13;
+        var above = minY - gap;
+        drawPill(LEVELS[level].names[g2] + ' · ' + members.length,
+          sx / members.length, above > 14 ? above : maxY + gap, groupHue(g2));
+      }
+      ctx.globalAlpha = 1;
+    }
+  }
+
+  function resize() {
+    var r = cv.getBoundingClientRect();
+    if (!r.width || !r.height) return;
+    W = r.width; H = r.height;
+    cv.width = W * DPR; cv.height = H * DPR;
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    /* W is now known, so the level cap for this width can be applied — a
+       rotation from landscape to portrait has to pull the slider back in. */
+    syncSliderRange();
+    /* The layout is world-space; a resize only re-fits the camera. Repaint
+       synchronously — assigning cv.width wiped the canvas. */
+    cameraFollow(cam, cameraTarget(activeNodes(), W, H), true);
+    draw();
+  }
+
+  function setLevel(next) {
+    level = Math.max(0, Math.min(maxLevel(), next));
+    if (nameEl) nameEl.textContent = LEVELS[level].label;
+    if (!nodes.length) return;
+    /* No topics, nothing to regroup — without this, a level change would
+       write cluster ids back onto the nodes and silently re-arm the
+       cohesion force while everything still looks grey. The disabled
+       slider makes this unreachable from the UI; the guard makes it
+       unreachable, full stop. */
+    if (!topicsOn) return;
+    if (collapsed) {
+      /* Granularity and collapse are independent, exactly as in the plugin:
+         changing the level while folded re-derives the topic nodes at the
+         new level, seeded from the ones they merge from or split out of. */
+      buildTopicNodes();
+      retune(simState, topicNodes, topicLinks, topicNodes.length, nodes.length);
+      startRecluster(simState, DRAG_PLAY);
+    } else {
+      /* Reassign every note's topic and run the plugin's re-cluster
+         transition — the exact move handleGranularityChange makes. */
+      for (var i = 0; i < nodes.length; i++) nodes[i].cluster = LEVELS[level].of[nodes[i].leaf];
+      startRecluster(simState, DRAG_PLAY);
+    }
+    if (REDUCED) {
+      settleSim(simState);
+      cameraFollow(cam, cameraTarget(activeNodes(), W, H), true);
+      draw();
+    }
+  }
+
+  if (slider) {
+    slider.addEventListener('input', function () {
+      setLevel(Number(slider.value));
+    });
+  }
+  if (btnTopics) {
+    btnTopics.addEventListener('click', function () { setTopics(!topicsOn); });
+  }
+  if (btnCollapse) {
+    btnCollapse.addEventListener('click', function () { setCollapsed(!collapsed); });
+  }
+
+  /* Adopt the slider's own value before the first build, so the opening frame
+     matches the control rather than this file's default — a browser restoring
+     a previous value on reload would otherwise draw one level and label
+     another. (Runs before build: it only records the level and label.) */
+  if (slider) setLevel(Number(slider.value));
+  build();
+  resize();
+  window.addEventListener('resize', resize);
+  window.addEventListener('s2b-theme-change', function () {
+    readTokens();
+    draw();
+  });
+
+  /* Animate only while on screen: this canvas sits well below the fold, and a
+     rAF loop running against an unseen canvas is pure battery. */
+  if (!REDUCED) {
+    var running = false;
+    var loop = function () {
+      if (!running) return;
+      step(); draw();
+      requestAnimationFrame(loop);
+    };
+    new IntersectionObserver(function (entries) {
+      entries.forEach(function (en) {
+        if (en.isIntersecting && !running) { running = true; requestAnimationFrame(loop); }
+        else if (!en.isIntersecting) running = false;
+      });
+    }, { threshold: 0.15 }).observe(cv);
+  }
+})();
+
 /* ---------- privacy toggle ---------- */
 /* The two cases make genuinely different promises, so the toggle swaps the
    claims rather than animating a diagram. Grounded in the plugin's real model
