@@ -43,6 +43,11 @@
     --g-hull-a: 0.13;
     --gm-node-l: 62%;
     --gm-node-a: 0.95;
+    /* Edges in the foreground graphs are ONE neutral colour, never the
+       cluster's: pixiRenderer picks `c.graphLine` for every edge and reserves
+       hue for the accent on hover. Matches Obsidian's own `--graph-line`
+       (#969696). Authored vs inferred is carried by the dash pattern. */
+    --gm-edge: rgba(150, 150, 150, 0.45);
     /* Demo-window depth. Both themes must define these. */
     --window-shadow: 0 24px 70px -30px rgba(0, 0, 0, 0.6);
     --modal-shadow: 0 18px 50px rgba(0, 0, 0, 0.5);
@@ -115,6 +120,9 @@
     --g-hull-a: 0.16;
     --gm-node-l: 52%;
     --gm-node-a: 0.95;
+    /* Obsidian's light-theme --graph-line is darker; the alpha carries most
+       of the weight either way. */
+    --gm-edge: rgba(110, 110, 110, 0.42);
     --window-shadow: 0 24px 70px -30px rgba(22, 21, 28, 0.35);
     --modal-shadow: 0 18px 50px rgba(22, 21, 28, 0.18);
     /* Light theme, same source: #fff / #f2f2f2, text #262626 / #737373 /
@@ -344,6 +352,14 @@
      drop the divider so no hairline is left behind at zero width. */
   .v-chat { overflow: hidden; }
   .vault-body[data-pane="graph"] .v-chat { border-left-color: transparent; }
+  /* Pin the pane's CONTENTS to its open width so the column can close without
+     reflowing them. `overflow:hidden` above clips the pane, but the flex
+     children still shrink with the column: at ~112px mid-slide a full
+     transcript rewrapped to one word per line ("Read / Lecture / 8 — /
+     Sleep") for the whole 0.55s. Fixing the width makes the chat slide out
+     rigidly, the way a real pane does. Same reasoning as the context tray's
+     `nowrap` below — both are this transition squeezing live text. */
+  .v-chat > * { width: 380px; flex-shrink: 0; }
 
   /* graph pane */
   /* `relative` is load-bearing: the note view is absolutely positioned inside
@@ -775,6 +791,14 @@
     background: var(--diff-add); border-radius: 2px; padding: 0 1px;
     transition: background .6s ease;
   }
+  /* An internal link inside the staged text, as Obsidian renders one: accent
+     text, no brackets, underlined on hover. The diff's added text is rendered
+     markdown (MarkdownRenderer.render inside the widget card), not raw source,
+     so `[[ ]]` never reaches the reader.
+     These links are load-bearing for the story — they are what the closing
+     graph scene's new edges are built from. */
+  .v-wl { color: var(--ob-accent); text-decoration-color: transparent; }
+  .v-wl:hover { text-decoration: underline; }
   /* Accepted: the bar folds away and the wash drains out of the text, which
      stays — it is the note's content now. */
   .v-diff-group.done .v-diff-bar {
@@ -868,8 +892,16 @@
     display: flex; flex-wrap: wrap; gap: 4px 18px; justify-content: center;
     padding: 6px 20px 16px; font-size: 12px; color: var(--ob-text-2);
   }
-  /* The key glyph is wrapped so mobile can drop it without losing the label. */
+  /* The key glyph is wrapped so it can be dropped without losing the label. */
   .vs-hints i { font-style: normal; }
+  /* The two hints the storyline drives lose their key glyph everywhere, not
+     just on mobile. The real modal does print ⌥A and ⇥ here, but the demo
+     never presses a key: it highlights these rows as the story reaches them,
+     so the glyph advertises an interaction the viewer isn't being shown — and
+     for a non-technical reader it's the least legible mark on screen. The
+     labels ("Attach to chat", "semantic: on") carry the meaning on their own.
+     The purely-informational rows keep theirs; they're set dressing. */
+  .vs-att i, .vs-sem i { display: none; }
   /* The semantic toggle and attach hint: pulse to draw the eye, then latch. */
   .vs-sem, .vs-att { transition: color .3s ease; }
   .vs-sem.pulse, .vs-att.pulse { color: var(--ob-accent); font-weight: 600; animation: askPulse 0.9s ease infinite; }
@@ -962,14 +994,203 @@
   .fgrid { display: grid; grid-template-columns: repeat(auto-fit,minmax(240px,1fr)); gap: 14px; }
   .fcell {
     border: 1px solid var(--border); border-radius: 11px; padding: 19px;
-    background: var(--bg-2);
+    /* Cards have to read as raised against the section behind them. Only the
+       agents pillar uses cards now, and it sits on the page background — a
+       section on --bg-2 would need to set --cell-bg to something further out
+       (--surface) for the card to separate at all. */
+    background: var(--cell-bg, var(--bg-2));
   }
   .fcell h4 { font-size: 14.5px; font-weight: 600; margin-bottom: 5px; }
   .fcell p { font-size: 13px; color: var(--text-2); line-height: 1.55; }
+  /* Flex, not block: the agent cards put a glyph beside the keyword. Cards
+     without one are unaffected — a flex row of a single text node lays out
+     the same as the block did. */
   .fcell .k {
+    font-size: 10.5px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--accent); margin-bottom: 9px;
+    display: flex; align-items: center; gap: 7px;
+  }
+  /* Sized to the cap height of the label beside it, so the two read as one
+     line rather than an icon with text after it. `letter-spacing` on the
+     parent would otherwise push the gap out — hence the explicit gap above. */
+  .fic { width: 14px; height: 14px; flex-shrink: 0; }
+
+  /* Unboxed feature notes — the same content as .fcell without the frame.
+     Used where the section already has a strong visual and the text is its
+     caption rather than a peer of it. Keeping the accent keyword and the bold
+     line means they still scan like features; only the box is gone. */
+  .fnotes {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 14px 26px;
+  }
+  .fnote h4 { font-size: 14.5px; font-weight: 600; margin-bottom: 5px; }
+  .fnote p { font-size: 13px; color: var(--text-2); line-height: 1.55; }
+  .fnote .k {
     font-size: 10.5px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase;
     color: var(--accent); margin-bottom: 9px; display: block;
   }
+
+  /* The trailing "and also…" line under a trimmed grid. Deliberately quiet:
+     these are real capabilities that don't deserve a card each. */
+  .fmore {
+    margin-top: 18px; text-align: center;
+    font-size: 13px; color: var(--text-3); line-height: 1.6;
+  }
+
+  /* Visual beside its points, instead of stacked above them. The visual column
+     is sized to the search still (560px) and the text takes the rest. */
+  .split {
+    display: grid; grid-template-columns: minmax(0, 560px) minmax(0, 1fr);
+    gap: 40px; align-items: center;
+  }
+  /* Unboxed sibling of .privacy-list: a marked list that reads as points about
+     one thing. The markers keep the shape recognisable across both. */
+  .plist { list-style: none; display: flex; flex-direction: column; gap: 15px; }
+  .plist li {
+    display: flex; gap: 12px; font-size: 14px; color: var(--text-2);
+    line-height: 1.55;
+  }
+  .plist .ck {
+    flex-shrink: 0; width: 19px; height: 19px; border-radius: 50%; margin-top: 1px;
+    display: flex; align-items: center; justify-content: center; font-size: 11px;
+    background: var(--green-soft); color: var(--green);
+  }
+  .plist strong { color: var(--text); font-weight: 600; }
+
+  /* ---------- granularity explorer ----------
+     The graph pillar's visual: a canvas plus a real slider the visitor drags.
+     Framed like the demo window (same border/radius family) so it reads as
+     another view of the plugin rather than a stray illustration. */
+  .g-explore {
+    border: 1px solid var(--border); border-radius: 14px;
+    background: var(--bg-2); overflow: hidden;
+  }
+  /* Beside the captions in a .split, the grid gap is the spacing; the frame
+     carries no margin of its own. The visual column is 560px — comfortably
+     above the 520px width where the explorer caps the slider's range, so
+     desktop always gets the Finest level. Shrink the column and it won't. */
+  .split .fnotes { grid-template-columns: 1fr; gap: 18px; }
+  .g-explore canvas {
+    display: block; width: 100%; height: 360px;
+    /* The canvas paints its own transparent background; the frame supplies
+       the surface so the hulls sit on the same tone as the demo's graph. */
+    background: var(--ob-bg);
+  }
+  /* Centred under the canvas: since the slider stopped filling the row, a
+     left-packed group left dead space to the right and the bar read as
+     lopsided under a symmetric visual. The value label's fixed width keeps
+     the centred group from shifting as "Broadest"/"Fine" change length. */
+  .g-ctl {
+    display: flex; align-items: center; justify-content: center; gap: 14px;
+    padding: 14px 18px 4px;
+  }
+  /* The wand and chevrons — icon buttons matching the plugin's toolbar
+     treatment: quiet at rest, accent-tinted when active. */
+  .g-btn {
+    display: flex; align-items: center; justify-content: center;
+    width: 30px; height: 30px; flex-shrink: 0;
+    border: 1px solid var(--border); border-radius: 8px;
+    background: transparent; color: var(--text-2); cursor: pointer;
+    transition: color .18s ease, border-color .18s ease, background .18s ease;
+  }
+  .g-btn svg { width: 15px; height: 15px; }
+  .g-btn:hover { color: var(--text); border-color: var(--border-2); }
+  .g-btn.on { color: var(--accent); border-color: var(--accent); background: var(--accent-soft); }
+  .g-btn:disabled { opacity: 0.4; cursor: default; }
+  .g-btn:disabled:hover { color: var(--text-2); border-color: var(--border); }
+  .g-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  /* Collapse is genuinely bidirectional, so its glyph swaps per state —
+     converging chevrons offer the fold, diverging ones offer the unfold. */
+  .g-btn .g-ic-unfold { display: none; }
+  .g-btn.on .g-ic-fold { display: none; }
+  .g-btn.on .g-ic-unfold { display: block; }
+  .g-ctl-div { width: 1px; height: 18px; background: var(--border); flex-shrink: 0; }
+  .g-ctl-label {
+    font-size: 12.5px; font-weight: 600; color: var(--text);
+    flex-shrink: 0;
+  }
+  /* Fixed width so the row doesn't reflow as the level name changes length
+     ("Fine" → "Broadest"), which would jiggle the slider under the cursor. */
+  .g-ctl-value {
+    font-size: 12.5px; color: var(--accent); font-weight: 600;
+    flex-shrink: 0; width: 62px; text-align: right;
+  }
+  .g-cap {
+    padding: 0 18px 15px; font-size: 12.5px; color: var(--text-3);
+  }
+
+  /* Range input, themed by hand — the native control ignores the palette and
+     would be the one Windows-blue thing on the page. Both tracks and the
+     thumb come from tokens, so light mode follows for free. */
+  /* Capped, not full-flex: four stops don't need a metre of track, and at
+     full row width the thumb travel dwarfed the change it causes. The row's
+     remaining slack is absorbed by the spacer after the value. */
+  .g-range {
+    -webkit-appearance: none; appearance: none;
+    flex: 0 1 300px; min-width: 120px; height: 22px;
+    background: transparent; cursor: pointer;
+  }
+  .g-range:disabled { opacity: 0.4; cursor: default; }
+  /* Dim the slider's caption pair with it, so the whole control reads off. */
+  .g-ctl.topics-off .g-ctl-label,
+  .g-ctl.topics-off .g-ctl-value { opacity: 0.4; }
+  .g-range::-webkit-slider-runnable-track {
+    height: 4px; border-radius: 2px; background: var(--surface-2);
+  }
+  .g-range::-moz-range-track {
+    height: 4px; border-radius: 2px; background: var(--surface-2);
+  }
+  .g-range::-webkit-slider-thumb {
+    -webkit-appearance: none; appearance: none;
+    width: 16px; height: 16px; margin-top: -6px;
+    border-radius: 50%; background: var(--accent);
+    border: 2px solid var(--bg-2);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+    transition: transform .15s ease;
+  }
+  .g-range::-moz-range-thumb {
+    width: 16px; height: 16px; border-radius: 50%;
+    background: var(--accent); border: 2px solid var(--bg-2);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+    transition: transform .15s ease;
+  }
+  .g-range:hover::-webkit-slider-thumb { transform: scale(1.12); }
+  .g-range:hover::-moz-range-thumb { transform: scale(1.12); }
+  /* Keyboard users get the same control: arrows step the level. */
+  .g-range:focus-visible { outline: none; }
+  .g-range:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 4px var(--accent-soft); }
+  .g-range:focus-visible::-moz-range-thumb { box-shadow: 0 0 0 4px var(--accent-soft); }
+
+  /* ---------- search still ----------
+     A settled screenshot of the search modal, in markup. Reuses the demo's
+     .vs-* classes, so the two surfaces can never drift; this wrapper only
+     replaces .v-search, which is the demo's full-bleed overlay. */
+  /* No bottom margin: inside .split the points sit beside this, not under it.
+     The mobile stack restores the gap via the .split gap. */
+  .search-still {
+    display: flex; justify-content: center;
+  }
+  .search-still .vs-box {
+    width: min(560px, 100%);
+    /* The modal's own shadow reads as floating over the app; here it sits on
+       the page, so it keeps the border and loses the lift. */
+    box-shadow: none;
+    background: var(--ob-bg);
+  }
+  /* Results in the still are always open — no animation to wait for. */
+  .search-still .vs-results { padding: 0 12px 6px; }
+
+  /* Inline filter chip, as the real modal renders inside its input after you
+     type #tag or /folder (SearchModal's renderInlineChips). */
+  .vs-chip {
+    display: inline-flex; align-items: center; gap: 5px; flex-shrink: 0;
+    padding: 2px 9px; border-radius: 11px;
+    font-size: 12.5px; line-height: 1.6;
+    color: var(--ob-accent);
+    background: var(--ob-accent-soft);
+    border: 1px solid var(--ob-accent-soft);
+  }
+  .vs-chip-ic { width: 12px; height: 12px; flex-shrink: 0; }
 
   .provs { display: flex; flex-wrap: wrap; gap: 9px; justify-content: center; }
   .prov {
@@ -1003,11 +1224,32 @@
        slide-in — hence repeating the [data-pane] case here. */
     .vault-body { grid-template-columns: minmax(0, 1fr) 320px; }
     .vault-body[data-pane="graph"] { grid-template-columns: minmax(0, 1fr) 0px; }
+    /* Track the narrower column, or the pinned contents overflow it. */
+    .v-chat > * { width: 320px; }
   }
   @media (max-width: 820px) {
     .nav-links { display: none; }
     section { padding: 66px 0; }
     .steps { grid-template-columns: 1fr; }
+    /* One column: the visual and its points stack, keeping the .split gap as
+       the space between them. Stacked captions get their columns back —
+       four single-line-ish notes in one tall stack reads as a list, not
+       captions. */
+    .split { grid-template-columns: minmax(0, 1fr); gap: 30px; }
+    .split .fnotes {
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 14px 26px;
+    }
+    /* A phone is narrower than the layout the topic pills were sized for, so
+       give the canvas less height and let the labels crowd a little rather
+       than scaling the whole scene down past legibility. */
+    .g-explore canvas { height: 290px; }
+    .g-ctl { flex-wrap: wrap; gap: 10px 12px; padding: 13px 15px 4px; }
+    /* The slider takes its own row: at phone width, sharing with the label
+       and value left it too short to drag with any precision. */
+    .g-range { flex: 1 0 100%; order: 3; }
+    .g-ctl-value { margin-left: auto; text-align: right; }
+    .g-cap { padding: 0 15px 14px; }
     /* Wider than the viewport and near-opaque at the centre: the headline
        wraps to three lines here, so the graph has to clear more of the box. */
     .hero-mask { --fog-w: 105%; --fog-h: 46%; --fog-a1: 0.97; --fog-a2: 0.8; }
@@ -1026,6 +1268,10 @@
     .v-main { flex: 1; min-height: 0; }
     .v-graph { min-height: 0; }
     .v-chat { border-left: none; flex: 1; min-height: 0; }
+    /* Panes swap with display:none here rather than animating a column, so
+       there is no squeeze to guard against — drop the pinned width and let
+       the chat fill the phone. */
+    .v-chat > * { width: auto; }
     .v-chat-body { padding: 12px 14px 8px; }
     .steps li button { padding: 14px 16px 14px 44px; }
     /* ── Mobile selection sheet ─────────────────────────────────────────
@@ -1103,10 +1349,10 @@
 
     /* Obsidian renders no instructions row on mobile — there is no keyboard to
        hint at. The purely-keyboard rows go entirely; the two the storyline
-       drives stay, minus their key glyphs, because on a phone those are the
-       toggle and the action you tap rather than shortcuts. */
+       drives stay, because on a phone those are the toggle and the action you
+       tap rather than shortcuts. (Their key glyphs are already dropped at
+       every width — see .vs-att i / .vs-sem i above.) */
     .vs-hint-key { display: none; }
-    .vs-sem i, .vs-att i { display: none; }
     .vs-hints { gap: 4px 14px; padding: 4px 20px 14px; font-size: 11.5px; }
 
     /* A phone has no pointer, so the simulated hand becomes a touch dot: a
@@ -1130,8 +1376,14 @@
        territory — with a circular clear button at its right (verified
        against the live vault in mobile emulation). The story reaches it
        through the composer's + button, so it opens as the vault picker. */
+    /* Everything below is scoped to `.v-search` — the DEMO's overlay. The
+       search still in the search pillar reuses the same .vs-* classes but is
+       a picture on a marketing page, not a phone's search sheet: it should
+       keep its natural order (input, then results) at every width. Unscoped,
+       these rules flipped the still upside down on mobile, putting its
+       results and hints above the search box. */
     .v-search { padding: 0; align-items: flex-end; }
-    .vs-box {
+    .v-search .vs-box {
       width: 100%; max-width: none; height: 86%;
       display: flex; flex-direction: column;
       background: var(--ob-bg); backdrop-filter: none;
@@ -1142,11 +1394,11 @@
     /* Source order is desktop's (input first); `order` re-stacks it. The
        results take the slack, so the rows sit at the top and the input
        stays pinned to the bottom whatever the count. */
-    .vs-empty { order: 1; }
-    .vs-sum { order: 2; }
-    .vs-results { order: 3; flex: 1 1 auto; min-height: 0; overflow: hidden; }
-    .vs-hints { order: 4; }
-    .vs-input {
+    .v-search .vs-empty { order: 1; }
+    .v-search .vs-sum { order: 2; }
+    .v-search .vs-results { order: 3; flex: 1 1 auto; min-height: 0; overflow: hidden; }
+    .v-search .vs-hints { order: 4; }
+    .v-search .vs-input {
       order: 5; margin: 0 12px 12px; padding: 11px 16px;
       border-radius: 999px; font-size: 14px;
       background: var(--ob-bg); border: 1px solid var(--ob-border);
@@ -1155,9 +1407,9 @@
     /* No multi-select on mobile — you tap one note — so the selection
        summary strip has no state to summarise and is never rendered. The
        story's `.on` add is harmless against display:none. */
-    .vs-sum { display: none; }
+    .v-search .vs-sum { display: none; }
     /* The pill's circular clear button. */
-    .vs-input::after {
+    .v-search .vs-input::after {
       content: '✕'; margin-left: auto; flex-shrink: 0;
       width: 22px; height: 22px; border-radius: 50%;
       display: flex; align-items: center; justify-content: center;

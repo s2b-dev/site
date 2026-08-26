@@ -125,8 +125,11 @@ const starLabel =
 	      </svg>
 	      <span class="brand-name">Smart Second Brain</span>
 	    </a>
+	    {/* "Features" points at the first of the three pillar sections; they
+	        run graph → search → agents from there, so one link covers the set. */}
 	    <div class="nav-links">
 	      <a href="#demo">How it works</a>
+	      <a href="#graph-section">Features</a>
 	      <a href="#privacy">Privacy</a>
 	      <a href="#start">Install</a>
 	<a href="/start/installation/">Docs</a>
@@ -223,10 +226,13 @@ const starLabel =
 	    <div class="sec-head">
 	      <div class="eyebrow">How it works</div>
 	      <h2>Connect your notes, then build on them</h2>
+	      {/* One sentence, one story — not a list of the three features below.
+	          The demo's own causal chain is topic → draft → missing piece, and
+	          the blurb should set that up rather than enumerate parts. */}
 	      <p>
-	        One evening of exam prep — the map connects what you wrote, the agent
-	        builds on a topic, and search by meaning pulls in the note you forgot
-	        you had.
+	        One evening of exam prep: your notes sort themselves into topics, you
+	        hand one to the agent, and it drafts your revision section — finding
+	        the note you'd forgotten, and asking before it saves anything.
 	      </p>
 	    </div>
 
@@ -331,9 +337,27 @@ const starLabel =
 	                  <button class="v-diff-btn v-diff-acc" type="button">Accept</button>
 	                  <button class="v-diff-btn v-diff-rej" type="button">Reject</button>
 	                </div>
+	                {/* The additions cite the notes they came from with links,
+	                    which is what makes the closing graph scene honest: the
+	                    graph's wiki edges are built from Obsidian's
+	                    resolvedLinks (graphDataBuilder.ts buildWikiEdges), so
+	                    prose merely mentioning "lecture 7" would draw NOTHING.
+	                    Reword these and you must keep the links, or drop the
+	                    new edges from the finale in landing.js.
+
+	                    Shown RENDERED, without the `[[ ]]`: added text lives in
+	                    the diff's widget card, never in the document
+	                    (inlineDiffExtension.ts — "the inserted text lives in
+	                    the widget card"), and that card renders its markdown
+	                    through MarkdownRenderer.render. So the reader sees a
+	                    link, not source. The underlying text is still
+	                    [[Lecture 7 — Consolidation]] etc. — see LINKED_NOTES in
+	                    landing.js. */}
 	                <div class="v-diff-detail">
-	                  <span class="v-diff-add">Three stages — lecture 7.</span>
-	                  <br /><span class="v-diff-add">Hippocampus diagram — slide 18.</span>
+	                  <span class="v-diff-add">Three stages — <span class="v-wl">Lecture 7 — Consolidation</span>.</span>
+	                  {/* Links to a PDF by name; the real link carries the
+	                      extension, which the rendered form drops. */}
+	                  <br /><span class="v-diff-add">Hippocampus diagram — <span class="v-wl">Week 7 slides.pdf</span>, slide 18.</span>
 	                </div>
 	              </div>
 	              <h2>Sleep</h2>
@@ -348,7 +372,7 @@ const starLabel =
 	                  <button class="v-diff-btn v-diff-rej" type="button">Reject</button>
 	                </div>
 	                <div class="v-diff-detail">
-	                  <span class="v-diff-add">Sleep before the exam — recall needs it.</span>
+	                  <span class="v-diff-add">Sleep before the exam — recall needs it: <span class="v-wl">Lecture 8 — Sleep</span>.</span>
 	                </div>
 	              </div>
 	            </div>
@@ -438,10 +462,13 @@ const starLabel =
 	            <div class="vs-results" id="vsResults"></div>
 	            {/* The real modal's instructions row. Obsidian doesn't render it
 	                on mobile — there's no keyboard to hint at — so at ≤720px the
-	                key glyphs are dropped and the purely-keyboard rows go with
-	                them. The two the storyline drives (semantic, attach) stay:
-	                on a phone they're the toggle and the action you tap, so they
-	                remain real affordances rather than shortcuts. */}
+	                purely-keyboard rows are dropped. The two the storyline drives
+	                (semantic, attach) stay at every width: on a phone they're the
+	                toggle and the action you tap, so they remain real affordances
+	                rather than shortcuts. Their key glyphs are hidden by CSS
+	                throughout — the demo presses no keys, so advertising ⌥A/⇥
+	                describes an interaction the viewer never sees. The glyphs
+	                stay in the markup because the real row prints them. */}
 	            <div class="vs-hints">
 	              <span class="vs-hint-key">↵ Open note</span>
 	              <span id="vsAtt" class="vs-att"><i>⌥A</i> Attach to chat</span>
@@ -461,25 +488,289 @@ const starLabel =
 	          <span>No folders, no tagging. Related notes find each other and group into topics, named for what they're about.</span>
 	        </button>
 	      </li>
+	      {/* "Immerse" is the plugin's own word for the button, but it is
+	          product vocabulary a newcomer hasn't learnt yet — so the heading
+	          says what happens and the body names the verb they'll press. */}
 	      <li data-step="2">
 	        <button type="button">
-	          <strong>Immerse into a topic</strong>
-	          <span>Circle any cluster to dive in — and watch it break apart into the finer topics hiding inside.</span>
+	          <strong>Open up a topic</strong>
+	          <span>Circle one and press Immerse: it breaks apart into the finer topics hiding inside it.</span>
 	        </button>
 	      </li>
 	      <li data-step="3">
 	        <button type="button">
-	          <strong>Build on it with the agent</strong>
-	          <span>Circle a sub-topic and open it in the chat. The agent reads those notes and drafts — nothing is saved without your OK.</span>
+	          <strong>Hand it to the agent</strong>
+	          <span>Send a sub-topic straight to the chat. The agent reads those notes and drafts — nothing is saved without your OK.</span>
 	        </button>
 	      </li>
 	      <li data-step="4">
 	        <button type="button">
-	          <strong>Search what you meant</strong>
-	          <span>Missing a piece? Search by meaning finds the note you forgot you had — attach it, and the agent folds it in.</span>
+	          <strong>Find the piece you're missing</strong>
+	          <span>The draft is short one fact. Searching by meaning turns up the note you forgot you had, and the agent folds it into the same edit.</span>
 	        </button>
 	      </li>
 	    </ol>
+	  </div>
+	</section>
+
+	{/* ── The three pillars ──────────────────────────────────────────────
+	    The demo above is the INTEGRATION story; these are the per-feature
+	    sections, in the same order as the plugin's own settings tabs
+	    (Search / Agents / Graph is the settings order — here Graph leads
+	    because the demo just ended on it). Each has at most one visual, and
+	    only the graph's is animated: one moving thing per screenful.
+	    Every claim in the cells is checked against the plugin source — see
+	    the table in CLAUDE.md before editing any of them. */}
+
+	<section id="graph-section">
+	  <div class="wrap">
+	    <div class="sec-head">
+	      <div class="eyebrow">Graph</div>
+	      <h2>Your notes, grouped by what they're about</h2>
+	      <p>
+	        Topics are worked out from how your notes actually relate — no
+	        folders to maintain, no tags to remember. This one is yours to play
+	        with.
+	      </p>
+	    </div>
+
+	    {/* Side by side like the search section, visual left for consistency —
+	        the camera's zoom cap (the plugin's 1.3×) means a compact layout
+	        never magnifies to fill a wide canvas, so the full-width frame
+	        carried mostly dead space; the captions now use it instead.
+	        The visual column must stay ≥520px: below that the explorer caps
+	        the slider's range (eight labelled topics are unreadable narrower),
+	        and desktop would silently lose the Finest level. */}
+	    <div class="split">
+	    {/* The page's only visitor-driven surface. Three controls, all mirrors
+	        of the graph's own: the Granularity slider, the wand that shows/
+	        hides the detected topics (physical in the plugin: hiding them
+	        strips every node's cluster, the cohesion force skips unclustered
+	        nodes, and the layout relaxes — SmartGraphView's
+	        resolveAndApplySegments), and the chevrons that fold every topic to
+	        a single node. Their icons, pairing and the collapse-needs-topics
+	        dependency come from GraphControls.svelte. */}
+	    <div class="g-explore">
+	      <canvas id="granGraph" aria-hidden="true"></canvas>
+	      <div class="g-ctl">
+	        {/* Lucide `wand-sparkles`, the plugin's show/hide-topics toggle —
+	            a wand because the topics were *found for you*. On by default,
+	            like the plugin. */}
+	        <button
+	          id="granTopics"
+	          class="g-btn on"
+	          type="button"
+	          aria-pressed="true"
+	          title="Hide topics — show the raw graph without clustering"
+	          aria-label="Show or hide the detected topics"
+	        >
+	          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+	            <path d="m21.64 3.64-1.28-1.28a1.21 1.21 0 0 0-1.72 0L2.36 18.64a1.21 1.21 0 0 0 0 1.72l1.28 1.28a1.2 1.2 0 0 0 1.72 0L21.64 5.36a1.2 1.2 0 0 0 0-1.72"/>
+	            <path d="m14 7 3 3"/><path d="M5 6v4"/><path d="M19 14v4"/><path d="M10 2v2"/>
+	            <path d="M7 8H3"/><path d="M21 16h-4"/><path d="M11 3H9"/>
+	          </svg>
+	        </button>
+	        {/* Lucide `chevrons-down-up` / `chevrons-up-down`, the plugin's
+	            collapse-all: many nodes fold into one, one unfolds back into
+	            many. The glyph swaps per state because the action is genuinely
+	            bidirectional; it needs topics on, as in the real toolbar. */}
+	        <button
+	          id="granCollapse"
+	          class="g-btn"
+	          type="button"
+	          aria-pressed="false"
+	          title="Collapse all topics into single nodes"
+	          aria-label="Collapse or expand all topics"
+	        >
+	          <svg class="g-ic-fold" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+	            <path d="m7 20 5-5 5 5"/><path d="m7 4 5 5 5-5"/>
+	          </svg>
+	          <svg class="g-ic-unfold" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+	            <path d="m7 15 5 5 5-5"/><path d="m7 9 5-5 5 5"/>
+	          </svg>
+	        </button>
+	        <span class="g-ctl-div" aria-hidden="true"></span>
+	        <label class="g-ctl-label" for="granRange">Granularity</label>
+	        {/* Four steps, matching LEVELS in landing.js. Starts at 1 (Broad),
+	            so the first thing seen is a middling grouping that can visibly
+	            go both ways. */}
+	        <input
+	          id="granRange"
+	          class="g-range"
+	          type="range"
+	          min="0"
+	          max="3"
+	          step="1"
+	          value="1"
+	          aria-label="Granularity — how many topics your notes are grouped into"
+	        />
+	        <span class="g-ctl-value" id="granLevelName">Broad</span>
+	      </div>
+	      <p class="g-cap">
+	        Drag the slider: the same notes, gathered into fewer big topics or
+	        split into smaller ones. The wand hides the topics — the chevrons
+	        fold each one to a single point.
+	      </p>
+	    </div>
+
+	    {/* Unboxed on purpose: these are captions to the explorer beside them,
+	        not peers of it — boxes here would read as another card grid. */}
+	    {/* Four captions, one per graph verb, stacked beside the explorer.
+	        Immerse deliberately POINTS AT the demo rather than re-explaining
+	        it — the demo's second beat is the feature in motion, and this
+	        caption is the index entry for readers who reached this section
+	        without watching it. (Same principle that dropped the agents grid's
+	        Approval card, applied the other way: Approval was told three
+	        times, immersion was told once.) */}
+	    <div class="fnotes">
+	      <div class="fnote"><span class="k">Topics</span><h4>It works them out for you</h4><p>Related notes are grouped and colour-coded, with an outline drawn around each topic. Nothing to set up — it reads the links and the writing itself.</p></div>
+	      <div class="fnote"><span class="k">Immerse</span><h4>Step inside a topic</h4><p>Circle a topic and the graph rebuilds around just those notes — finer topics appear inside it. Watch it happen in the demo above.</p></div>
+	      <div class="fnote"><span class="k">Names</span><h4>Topics that name themselves</h4><p>Ask once and each topic gets a name from what's in it. Names are remembered, so it doesn't re-do work it has already done.</p></div>
+	      <div class="fnote"><span class="k">Overview</span><h4>Fold it down to the shape</h4><p>Collapse every topic to a single point when you want the whole vault at a glance, then open the one you care about.</p></div>
+	    </div>
+	    </div>
+	  </div>
+	</section>
+
+	<section id="search-section" style="background:var(--bg-2); border-block:1px solid var(--border);">
+	  <div class="wrap">
+	    <div class="sec-head">
+	      <div class="eyebrow">Search</div>
+	      <h2>Find it the way you remember it</h2>
+	      <p>
+	        Start with the words you'd expect. When those aren't the words you
+	        used, one press searches by meaning instead — and either way, the
+	        search can turn straight into a question for the agent.
+	      </p>
+	    </div>
+
+	    {/* Side by side, unlike every other section on the page — the still is
+	        560px and the page is 1120px, so the points can sit beside it. This
+	        is the one place the centred heading → visual → grid rhythm breaks,
+	        which is most of why the section reads as its own thing. */}
+	    <div class="split">
+	    {/* A still, not a demo: every element is in its settled state in the
+	        markup, so this section runs no JavaScript at all. Reuses the demo
+	        modal's own .vs-* classes, so the two can't drift apart. */}
+	    <div class="search-still">
+	      <div class="vs-box">
+	        <div class="vs-input">
+	          <svg class="vs-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+	            <circle cx="10" cy="10" r="7"></circle>
+	            <path d="m15 15 6 6"></path>
+	          </svg>
+	          {/* Inline filter chip: typing # or / turns a tag or folder into
+	              one of these, and the search narrows to it. */}
+	          <span class="vs-chip">
+	            <svg class="vs-chip-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+	              <path d="M4 9h16M4 15h16M10 3 8 21M16 3l-2 18"/>
+	            </svg>
+	            psych101
+	          </span>
+	          <span>why do we forget</span>
+	        </div>
+	        <div class="vs-results">
+	          <div class="vs-res on">
+	            <div class="vs-res-top"><span class="vs-res-name">Lecture 8 — Sleep</span><span class="vs-res-path">· Psych 101</span></div>
+	            <div class="vs-res-snip">deep sleep and its role in <mark>consolidation</mark></div>
+	          </div>
+	          <div class="vs-res on">
+	            <div class="vs-res-top"><span class="vs-res-name">Week 7 slides.pdf</span><span class="vs-res-path">· Psych 101</span></div>
+	            <div class="vs-res-snip">slide 18 — the hippocampus and <mark>consolidation</mark></div>
+	          </div>
+	        </div>
+	        <div class="vs-hints">
+	          <span class="vs-att on">Attach to chat</span>
+	          <span class="vs-sem on">semantic: on</span>
+	        </div>
+	      </div>
+	    </div>
+
+	    {/* A marked list, not cards — the same shape as the privacy checklist,
+	        which already reads as "points about one thing" rather than "four
+	        separate features". */}
+	    <ul class="plist">
+	      <li><span class="ck ck-ok">✓</span><span><strong>Narrow it as you type.</strong> Type # for a tag or / for a folder and it becomes a chip on the search box. Stack a few to say "in here, tagged that".</span></li>
+	      <li><span class="ck ck-ok">✓</span><span><strong>For when you forgot the words.</strong> One press and it searches by what you meant, turning up notes that never use your words. It goes back to normal on your next search.</span></li>
+	      <li><span class="ck ck-ok">✓</span><span><strong>Turn a search into a question.</strong> Found nothing useful? Send it to the agent instead — it keeps your wording and whatever you'd narrowed it to.</span></li>
+	      <li><span class="ck ck-ok">✓</span><span><strong>Write the missing note.</strong> If the note you searched for doesn't exist, make it from the search box without losing your place.</span></li>
+	    </ul>
+	    </div>
+	  </div>
+	</section>
+
+	<section id="agents-section">
+	  <div class="wrap">
+	    <div class="sec-head">
+	      <div class="eyebrow">Agents</div>
+	      <h2>An assistant you stay in front of</h2>
+	      <p>
+	        It reads your notes before it answers, and it asks before it writes —
+	        the draft in the demo above is waiting on exactly that.
+	      </p>
+	    </div>
+	    {/* Four cards, not eight. "Approval" used to lead this grid and is gone:
+	        the entire demo above IS that feature, and the intro says it again —
+	        a card would be the third telling. The three that remained after it
+	        (images/PDFs, helpers, parallel chats) are real but minor, so they
+	        are one line below rather than three more boxes. */}
+	    {/* Icons are Lucide, like every other glyph on the page. `message-square`
+	        is the plugin's own chat-view icon (Chat.ts getIcon), so History
+	        carries the real one; the plugin has no glyph for memory, skills or
+	        MCP — those are text-headed settings sections — so those three are
+	        chosen to read at 16px rather than mirrored from the UI. Kept
+	        outline-only at the same 2px stroke as the rest of the page. */}
+	    <div class="fgrid">
+	      <div class="fcell">
+	        <span class="k">
+	          {/* `brain` — memory. */}
+	          <svg class="fic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+	            <path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z"/>
+	            <path d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z"/>
+	            <path d="M15 13a4.5 4.5 0 0 1-3-4 4.5 4.5 0 0 1-3 4"/>
+	          </svg>
+	          Memory
+	        </span>
+	        <h4>Picks up where you left off</h4><p>Opt in and it keeps working notes on your projects — real notes in your vault, and never a stale copy of them.</p>
+	      </div>
+	      <div class="fcell">
+	        <span class="k">
+	          {/* `graduation-cap` — something taught, matching "teach it". */}
+	          <svg class="fic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+	            <path d="M21.42 10.922a1 1 0 0 0-.019-1.838L12.83 5.18a2 2 0 0 0-1.66 0L2.6 9.08a1 1 0 0 0 0 1.832l8.57 3.908a2 2 0 0 0 1.66 0z"/>
+	            <path d="M22 10v6"/><path d="M6 12.5V16a6 3 0 0 0 12 0v-3.5"/>
+	          </svg>
+	          Skills
+	        </span>
+	        <h4>Teach it new tricks</h4><p>It comes knowing how to explore your vault, edit notes and search the web. Teach it more by writing plain notes.</p>
+	      </div>
+	      <div class="fcell">
+	        <span class="k">
+	          {/* `plug` — an outside tool being connected. Deliberately not
+	              `git-fork`, which is already the graph-selection chip. */}
+	          <svg class="fic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+	            <path d="M12 22v-5"/><path d="M9 8V2"/><path d="M15 8V2"/>
+	            <path d="M18 8v5a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4V8Z"/>
+	          </svg>
+	          Connections
+	        </span>
+	        <h4>Bring your other tools</h4><p>Hook up outside tools and sources (via MCP) when you want the agent to reach beyond your vault.</p>
+	      </div>
+	      <div class="fcell">
+	        <span class="k">
+	          {/* `message-square` — the plugin's own chat-view icon. */}
+	          <svg class="fic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+	            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+	          </svg>
+	          History
+	        </span>
+	        <h4>Chats are notes too</h4><p>Every conversation is saved in your vault. Rewrite a question and the old thread stays — nothing is lost.</p>
+	      </div>
+	    </div>
+	    <p class="fmore">
+	      It also reads images and PDFs, hands focused jobs to helper agents with
+	      their own instructions, and runs as many chats side by side as you like.
+	    </p>
 	  </div>
 	</section>
 
@@ -516,25 +807,6 @@ const starLabel =
 	    </ul>
 
 	    <p class="privacy-more">Set it up once and forget it — or read <a href="/privacy/model/">how the privacy model works</a>.</p>
-	  </div>
-	</section>
-
-	<section style="background:var(--bg-2); border-block:1px solid var(--border);">
-	  <div class="wrap">
-	    <div class="sec-head">
-	      <div class="eyebrow">And then some</div>
-	      <h2>Built for daily use</h2>
-	    </div>
-	    <div class="fgrid">
-	      <div class="fcell"><span class="k">Approval</span><h4>Nothing written without you</h4><p>Every change the agent wants to make to a note waits as a draft. You read it, then keep it or throw it away.</p></div>
-	      <div class="fcell"><span class="k">Memory</span><h4>Picks up where you left off</h4><p>Opt in and it keeps working notes on your projects — real notes in your vault, and never a stale copy of them.</p></div>
-	      <div class="fcell"><span class="k">Skills</span><h4>Teach it new tricks</h4><p>It comes knowing how to explore your vault, edit notes and search the web. Teach it more by writing plain notes.</p></div>
-	      <div class="fcell"><span class="k">Connections</span><h4>Bring your other tools</h4><p>Hook up outside tools and sources (via MCP) when you want the agent to reach beyond your vault.</p></div>
-	      <div class="fcell"><span class="k">History</span><h4>Chats are notes too</h4><p>Every conversation is saved in your vault. Rewrite a question and the old thread stays — nothing is lost.</p></div>
-	      <div class="fcell"><span class="k">Images &amp; PDFs</span><h4>Beyond plain text</h4><p>Share them in chat with an AI that can look at them — the plugin checks what each one supports.</p></div>
-	      <div class="fcell"><span class="k">Helpers</span><h4>Delegate the busywork</h4><p>Hand a focused job to a second agent with its own instructions, and keep your conversation on topic.</p></div>
-	      <div class="fcell"><span class="k">Parallel</span><h4>Many chats at once</h4><p>Run several conversations side by side — none of them blocks another.</p></div>
-	    </div>
 	  </div>
 	</section>
 
