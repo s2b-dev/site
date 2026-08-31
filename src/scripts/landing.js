@@ -365,29 +365,72 @@ function roundRectPath(ctx, x, y, w, h, r) {
     }
   }
 
+  /* Rescale an existing layout into a new box instead of rebuilding it.
+     `build()` re-rolls every position, offset, radius and edge, so calling it
+     on resize throws the settled graph away — and on mobile the URL bar
+     collapsing on scroll fires `resize` with an unchanged width, which is
+     exactly the "goes crazy on scroll" case. Positions are kept relative to
+     the box so a real resize stretches the graph rather than restarting it.
+     (The demo's mini graph solves the same problem with a world-space layout
+     and a fitted camera; this one is simple enough to just scale.) */
+  function rescale(oldW, oldH) {
+    var unit0 = Math.sqrt(oldW * oldH), unit1 = Math.sqrt(W * H);
+    var us = unit0 ? unit1 / unit0 : 1;
+    var sx = oldW ? W / oldW : 1, sy = oldH ? H / oldH : 1;
+    for (var c = 0; c < centers.length; c++) {
+      centers[c].x = W / 2 + (centers[c].x - oldW / 2) * sx;
+      centers[c].y = H / 2 + (centers[c].y - oldH / 2) * sy;
+    }
+    for (var i = 0; i < nodes.length; i++) {
+      var n = nodes[i];
+      n.x = W / 2 + (n.x - oldW / 2) * sx;
+      n.y = H / 2 + (n.y - oldH / 2) * sy;
+      /* Offsets and radii are unit-scaled, not axis-scaled, so clusters keep
+         their shape when the aspect ratio changes. */
+      n.ox *= us; n.oy *= us;
+      n.vx = 0; n.vy = 0;
+    }
+  }
+
   function resize() {
     var r = cv.getBoundingClientRect();
+    if (!r.width || !r.height) return;
+    var oldW = W, oldH = H;
     W = r.width; H = r.height;
     cv.width = W*DPR; cv.height = H*DPR;
     ctx.setTransform(DPR,0,0,DPR,0,0);
-    build();
+    if (!nodes.length) build();
+    else if (W !== oldW || H !== oldH) rescale(oldW, oldH);
+    /* Assigning cv.width clears the canvas, so repaint synchronously —
+       otherwise the hero blanks until the next frame. */
+    draw();
   }
 
   var t = 0;
-  function step() {
-    t += 0.0045;
+  var lastT = 0;
+  function step(now) {
+    /* Delta-timed, so the graph moves at the same speed on a 60Hz and a 120Hz
+       display and a stalled frame (scroll, tab wake, reload) doesn't dump a
+       backlog of impulse into the nodes. The frame budget is clamped to 50ms:
+       past that we'd rather the graph pause than lurch. */
+    var dt = lastT ? Math.min((now - lastT) / 16.667, 3) : 1;
+    lastT = now;
+    t += 0.0045 * dt;
+    /* Per-frame damping raised to dt keeps the decay time constant fixed
+       regardless of frame rate. */
+    var damp = Math.pow(0.94, dt);
     for (var i = 0; i < nodes.length; i++) {
       var n = nodes[i], ct = centers[n.c];
       /* Cohesion toward the node's own place in the cluster, not the shared
          centre — the same force concept the graph view exposes, but it keeps
          the community spread instead of collapsing it to a point. */
-      n.vx += (ct.x + n.ox - n.x) * 0.0016;
-      n.vy += (ct.y + n.oy - n.y) * 0.0016;
+      n.vx += (ct.x + n.ox - n.x) * 0.0016 * dt;
+      n.vy += (ct.y + n.oy - n.y) * 0.0016 * dt;
       /* gentle drift so it never looks frozen */
-      n.vx += Math.cos(t*1.7 + i*0.7) * 0.010;
-      n.vy += Math.sin(t*1.4 + i*0.9) * 0.010;
-      n.vx *= 0.94; n.vy *= 0.94;
-      n.x += n.vx; n.y += n.vy;
+      n.vx += Math.cos(t*1.7 + i*0.7) * 0.010 * dt;
+      n.vy += Math.sin(t*1.4 + i*0.9) * 0.010 * dt;
+      n.vx *= damp; n.vy *= damp;
+      n.x += n.vx * dt; n.y += n.vy * dt;
     }
   }
 
@@ -419,7 +462,12 @@ function roundRectPath(ctx, x, y, w, h, r) {
   }
 
   resize();
-  window.addEventListener('resize', resize);
+  /* A ResizeObserver on the canvas, not a window resize listener: it reports
+     the box the graph is actually drawn into, and it does NOT fire for the
+     mobile URL-bar show/hide that leaves the canvas box untouched — which a
+     window `resize` does, and which used to rebuild the whole graph mid-scroll. */
+  if (window.ResizeObserver) new ResizeObserver(resize).observe(cv);
+  else window.addEventListener('resize', resize);
 
   /* Re-read the palette when the theme flips. The animated path picks the new
      colours up on its next frame; the reduced-motion path must redraw itself. */
@@ -429,7 +477,12 @@ function roundRectPath(ctx, x, y, w, h, r) {
   });
 
   if (REDUCED) { draw(); return; }
-  (function loop(){ step(); draw(); requestAnimationFrame(loop); })();
+  /* Reset the clock when the tab comes back: `now` jumps by however long the
+     tab was hidden, and without this the first frame back is a huge dt. */
+  document.addEventListener('visibilitychange', function () {
+    if (!document.hidden) lastT = 0;
+  });
+  (function loop(now){ step(now || performance.now()); draw(); requestAnimationFrame(loop); })(performance.now());
 })();
 
 /* ---------- integrated workspace demo ----------
