@@ -5,7 +5,7 @@ sidebar:
   order: 1
 ---
 
-Smart Second Brain runs on Obsidian `1.5.0` or newer, on **desktop and
+Smart Second Brain runs on Obsidian `1.11.4` or newer, on **desktop and
 mobile** alike. Two caveats on a phone or tablet: [stdio MCP
 servers](/agents/mcp/) are skipped, because the mobile WebView lacks the APIs
 they need, and indexing a large vault is noticeably slower. Everything else —
