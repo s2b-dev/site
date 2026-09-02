@@ -6,7 +6,7 @@ sidebar:
 ---
 
 A provider supplies the models the agent runs on. Smart Second Brain is
-provider-agnostic — you bring your own, and you can configure several at once
+provider-agnostic: you bring your own, and you can configure several at once
 and switch between them per chat.
 
 Add one under **Settings → Smart Second Brain → Providers → Add provider**.
@@ -23,7 +23,7 @@ Add one under **Settings → Smart Second Brain → Providers → Add provider**
 | **OpenAI-compatible** | Depends | Any endpoint speaking the OpenAI API. |
 
 You can create **multiple instances of the same provider type** with distinct
-display names and endpoints — useful for separating a work key from a personal
+display names and endpoints, useful for separating a work key from a personal
 one, or pointing at two different self-hosted endpoints.
 
 ## Local setup with Ollama
@@ -41,10 +41,22 @@ ollama pull llama3.1 && ollama pull mxbai-embed-large
 Local providers are treated as **trusted** by default, since no data leaves the
 machine.
 
+### Other local engines
+
+LM Studio, a llama.cpp server, or anything else that speaks the OpenAI API
+works through the **Custom** provider (the OpenAI-compatible template). For
+LM Studio, start its local server and set the base URL to
+`http://localhost:1234`; the API key can be left empty.
+
+A Custom provider starts **untrusted**, because the plugin cannot tell a
+local endpoint from a remote one. If you want it to see private notes, mark it
+trusted in the provider's settings. See
+[Trusted providers](/privacy/trusted-providers/).
+
 ## Cloud setup
 
 Add the provider, paste your API key, and select a model. Keys are held in
-Obsidian's secret storage — the plugin's config file stores only a reference,
+Obsidian's secret storage; the plugin's config file stores only a reference,
 never the raw key.
 
 Cloud providers are **untrusted by default**, which means they are blocked from
@@ -53,7 +65,7 @@ reading, embedding, or receiving any note you've marked private. See the
 
 ## Choosing a model
 
-Use the most capable model your provider offers — agent quality depends heavily
+Use the most capable model your provider offers. Agent quality depends heavily
 on reasoning and tool-use ability. Frontier cloud models give the best results.
 For a fully local setup, pair a capable Ollama chat model with a strong
 embedding model.

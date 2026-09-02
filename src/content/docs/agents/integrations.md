@@ -29,11 +29,11 @@ at startup when the core plugin is enabled:
 
 | Integration | Covers |
 | --- | --- |
-| **Canvas** | Reading and writing `.canvas` files — nodes, edges, layouts |
+| **Canvas** | Reading and writing `.canvas` files: nodes, edges, layouts |
 | **Bases** | Structured data and database-like views |
 
 Canvas and Bases are skills only. They don't need an `exec_` tool, because
-canvas and base files are files — the agent reads and writes them with the
+canvas and base files are files. The agent reads and writes them with the
 tools it already has.
 
 ## Auto-discovery
@@ -41,7 +41,7 @@ tools it already has.
 The curated list isn't exhaustive. **Any enabled plugin that exposes an object
 called `api` is discovered at runtime** and offered as an integration.
 
-The plugin probes `.api` first and falls back to `.apiV1` — the Tasks plugin
+The plugin probes `.api` first and falls back to `.apiV1`, since the Tasks plugin
 exposes its surface as `apiV1`, and probing is defensive because either
 accessor may be a lazy or throwing getter.
 
@@ -55,7 +55,7 @@ arguments into that skill, so the next conversation skips the rediscovery.
 
 ## The `exec_<plugin>` tool
 
-Enabling an integration binds a tool named after the plugin — `exec_dataview`,
+Enabling an integration binds a tool named after the plugin: `exec_dataview`,
 `exec_tasknotes`, and so on. It evaluates JavaScript with the plugin's `api`
 object in scope.
 
@@ -76,7 +76,7 @@ setting to think hardest about. See
 
 :::caution[It runs on the main thread]
 The code is not sandboxed. It needs access to Obsidian's live `app` object,
-which a Web Worker cannot reach — that constraint is the whole reason this tool
+which a Web Worker cannot reach. That constraint is the whole reason this tool
 exists in the form it does.
 
 There is an execution timeout, but treat it as a courtesy rather than a
@@ -96,13 +96,13 @@ the risk here.**
 
 ## If an integration doesn't work
 
-**"not enabled or installed"** — the plugin is off. The agent re-resolves the
+**"not enabled or installed".** The plugin is off. The agent re-resolves the
 plugin at call time, so enabling it in Obsidian is enough; no restart needed.
 
-**"does not expose an api object"** — the plugin has no scriptable surface, or
+**"does not expose an api object".** The plugin has no scriptable surface, or
 exposes it under a name other than `api`/`apiV1`. Nothing to do but ask the
 plugin's author.
 
-**The agent calls the API wrong** — for auto-discovered plugins this is
+**The agent calls the API wrong.** For auto-discovered plugins this is
 expected on the first attempt. Let it introspect, and once it gets something
 working, ask it to record what it learned in the skill.

@@ -5,7 +5,7 @@ sidebar:
   order: 5
 ---
 
-[MCP](https://modelcontextprotocol.io/) — the Model Context Protocol — is an
+[MCP](https://modelcontextprotocol.io/), the Model Context Protocol, is an
 open standard for exposing tools to a language model. Point Smart Second Brain
 at an MCP server and its tools appear alongside the agent's built-in ones.
 
@@ -44,7 +44,7 @@ Launches a local process and talks to it over stdin/stdout.
 
 :::caution[Desktop only]
 stdio requires Node APIs that Obsidian's mobile WebView doesn't have. On
-mobile, stdio servers are **skipped** — the agent starts with its remaining
+mobile, stdio servers are **skipped**, and the agent starts with its remaining
 tools rather than failing. If you need the same tools on both, use HTTP.
 :::
 
@@ -54,7 +54,7 @@ The handshake happens on the agent's first run and its tools are cached for
 that agent. Concurrent runs share one in-flight handshake rather than each
 opening their own.
 
-If the handshake fails, the failure is **not** cached — the plugin retries on
+If the handshake fails, the failure is **not** cached. The plugin retries on
 the next run rather than leaving the agent toolless for the whole session. The
 error is logged; check the developer console if a server's tools never appear.
 
@@ -65,7 +65,7 @@ next run without a restart.
 
 :::caution
 An MCP server is an external service, and the agent decides what to pass it.
-Whatever the agent sends as tool arguments leaves your machine — including note
+Whatever the agent sends as tool arguments leaves your machine, including note
 content, if the task involves note content.
 
 The [privacy model](/privacy/model/) governs which notes the *provider* may
@@ -78,7 +78,7 @@ receives. Add servers you trust, and prefer scoping them narrowly.
 They solve different problems, and the answer is usually a skill.
 
 Reach for a **skill** when the capability already exists in the vault or in
-another Obsidian plugin — it's a file, it's version-controlled with your notes,
+another Obsidian plugin. It's a file, it's version-controlled with your notes,
 and it costs nothing at rest.
 
 Reach for **MCP** when the capability lives in a genuinely external system that

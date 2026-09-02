@@ -16,7 +16,7 @@ covers what trust does with that.
 
 | Provider | Default | Why |
 | --- | --- | --- |
-| **Ollama** | Trusted | Runs locally — nothing leaves the machine |
+| **Ollama** | Trusted | Runs locally; nothing leaves the machine |
 | **oMLX** | Trusted | Runs locally on your Mac |
 | **OpenAI** | Untrusted | Remote |
 | **Anthropic** | Untrusted | Remote |
@@ -35,18 +35,18 @@ If it *is* yours, mark it trusted yourself in the provider's settings.
 For an untrusted provider, a private note is filtered out at every point where
 it could otherwise reach the model:
 
-- **`search_notes`** — private results are dropped from the ranking.
-- **`read_content`** — refuses to return the content.
-- **`grep_notes`** — private notes are not scanned.
-- **`list_directory`** — the entry reads as `private` rather than listing.
-- **`get_properties`** — frontmatter is withheld.
-- **`get_all_tags`** — tags used only by private notes don't appear.
-- **`manage_notes`** — private notes are skipped.
-- **Embedding** — private notes are not indexed against an untrusted embedding
+- **`search_notes`:** private results are dropped from the ranking.
+- **`read_content`:** refuses to return the content.
+- **`grep_notes`:** private notes are not scanned.
+- **`list_directory`:** the entry reads as `private` rather than listing.
+- **`get_properties`:** frontmatter is withheld.
+- **`get_all_tags`:** tags used only by private notes don't appear.
+- **`manage_notes`:** private notes are skipped.
+- **Embedding:** private notes are not indexed against an untrusted embedding
   provider. They are skipped with a `privacy` reason, not silently dropped.
 
 The check is the same in each case: the file is private **and** the provider is
-not trusted. The model is never asked to respect the boundary — it simply never
+not trusted. The model is never asked to respect the boundary; it simply never
 receives the content.
 
 ## Trust is per provider, not per agent
@@ -64,8 +64,8 @@ still sends your non-private notes to the cloud at index time.
 Both are opt-in, and both are worth knowing about.
 
 :::caution[Plugin integrations]
-The `exec_<plugin>` tool — enabled per plugin under
-[Integrations](/agents/integrations/) — runs code
+The `exec_<plugin>` tool, enabled per plugin under
+[Integrations](/agents/integrations/), runs code
 against another Obsidian plugin's public API. It **bypasses the privacy filter
 entirely** and can read or write any note regardless of your privacy settings.
 
@@ -104,5 +104,5 @@ Two places show you what actually happened rather than what was configured:
   tool output in the chat.
 
 If you expected a note to be blocked and it wasn't, check whether the file is
-actually matched by your privacy filter — in **public by default** mode a note
+actually matched by your privacy filter. In **public by default** mode a note
 is private only if it is listed, and the two modes invert that test.

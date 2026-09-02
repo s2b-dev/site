@@ -371,9 +371,28 @@ sections do: skills, integrations, memory, MCP servers. Subagents are a section
 of `agents/index.md` rather than their own page — the topic is short and reads
 naturally next to multi-agent setup.
 
-`search` and `graph` are single-page groups in `astro.config.mjs`, not bare
-`link` entries. A top-level `link` renders as a loose item and gets absorbed
-into the group above it, which buried both under "Getting started".
+`search` and `graph` are groups in `astro.config.mjs`, not bare `link` entries.
+A top-level `link` renders as a loose item and gets absorbed into the group
+above it, which buried both under "Getting started".
+
+### Implementation depth sits under its feature
+
+Each feature group ends with a **How it works** page — `search/how-it-works`,
+`graph/how-it-works` — holding the constants and the reasoning behind them.
+These are deliberately *not* a separate "internals" section: a reader who wants
+to know why recency can't hijack a ranking, or why the granularity slider has
+the stops it does, is already reading that feature's page. Both are written
+against plugin source and carry a "verified against version X" note.
+
+There is no architecture page. `internals/architecture.md` was removed — it
+described repo layout and composition-root detail that no user acts on, and it
+was a summary of the plugin's own `AGENTS.md`, so it could only drift. If
+contributor-facing architecture docs are wanted, they belong in the plugin repo
+next to the code they describe, not here.
+
+Keep the split honest when adding to these pages: the overview answers *what it
+does for me*, the how-it-works page answers *why it behaves like that*. A fact a
+user needs in order to use the feature belongs on the overview.
 
 All pages are written. There are no remaining stubs.
 
@@ -438,8 +457,9 @@ hand before each release. Work through this list against the sources above:
       (paths in the provenance headers); refresh the copies and the commit
       hash if the plugin's layout/tuning changed
 - [ ] `help/faq` — the "What's next?" list still reflects reality
-- [ ] `internals/search-algorithm` — constants and the "verified against"
-      version note; sources are listed at the foot of that page
+- [ ] `search/how-it-works` and `graph/how-it-works` — constants and the
+      "verified against" version note on each; sources are listed at the foot
+      of both pages
 
 Prose claims (staged edits, conversation branching, per-model capability
 detection) are not mechanically checkable. Re-read them when the related

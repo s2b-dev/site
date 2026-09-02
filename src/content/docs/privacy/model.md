@@ -16,7 +16,7 @@ Set this under **Settings → Smart Second Brain → Privacy**.
 
 **Private by default.** Nothing is exposed unless you explicitly allow it. Only
 notes you mark as allowed can be read, embedded, or sent to an untrusted
-provider. This is the strict choice — good for vaults containing journals,
+provider. This is the strict choice, good for vaults containing journals,
 client work, or health notes.
 
 **Public by default.** Everything is available except what you explicitly
@@ -29,9 +29,9 @@ any time.
 
 Every provider is marked trusted or untrusted:
 
-- **Local providers** (Ollama, oMLX) default to **trusted** — the data never
-  leaves your machine.
-- **Cloud providers** default to **untrusted** — they are blocked from private
+- **Local providers** (Ollama, oMLX) default to **trusted**, since the data
+  never leaves your machine.
+- **Cloud providers** default to **untrusted**. They are blocked from private
   notes even if the agent tries to reach one.
 
 The block is enforced in the plugin, not left to the model's discretion. An
@@ -56,7 +56,7 @@ until you accept it.
 
 :::caution
 The privacy filter is applied when notes are **indexed and read**. Note
-filenames are content too — a title alone can be revealing, so prefer marking
+filenames are content too. A title alone can be revealing, so prefer marking
 the whole folder private rather than relying on file-level exclusions in
 sensitive areas.
 :::

@@ -14,10 +14,10 @@ filtered for privacy. This page walks each one.
 **Settings → Smart Second Brain → Troubleshooting** has two things worth
 knowing about:
 
-- **Developer Console logging** — turn this on to get verbose `[S2B]` output in
+- **Developer Console logging.** Turn this on to get verbose `[S2B]` output in
   the developer console (`Ctrl`/`Cmd` + `Shift` + `I`). Almost every diagnosis
   below starts here.
-- **Cleanup Plugin Data** — deletes plugin settings and generated index data.
+- **Cleanup Plugin Data.** Deletes plugin settings and generated index data.
   Your secrets, skill files, and chat files inside the vault are **kept**. This
   is the "start clean without losing my work" button.
 
@@ -25,7 +25,7 @@ knowing about:
 
 ### No model configured
 
-The agent needs a chat model. Search and the graph don't — if those work and
+The agent needs a chat model. Search and the graph don't, so if those work and
 chat doesn't, this is almost always why. See
 [Connecting a provider](/start/providers/).
 
@@ -33,7 +33,7 @@ chat doesn't, this is almost always why. See
 
 An invalid or expired key surfaces as an auth error naming the provider. Re-add
 the key in the provider's settings. Keys live in Obsidian's secret storage, so
-re-pasting is the fix — editing the config file won't help, since it only holds
+re-pasting is the fix. Editing the config file won't help, since it only holds
 a reference.
 
 Also check the account itself: a valid key with no credit produces an auth-class
@@ -42,7 +42,7 @@ error, not a billing message.
 ### Rate limits
 
 Chats run in parallel, so several at once against the same cloud account can
-trip your provider's rate limit — as can a large embedding run competing with
+trip your provider's rate limit, as can a large embedding run competing with
 an active chat.
 
 Stagger the chats, or split the work across two providers: a local model for
@@ -57,7 +57,7 @@ oMLX, confirm the server is actually running and the base URL matches
 (`http://localhost:11434` is Ollama's default).
 
 Every request through the plugin has a **60-second ceiling**. Past that it fails
-rather than hanging — an unreachable host used to leave indexing frozen with
+rather than hanging. An unreachable host used to leave indexing frozen with
 Cancel unable to stop it. If you see timeouts against a remote endpoint, the
 endpoint is accepting connections but not answering.
 
@@ -71,7 +71,7 @@ account. Re-select it from the model list rather than typing it.
 
 ### Streaming problems
 
-Some endpoints — proxies especially — accept a streaming request and then fail
+Some endpoints, proxies especially, accept a streaming request and then fail
 before responding. The plugin detects this and downgrades that provider to
 buffered mode, so replies arrive all at once instead of token by token. If
 responses appear complete but never stream, this is usually why.
@@ -81,7 +81,7 @@ responses appear complete but never stream, this is usually why.
 ### Semantic search isn't running
 
 Semantic retrieval needs an embedding model. Without one, only the lexical path
-runs — which is fine, but it matches words rather than meaning.
+runs, which is fine, but it matches words rather than meaning.
 
 If the agent reports that semantic search is unavailable, that is authoritative
 and won't change mid-conversation. Configure an embedding model under
@@ -97,7 +97,7 @@ The **indexing report** tells you what was skipped and why:
 | Reason | Meaning |
 | --- | --- |
 | `excluded` | Not an indexable file type |
-| `privacy` | Private note, untrusted provider — see below |
+| `privacy` | Private note, untrusted provider (see below) |
 | `too-large` | Exceeded the content budget |
 | `not-indexed` | Not yet processed |
 | `read-error` | The file couldn't be read |
@@ -108,7 +108,7 @@ A wave of `embed-error` entries points at the provider, not the vault.
 ### Notes are missing on purpose
 
 The agent folder (`Agents/` by default) is excluded from indexing, search, and
-the graph. So are binary files' contents — images and PDFs are indexed by
+the graph. So are binary files' contents: images and PDFs are indexed by
 **title only**.
 
 ### The results are just weak
@@ -135,13 +135,13 @@ Open the Agent editor → General → Tools and check the switch.
 ### Memory isn't working
 
 Memory needs `manage_notes`. With the toggle on but no write tool available,
-the memory instructions are not injected at all — deliberately, since telling
+the memory instructions are not injected at all. That is deliberate: telling
 an agent to record memories with a tool it lacks produces confusion rather than
 silence. Enable `edit-notes` for that agent.
 
 ### It says it edited a note, but nothing changed
 
-It didn't edit anything. Note writes are **staged for review** — they appear as
+It didn't edit anything. Note writes are **staged for review**: they appear as
 an inline diff and apply only when you accept them. Use **Next pending change**
 and **Previous pending change** from the command palette to step through the
 queue.
@@ -160,7 +160,7 @@ Check two things in order:
    *private by default*, a note is private unless listed. In *public by
    default*, it's private only if listed.
 2. **Is the provider trusted?** Only Ollama and oMLX default to trusted.
-   Everything else — including a custom endpoint on your own hardware —
+   Everything else, including a custom endpoint on your own hardware,
    defaults to untrusted until you say otherwise.
 
 See [Trusted providers](/privacy/trusted-providers/).
@@ -174,7 +174,7 @@ platforms.
 
 Otherwise, the handshake failed. Turn on verbose logging and look for the MCP
 initialization lines. Failed handshakes aren't cached, so the retry happens on
-the next run — you don't need to restart Obsidian.
+the next run. You don't need to restart Obsidian.
 
 ## Mobile
 
@@ -192,5 +192,5 @@ console for `[S2B]` lines.
 Then search the
 [existing issues](https://github.com/s2b-dev/smart-second-brain/issues) before
 opening a new one. If you do open one, include what you tried, any error
-messages, and the steps to reproduce — both buttons are in the Troubleshooting
+messages, and the steps to reproduce. Both buttons are in the Troubleshooting
 settings tab.

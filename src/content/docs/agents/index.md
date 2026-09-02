@@ -7,7 +7,7 @@ sidebar:
 
 An agent is a chat that can actually look things up. Ask it a question and it
 searches your vault, reads what looks relevant, and answers with wikilinks back
-to the notes it used — so you can check its work.
+to the notes it used, so you can check its work.
 
 An agent needs a chat model. See
 [Connecting a provider](/start/providers/).
@@ -21,7 +21,7 @@ What an agent *has* is covered on its own page: the
 
 Chats are stored as `.chat` files in your vault. They open in a sidebar split
 rather than replacing the note you're reading, they sync with everything else,
-and they are indexed — so you can search for a conversation by what was said in
+and they are indexed, so you can search for a conversation by what was said in
 it.
 
 **History is a tree, not a list.** Editing an earlier message or regenerating a
@@ -41,7 +41,7 @@ chat's title and last-modified date. Click the title to open the real thing.
 
 This is the payoff of conversations being notes rather than app state. When a
 chat contains the reasoning behind a decision, embed it in the project note
-instead of paraphrasing it — the record stays where you'll look for it, and it
+instead of paraphrasing it. The record stays where you'll look for it, and it
 updates when the conversation does.
 
 Hovering a `.chat` link gives you the same preview without a modifier key.
@@ -54,13 +54,13 @@ A few properties worth knowing:
 - **It re-renders when the chat changes**, including while an agent is still
   working in it.
 - **It loads lazily.** A skeleton appears immediately and the transcript swaps
-  in once parsed, so embedding a long chat — or several in one note — doesn't
+  in once parsed, so embedding a long chat (or several in one note) doesn't
   block the page from painting.
 
 ## Built-in tools
 
 These are the tools the agent can be given. Which ones it actually has depends
-on its enabled skills — see [Skills](/agents/skills/).
+on its enabled skills. See [Skills](/agents/skills/).
 
 | Tool | What it does |
 | --- | --- |
@@ -71,7 +71,7 @@ on its enabled skills — see [Skills](/agents/skills/).
 | `get_all_tags` | List every tag in the vault |
 | `get_properties` | Read frontmatter properties, or list all property keys |
 | `execute_javascript` | Run JavaScript against the vault |
-| `manage_notes` | Create, update, delete, and move notes — **staged for review** |
+| `manage_notes` | Create, update, delete, and move notes (**staged for review**) |
 | `fetch_url` | Fetch a public web page as markdown |
 | `web_search` | Search the web |
 | `manage_skills` | Create, revise, or delete skills |
@@ -81,8 +81,8 @@ instructions on demand, and a delegation tool when an agent has subagents
 configured.
 
 `search_notes` is not a second, weaker search. It runs the same ranking pipeline
-as the search modal you open yourself — the same strategies, the same filters,
-the same fusion — so the agent sees the results you would have seen. See
+as the search modal you open yourself: the same strategies, the same filters,
+the same fusion. The agent sees the results you would have seen. See
 [Search](/search/). The one difference is the starting point: the agent searches
 lexically unless it asks for `semantic` or `hybrid`, and if no embedding index is
 ready, it's told so in the result rather than being left to guess.
@@ -93,7 +93,7 @@ sharpen its description if your model responds better to different wording.
 ## Nothing is written without your approval
 
 Every note mutation goes through a staging queue. The agent doesn't write to
-disk — it proposes changes, which appear as an inline diff in the editor, and
+disk. It proposes changes, which appear as an inline diff in the editor, and
 you accept or reject them.
 
 The one exception is the agent's memory folder, where writes auto-apply. That
@@ -116,7 +116,7 @@ a frontier cloud model for work that needs real reasoning.
 ### They run in parallel
 
 Chats don't queue behind each other. Start a slow research task in one chat,
-open another, and keep working — both agents run at once, on different models
+open another, and keep working. Both agents run at once, on different models
 if you like.
 
 Each chat owns its own session state, so an action in one can't leak into
@@ -130,7 +130,7 @@ in status bar** under **Settings → Agents** if you'd rather not see them.
 
 :::tip
 Parallelism is bounded by whatever your provider allows. Several concurrent
-chats against one cloud account can hit rate limits — a local model and a cloud
+chats against one cloud account can hit rate limits. A local model and a cloud
 model side by side avoids that entirely.
 :::
 
@@ -138,7 +138,7 @@ model side by side avoids that entirely.
 
 An agent can be given other agents as **subagents**, which it can delegate
 self-contained subtasks to. Each subagent runs with its own model, tools, and
-prompt, and returns only its result — so a long, noisy subtask doesn't fill the
+prompt, and returns only its result, so a long, noisy subtask doesn't fill the
 main conversation's context.
 
 Delegating to a copy of itself is the common case: a clean-context worker for a
@@ -153,19 +153,19 @@ Delegation is **one level deep**. A subagent's own subagents are ignored.
 
 ## Attachments and multimodal
 
-Drop files straight onto the chat to attach them — the whole chat pane is the
+Drop files straight onto the chat to attach them. The whole chat pane is the
 drop target, not just the composer, and it outlines itself while you drag.
 Dragging works from **inside Obsidian** (the file explorer, search results, and
 other file lists) and from **outside** it (Finder, Explorer, your desktop).
 Pasting a file into the composer attaches it too.
 
 Dragging a vault file **attaches its content**. That is different from typing a
-`[[wikilink]]`, which adds a reference the agent can follow — so drag when you
+`[[wikilink]]`, which adds a reference the agent can follow. Drag when you
 want the file itself in the conversation.
 
 Accepted: `txt`, `md`, `csv`, `json`, `pdf`, and images (`png`, `jpg`, `jpeg`,
 `gif`, `webp`). Anything else is flagged during the drag rather than failing
-after it. Folders are skipped — drag the files inside them.
+after it. Folders are skipped; drag the files inside them.
 
 Vision and PDF support is resolved **per model at runtime**, not assumed from
 the provider. A model that accepts images will accept them without extra
@@ -175,11 +175,37 @@ tells you to switch models, rather than being sent and rejected.
 
 PDF text is extracted locally before anything is sent.
 
-## The system prompt is a note
+## Everything an agent is made of is a note
 
-Each agent's system prompt lives in your vault at
-`Agents/System Prompts/<Agent Name>/Base.md`, and its memory instructions
-alongside it in `Memory.md`. They are ordinary notes — edit them in Obsidian
+An agent has no hidden configuration. Its memory, its skills, and its system
+prompt are all real, visible notes under one folder in your vault:
+
+```
+Agents/
+├── Memories/                    shared memory notes; writes auto-apply
+├── Skills/
+│   └── <name>/SKILL.md          every skill, including the bundled ones
+└── System Prompts/
+    └── <Agent Name>/
+        ├── Base.md              the base system prompt
+        └── Memory.md            memory-usage instructions
+```
+
+The root is configurable; `Agents/` is only the default. The three
+subdirectory names inside it are fixed.
+
+Because both prompt files sit in a folder named after the agent, renaming,
+duplicating, or deleting an agent is a single folder operation. Copy the folder
+and you have copied the agent.
+
+The whole tree is **excluded from indexing, search, and the graph**. It is
+plugin machinery that happens to be stored as notes, and it would otherwise
+dominate any result about the plugin itself.
+
+### The system prompt is a note
+
+Each agent's system prompt is `Base.md` above, with its memory instructions
+alongside it in `Memory.md`. They are ordinary notes, editable in Obsidian
 like anything else.
 
 The shipped defaults remain available for comparison: a diff view shows what
@@ -190,6 +216,6 @@ customized, you get a notice rather than a silent overwrite.
 
 The assembled system prompt is the base prompt, plus memory instructions when
 memory is on, plus the descriptions of every enabled skill. Skill *bodies* are
-not included up front — they're advertised by description and loaded on demand,
+not included up front. They're advertised by description and loaded on demand,
 so a dozen skills don't cost you a dozen skill-bodies' worth of context on
 every turn.

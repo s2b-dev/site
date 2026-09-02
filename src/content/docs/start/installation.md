@@ -1,15 +1,14 @@
 ---
 title: Installation
-description: Install Smart Second Brain from Obsidian's community plugins, or from a manual build.
+description: Install Smart Second Brain from Obsidian's community plugins, a beta build, or a manual build.
 sidebar:
   order: 1
 ---
 
 Smart Second Brain runs on Obsidian `1.11.4` or newer, on **desktop and
-mobile** alike. Two caveats on a phone or tablet: [stdio MCP
-servers](/agents/mcp/) are skipped, because the mobile WebView lacks the APIs
-they need, and indexing a large vault is noticeably slower. Everything else —
-search, the Smart Graph, agents — works on both.
+mobile** alike. Search, the Smart Graph and agents all work on both; the one
+thing to expect on a phone or tablet is that indexing a large vault is
+noticeably slower.
 
 ## From community plugins
 
@@ -19,8 +18,20 @@ search, the Smart Graph, agents — works on both.
 4. Select **Enable**.
 
 That's it. Smarter search and the Smart Graph work immediately, with no
-configuration and no AI provider. See [First run](/start/first-run/) for what to
-try first.
+configuration and no AI provider. See
+[What works without a model](/start/first-run/) for what to try first.
+
+## Beta releases via BRAT
+
+Pre-release builds are published for testing and can be installed with
+[BRAT](https://github.com/TfTHacker/obsidian42-brat). Add
+`s2b-dev/smart-second-brain` as a beta plugin.
+
+:::caution
+On mobile, fully quit and reopen Obsidian after a BRAT update. The app caches
+plugin code across a plain reload, so the new build may not take effect
+otherwise.
+:::
 
 ## Manual install
 
@@ -33,18 +44,6 @@ extract `main.js`, `manifest.json`, and `styles.css` into:
 ```
 
 Reload Obsidian, then enable the plugin under **Settings → Community plugins**.
-
-## Beta releases via BRAT
-
-Pre-release builds are published for testing and can be installed with
-[BRAT](https://github.com/TfTHacker/obsidian42-brat). Add
-`s2b-dev/smart-second-brain` as a beta plugin.
-
-:::caution
-On mobile, fully quit and reopen Obsidian after a BRAT update — the app caches
-plugin code across a plain reload, so the new build may not take effect
-otherwise.
-:::
 
 ## Building from source
 

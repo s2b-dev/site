@@ -8,8 +8,8 @@ sidebar:
 A skill is a folder in your vault containing a `SKILL.md`: some frontmatter, and
 a body of instructions. That's the whole format.
 
-Skills live under `Agents/Skills/<name>/SKILL.md`. They are ordinary notes — you
-can write one in Obsidian without leaving the app.
+Skills live under `Agents/Skills/<name>/SKILL.md`. They are ordinary notes, so
+you can write one in Obsidian without leaving the app.
 
 ## Everything is a skill
 
@@ -37,20 +37,20 @@ Four ship with the plugin and are seeded into your vault on first run:
 
 | Skill | Attaches | Covers |
 | --- | --- | --- |
-| `explore-vault` | `search_notes`, `list_directory`, `read_content`, `grep_notes`, `get_all_tags`, `get_properties`, `execute_javascript` | Finding and reading notes — verify tags and properties before querying, and what to do when a search comes back weak |
+| `explore-vault` | `search_notes`, `list_directory`, `read_content`, `grep_notes`, `get_all_tags`, `get_properties`, `execute_javascript` | Finding and reading notes: verify tags and properties before querying, and what to do when a search comes back weak |
 | `edit-notes` | `manage_notes` | Creating and editing notes, and the staging policy |
 | `web` | `fetch_url`, `web_search` | Reaching the public internet, vault-first |
 | `manage-skills` | `manage_skills` | Authoring and revising skills |
 
-They are ordinary notes once seeded — edit them freely. If a plugin update
+They are ordinary notes once seeded, so edit them freely. If a plugin update
 changes a default you had customized, you get a notice rather than a silent
 overwrite. Deleting a bundled core skill is refused: it would simply reappear
 on the next startup.
 
 ## Integration skills
 
-Some skills are written against another Obsidian plugin's API — Dataview,
-Tasks, TaskNotes, Obsidian Charts, Canvas, and Bases — and are seeded only when
+Some skills are written against another Obsidian plugin's API (Dataview,
+Tasks, TaskNotes, Obsidian Charts, Canvas, and Bases) and are seeded only when
 that plugin is present.
 
 They are ordinary skills once seeded, but enabling one also grants the agent a
@@ -63,7 +63,7 @@ Every enabled skill's **description** is in the system prompt. Its **body** is
 not. The agent reads the descriptions, decides a skill is relevant, and pulls
 the full instructions in with `load_skill`.
 
-This is what makes a large skill library affordable — twenty skills cost you
+This is what makes a large skill library affordable: twenty skills cost you
 twenty one-line descriptions per turn, not twenty full bodies.
 
 Write descriptions accordingly. The description is the only thing the agent
@@ -90,7 +90,7 @@ This is how a discovery becomes permanent: once the agent works out how some
 API actually behaves, it folds the concrete methods and arguments into a skill
 so the next run skips the rediscovery.
 
-Unlike note edits, **skill operations apply immediately** — there is no review
+Unlike note edits, **skill operations apply immediately**. There is no review
 queue. Creating a skill is the same action as attaching it.
 
 :::caution
@@ -108,7 +108,7 @@ execution, network access, and skill authoring itself.
 
 Create `Agents/Skills/<name>/SKILL.md` with `name` and `description` in the
 frontmatter, and your instructions in the body. It's discovered on the next
-scan — any directory containing a `SKILL.md` is a skill. There are no reserved
+scan: any directory containing a `SKILL.md` is a skill. There are no reserved
 names.
 
 A user skill with no `allowed-tools` line attaches no tools; it is pure

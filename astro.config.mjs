@@ -43,24 +43,33 @@ export default defineConfig({
 					label: 'Getting started',
 					items: [
 						{ label: 'Installation', slug: 'start/installation' },
-						{ label: 'First run', slug: 'start/first-run' },
+						{ label: 'What works without a model', slug: 'start/first-run' },
 						{ label: 'Connecting a provider', slug: 'start/providers' },
 					],
 				},
 				// Mirrors the plugin's own settings tabs: Search, Agents, Graph.
 				// Everything an agent *has* (skills, integrations, memory, MCP)
 				// nests under Agents, the way the Agent editor's sections do.
-				// Search and Graph are single-page groups rather than bare links:
-				// a top-level `link` renders as a loose item and gets absorbed
-				// into the group above it, which buried them under "Getting
-				// started". A one-item group keeps the three features parallel.
+				// Each feature group ends with its own "How it works" page: the
+				// implementation depth sits under the feature it explains rather
+				// than in a separate internals section, so a reader who wants the
+				// constants finds them where they were already reading. (Note
+				// these must stay groups, not bare `link` entries — a top-level
+				// link renders loose and gets absorbed into the group above it,
+				// which once buried both under "Getting started".)
 				{
 					label: 'Search',
-					items: [{ label: 'Search', slug: 'search' }],
+					items: [
+						{ label: 'Overview', slug: 'search' },
+						{ label: 'How search works', slug: 'search/how-it-works' },
+					],
 				},
 				{
 					label: 'Graph',
-					items: [{ label: 'Graph', slug: 'graph' }],
+					items: [
+						{ label: 'Overview', slug: 'graph' },
+						{ label: 'How the graph works', slug: 'graph/how-it-works' },
+					],
 				},
 				{
 					label: 'Agents',
@@ -77,13 +86,6 @@ export default defineConfig({
 					items: [
 						{ label: 'Privacy model', slug: 'privacy/model' },
 						{ label: 'Trusted providers', slug: 'privacy/trusted-providers' },
-					],
-				},
-				{
-					label: 'How it works',
-					items: [
-						{ label: 'Architecture', slug: 'internals/architecture' },
-						{ label: 'Search algorithm', slug: 'internals/search-algorithm' },
 					],
 				},
 				{

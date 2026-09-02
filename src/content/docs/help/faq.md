@@ -14,8 +14,8 @@ Only if you choose a cloud AI provider **and** the notes involved are not
 marked private. Search and the graph run entirely locally. With a local
 provider such as Ollama, everything stays on your machine.
 
-Even with a cloud provider configured, you can mark notes or folders private —
-those are blocked from being read, embedded, or sent to any untrusted provider.
+Even with a cloud provider configured, you can mark notes or folders private.
+Those are blocked from being read, embedded, or sent to any untrusted provider.
 See the [privacy model](/privacy/model/).
 
 ## What are the limitations?
@@ -33,7 +33,7 @@ Worth knowing before you start:
 
 ## What models do you recommend?
 
-Use the most capable model your provider offers — agent quality depends heavily
+Use the most capable model your provider offers. Agent quality depends heavily
 on reasoning and tool-use ability. For a fully local setup, pair a capable
 Ollama chat model with a strong embedding model such as `mxbai-embed-large`.
 
@@ -42,18 +42,6 @@ Ollama chat model with a strong embedding model such as `mxbai-embed-large`.
 Yes. Response quality varies with the model and the language it reasons in, and
 strong multilingual embedding models give the best retrieval results. More UI
 translations are on the way.
-
-## How does it differ from Smart Connections?
-
-Both aim at AI-assisted knowledge work; the approach differs:
-
-- Completely open source
-- Local models via Ollama with no license required
-- A **tool-using agent** that searches, reads, runs Dataview/JS, and stages note
-  edits — rather than a fixed RAG pipeline
-- **Hybrid retrieval** — vector plus lexical — and lexical search works with no
-  embedding model configured at all
-- A **Smart Graph** view and a **skills** system for extending the agent
 
 ## What's next?
 
