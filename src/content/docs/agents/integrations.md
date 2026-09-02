@@ -14,18 +14,19 @@ Integrations section.
 
 ## Curated integrations
 
-Four ship with a prewritten skill documenting the plugin's API, so the agent
-starts out knowing how to use it:
+Three plugins are curated. Each gets a proper display name, and a prewritten
+skill documenting the plugin's API, so the agent starts out knowing how to use
+it. The skill is written into `Agents/Skills/` the moment you enable the
+integration.
 
-| Integration | Plugin | Seeded |
-| --- | --- | --- |
-| **Dataview** | `dataview` | When you enable the integration |
-| **Tasks** | `obsidian-tasks-plugin` | When you enable the integration |
-| **TaskNotes** | `tasknotes` | When you enable the integration |
-| **Obsidian Charts** | `obsidian-charts` | When you enable the integration |
+| Integration | Plugin |
+| --- | --- |
+| **Dataview** | `dataview` |
+| **Tasks** | `obsidian-tasks-plugin` |
+| **TaskNotes** | `tasknotes` |
 
-Two more are written against Obsidian's **core** plugins and seed automatically
-at startup when the core plugin is enabled:
+Two more skills are written against Obsidian's **core** plugins and seed
+automatically at startup when the core plugin is enabled:
 
 | Integration | Covers |
 | --- | --- |
@@ -35,6 +36,23 @@ at startup when the core plugin is enabled:
 Canvas and Bases are skills only. They don't need an `exec_` tool, because
 canvas and base files are files. The agent reads and writes them with the
 tools it already has.
+
+### Obsidian Charts
+
+The plugin also carries a prewritten skill for **Obsidian Charts**, but nothing
+in the app currently offers it to you, and that is a consequence of how Charts
+works rather than an oversight.
+
+Charts has no public `api` object. You draw a chart by emitting a `dataviewjs`
+block that calls `window.renderChart`, so there is no scripting surface for an
+`exec_obsidian_charts` tool to expose. Every integration row in the Agent
+editor, curated or auto-discovered, is built from the plugins that *do* expose
+one. Charts never qualifies, so no row appears and the skill is never seeded.
+
+If the skill folder is already in `Agents/Skills/`, it keeps working and stays
+up to date with new plugin versions. Otherwise, the practical route to charts
+today is Dataview: enable that integration and ask the agent to write the chart
+block for you.
 
 ## Auto-discovery
 
