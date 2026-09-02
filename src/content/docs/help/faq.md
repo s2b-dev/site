@@ -45,8 +45,5 @@ translations are on the way.
 
 ## What's next?
 
-Currently in progress:
-
-- Similar-note connections view improvements
-- Predictive note placement
-- More UI languages
+What's planned, in progress and done is tracked on the public
+[project board](https://github.com/orgs/s2b-dev/projects/10/views/1).
