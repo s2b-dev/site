@@ -193,12 +193,36 @@ was ported from a hand-written mockup, so:
   as the agent *consolidating* their notes, and at demo speed there is no
   time to recover from that. It is now "Long-term memory", which also has to
   subsume "Recall & testing" (they merge at the explorer's Fine level, so the
-  parent name must cover both children). The name appears in seven places
-  that must agree: the sub-topic pill, `QUERY_CHAT`, `ANSWER`, the three
-  "Read 9 notes in …" activity lines, the note's `<h2>`, the cited wikilink,
-  and both `LEAVES`/`LEVELS` in the granularity explorer.
+  parent name must cover both children). The name appears in six places
+  that must agree: the sub-topic pill, `QUERY_CHAT`, `ANSWER`, the note's
+  `<h2>`, the cited wikilink, and both `LEAVES`/`LEVELS` in the granularity
+  explorer. (It is deliberately *not* in the activity lines any more — see
+  the tool-call rule below.)
   Watch the same trap for verbs generally — "indexing", "syncing",
   "summarising" would all misread as plugin activity.
+- **Every `.act` line is a real `buildToolSummary` output, and every action
+  the agent takes needs one.** The row is `label` + `, ` + `summary` from
+  `toolSummaryModel.ts`; consecutive same-tool calls merge through
+  `buildMergedToolSummary`. Two failures have happened here, and both are
+  invisible unless you check against that file:
+  - **A missing call.** The staged draft used to appear with no tool row
+    behind it, in both exchanges — the pane looked like it invented the
+    edit. Staging is `manage_notes`, and one path gives "Edited a note"
+    with "N operations across N notes", so both now show **"Edited a note,
+    1 operation across 1 note"**. The second one is a real second call
+    (`addChanges` merges it into the existing entry, which is why the bar
+    pulses rather than counting to 2).
+  - **An invented phrasing.** "Read 9 notes in *Long-term memory*" matched
+    no code path — there is no "in &lt;topic&gt;" form anywhere in the
+    summaries. A graph selection hands over **wikilinks, not content**
+    (`formatGraphNotesContext`), so the agent must read them: nine merged
+    `read_content` calls with no named targets take the count branch,
+    **"Read 9 notes, 512 lines total"**. The single read carries its own
+    count too ("Read *Lecture 8 — Sleep*, 61 lines"), matching the
+    `.chat-still`.
+  These lines live in four places that must agree — the live beat, the
+  phase-jump `catchUpTo`, `renderFinal` (reduced motion), and the static
+  `.chat-still` in `index.astro`.
 - **The search snippets must share no words with the query.** "how to
   make it last" against "deep sleep and its role in retaining what you
   learn" is what makes the keyword miss honest and the semantic hit

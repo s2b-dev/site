@@ -607,7 +607,7 @@ const starLabel =
 	          says what happens and the body names the verb they'll press. */}
 	      <li data-step="2">
 	        <button type="button">
-	          <strong>Open up a topic</strong>
+	          <strong>Dive into a topic</strong>
 	          <span>Circle one and press Immerse: it breaks apart into the finer topics hiding inside it.</span>
 	        </button>
 	      </li>
@@ -895,7 +895,10 @@ const starLabel =
 	          composer), so it cannot drift from the demo window. Every activity
 	          line is a real tool summary: label + ", " + outcome, past tense once
 	          done (toolSummaryModel.ts — "Loaded skill <name>", "Searched notes
-	          for “q”, found N notes", "Read <note>, N lines"). The story is not
+	          for “q”, found N notes", "Read <note>, N lines"), and every action
+	          the agent takes has one: consecutive same-tool calls merge into a
+	          single row, and the staged edit shows the manage_notes call that
+	          staged it rather than appearing on its own. The story is not
 	          the demo's: a different ask, different notes, and the skill load
 	          on show because Skills is a point beside it. The staged edit is an
 	          Update (the only badge the site styles) with the real bar's count
@@ -906,9 +909,16 @@ const starLabel =
 	            <div class="msg on"><div class="msg-user">Make flashcards from this week's lectures</div></div>
 	            <div class="msg on"><div class="act">Loaded skill <em>explore-vault</em></div></div>
 	            <div class="msg on"><div class="act">Searched notes for <em>“lecture”</em>, found 4 notes</div></div>
-	            <div class="msg on"><div class="act">Read <em>Lecture 7 — Memory</em>, 84 lines</div></div>
-	            <div class="msg on"><div class="act">Read <em>Lecture 8 — Sleep</em>, 61 lines</div></div>
+	            {/* Two consecutive read_content calls MERGE into one row
+	                (buildMergedToolSummary): both targets resolve, so the label
+	                lists them and the aggregate sums the lines. Two separate
+	                "Read X, N lines" rows is what an unmerged pair would look
+	                like, which the pane never renders. */}
+	            <div class="msg on"><div class="act">Read <em>Lecture 7 — Memory</em> and <em>Lecture 8 — Sleep</em>, 145 lines total</div></div>
 	            <div class="msg on"><div class="msg-ai">Twelve cards, one per key term across both lectures. Added them to your review note:</div></div>
+	            {/* The staged edit needs the call that staged it — manage_notes,
+	                one path → "Edited a note", "N operations across N notes". */}
+	            <div class="msg on"><div class="act">Edited a note, 1 operation across 1 note</div></div>
 	          </div>
 	          <div class="v-pending">
 	            <div class="pcb on open">

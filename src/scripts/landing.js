@@ -1857,8 +1857,9 @@ function roundRectPath(ctx, x, y, w, h, r) {
       /* the first exchange happened: draft pending, still immersed */
       setPane('chat', true);
       postFirstExchange();
-      addMsg('<div class="act">Read 9 notes in <em>Long-term memory</em></div>');
+      addMsg('<div class="act">Read 9 notes, 512 lines total</div>');
       addMsg('<div class="msg-ai">' + ANSWER + '</div>');
+      addMsg('<div class="act">Edited a note, 1 operation across 1 note</div>');
       /* Fast-forward: this beat is already in the past, so the bar lands
          settled and open rather than replaying its arrival. */
       pending.innerHTML = SUGG;
@@ -1870,8 +1871,9 @@ function roundRectPath(ctx, x, y, w, h, r) {
          exchange sits in the transcript and the same entry is still pending */
       addMsg('<div class="msg-atts"><span class="msg-att">📝 Lecture 8 — Sleep.md</span></div>');
       addMsg('<div class="msg-user">' + QUERY_CHAT2 + '</div>');
-      addMsg('<div class="act">Read <em>Lecture 8 — Sleep</em></div>');
+      addMsg('<div class="act">Read <em>Lecture 8 — Sleep</em>, 61 lines</div>');
       addMsg('<div class="msg-ai">' + ANSWER2 + '</div>');
+      addMsg('<div class="act">Edited a note, 1 operation across 1 note</div>');
     }
   }
 
@@ -2007,7 +2009,14 @@ function roundRectPath(ctx, x, y, w, h, r) {
       postFirstExchange();
     });
     at(17900, function () { vSend.classList.remove('pressed'); });
-    at(20600, function () { addMsg('<div class="act">Read 9 notes in <em>Long-term memory</em></div>'); });
+    /* A graph selection hands the agent WIKILINKS, not content
+       (formatGraphNotesContext in chatStore) — so it has to read them, and
+       nine consecutive read_content calls merge into one row via
+       buildMergedToolSummary: "Read 9 notes" (the count branch, since the
+       demo names no targets) plus read_content's aggregate, "N lines total".
+       It used to read "Read 9 notes in Long-term memory", which no code path
+       produces — there is no "in <topic>" phrasing anywhere in the summaries. */
+    at(20600, function () { addMsg('<div class="act">Read 9 notes, 512 lines total</div>'); });
     /* The draft card follows the stream rather than racing a fixed delay —
        streaming duration varies with the random chunking.
        ANSWER is 25 words at 1–3 words per 55–140ms tick: ~1240ms typical,
@@ -2016,6 +2025,14 @@ function roundRectPath(ctx, x, y, w, h, r) {
        has landed — see the budget on the phase-4 beat below. */
     at(21500, function () {
       streamAnswer(ANSWER, function () {
+        /* The staged edit is a manage_notes call and must show as one — a
+           draft that appears with no tool call behind it reads as the pane
+           inventing it. Wording is buildToolSummary's manage_notes branch
+           (toolSummaryModel.ts): one path → "Edited a note", summary
+           "N operations across N notes". It sits between the answer and the
+           card inside the same callback, so it inherits the stream's
+           duration budget rather than racing a fixed delay. */
+        addMsg('<div class="act">Edited a note, 1 operation across 1 note</div>');
         timers.push(setTimeout(showSugg, 450));
       });
     });
@@ -2106,11 +2123,18 @@ function roundRectPath(ctx, x, y, w, h, r) {
       addMsg('<div class="msg-user">' + QUERY_CHAT2 + '</div>');
     });
     at(33900, function () { vSend.classList.remove('pressed'); });
-    at(34400, function () { addMsg('<div class="act">Read <em>Lecture 8 — Sleep</em></div>'); });
+    at(34400, function () { addMsg('<div class="act">Read <em>Lecture 8 — Sleep</em>, 61 lines</div>'); });
     at(35200, function () {
       /* The bar pulses only once the answer has finished streaming, so the
          two acknowledgements don't arrive on top of each other. */
-      streamAnswer(ANSWER2, pulseSugg);
+      streamAnswer(ANSWER2, function () {
+        /* Folding into the same draft is a second manage_notes call on the
+           same note, so it gets its own row — same wording as the first;
+           addChanges merges it into the existing entry, which is why the
+           bar pulses instead of counting to 2. */
+        addMsg('<div class="act">Edited a note, 1 operation across 1 note</div>');
+        pulseSugg();
+      });
     });
 
     /* 5 — review in the note itself: clicking the bar's path opens the note
@@ -2201,15 +2225,17 @@ function roundRectPath(ctx, x, y, w, h, r) {
     vWand.classList.add('on');
     graph.final();
     postFirstExchange();
-    addMsg('<div class="act">Read 9 notes in <em>Long-term memory</em></div>');
+    addMsg('<div class="act">Read 9 notes, 512 lines total</div>');
     addMsg('<div class="msg-ai">' + ANSWER + '</div>');
+    addMsg('<div class="act">Edited a note, 1 operation across 1 note</div>');
     addMsg('<div class="msg-atts"><span class="msg-att">📝 Lecture 8 — Sleep.md</span></div>');
     addMsg('<div class="msg-user">' + QUERY_CHAT2 + '</div>');
-    addMsg('<div class="act">Read <em>Lecture 8 — Sleep</em></div>');
+    addMsg('<div class="act">Read <em>Lecture 8 — Sleep</em>, 61 lines</div>');
     /* The second answer belongs here too: without it the still shows the gap
        being named and then closed with nothing said in between, which reads
        as a dropped turn rather than a finished exchange. */
     addMsg('<div class="msg-ai">' + ANSWER2 + '</div>');
+    addMsg('<div class="act">Edited a note, 1 operation across 1 note</div>');
     /* The approval's confirmation is a toast, not a transcript line — and a
        still frame should show it resting, not mid-timeout. */
     vNotice.classList.add('on');
