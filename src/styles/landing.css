@@ -1129,31 +1129,58 @@
   .privacy-list strong { color: var(--text); font-weight: 500; }
 
   /* ---------- features ---------- */
-  .fgrid { display: grid; grid-template-columns: repeat(auto-fit,minmax(240px,1fr)); gap: 14px; }
-  .fcell {
-    border: 1px solid var(--border); border-radius: 11px; padding: 19px;
-    /* Cards have to read as raised against the section behind them. Only the
-       agents pillar uses cards now, and it sits on a --bg-2 band, so it sets
-       --cell-bg to the next step out (--surface); on the page background the
-       default is enough. */
-    background: var(--cell-bg, var(--bg-2));
-  }
-  .fcell h4 { font-size: 14.5px; font-weight: 600; margin-bottom: 5px; }
-  .fcell p { font-size: 13px; color: var(--text-2); line-height: 1.55; }
-  /* Flex, not block: the agent cards put a glyph beside the keyword. Cards
-     without one are unaffected — a flex row of a single text node lays out
-     the same as the block did. */
-  .fcell .k {
-    font-size: 10.5px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase;
-    color: var(--accent); margin-bottom: 9px;
-    display: flex; align-items: center; gap: 7px;
-  }
-  /* Sized to the cap height of the label beside it, so the two read as one
-     line rather than an icon with text after it. `letter-spacing` on the
-     parent would otherwise push the gap out — hence the explicit gap above. */
-  .fic { width: 14px; height: 14px; flex-shrink: 0; }
+  /* No card grid any more: the agents pillar was the last one and now uses a
+     point list beside a file-tree mock (below). If cards come back, they
+     have to read as raised against the section behind them — on a --bg-2
+     band that means a fill one step further out (--surface), not --bg-2. */
 
-  /* Unboxed feature notes — the same content as .fcell without the frame.
+  /* Point marks that carry a glyph instead of a tick: a feature, not a
+     guarantee, so accent rather than green. */
+  .plist .ck.ck-ic { background: var(--accent-soft); color: var(--accent); }
+  .pic { width: 11px; height: 11px; }
+  /* Under a point list that sits beside a visual, the quiet line aligns with
+     the points rather than centring under the whole section. */
+  .fmore.fmore-left { text-align: left; margin-top: 22px; }
+
+  /* Points left, visual right — the agents pillar flips the split so three
+     side-by-side pillars in a row don't all read the same. The visual column
+     is narrower than the 560px the other two use: a file tree is mostly
+     whitespace past ~400px. */
+  .split.rev { grid-template-columns: minmax(0, 1fr) minmax(0, 400px); }
+
+  /* File-tree mock: Obsidian's file explorer, measured live (13px text,
+     4px 8px row padding, 24px base inset plus 17px per level, 4px row
+     radius, muted text for files and folders alike). Static — every state
+     is in the markup. On the tinted band the panel uses the Obsidian
+     background, which lifts it the same way the demo window lifts. */
+  .ftree {
+    border: 1px solid var(--border); border-radius: 14px;
+    background: var(--ob-bg); padding: 12px 10px;
+    font-size: 13px; line-height: 16.9px; color: var(--ob-text-2);
+    user-select: none;
+  }
+  .ft-row {
+    position: relative; display: flex; align-items: center;
+    padding: 4px 8px 4px calc(24px + var(--lvl, 0) * 17px);
+    border-radius: 4px; white-space: nowrap;
+  }
+  /* Obsidian's collapse chevron sits inside the row's inset, 20px left of
+     the label. Drawn with borders rather than an SVG per row. */
+  .ft-chev {
+    position: absolute; left: calc(24px + var(--lvl, 0) * 17px - 17px); top: 50%;
+    width: 6px; height: 6px; margin-top: -5px;
+    border-right: 1.6px solid currentColor; border-bottom: 1.6px solid currentColor;
+    transform: rotate(45deg); opacity: .7;
+  }
+  .ft-folder.closed .ft-chev { transform: rotate(-45deg); margin-top: -3px; }
+  /* Obsidian tags non-markdown files with their extension and hides `.md`. */
+  .ft-tag {
+    margin-left: 8px; padding: 1px 5px; border-radius: 3px;
+    font-size: 9.5px; line-height: 13px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase;
+    background: var(--ob-surface); color: var(--ob-text-2);
+  }
+
+  /* Unboxed feature notes — feature cards without the frame.
      Used where the section already has a strong visual and the text is its
      caption rather than a peer of it. Keeping the accent keyword and the bold
      line means they still scan like features; only the box is gone. */
@@ -1359,6 +1386,11 @@
        four single-line-ish notes in one tall stack reads as a list, not
        captions. */
     .split { grid-template-columns: minmax(0, 1fr); gap: 30px; }
+    /* The flipped split stacks visual-first too, so all three pillars read
+       the same way on a phone. Named explicitly: `.split.rev` outranks
+       `.split`, so the one-column rule above alone leaves it two columns. */
+    .split.rev { grid-template-columns: minmax(0, 1fr); }
+    .split.rev > :first-child { order: 2; }
     .split .fnotes {
       grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
       gap: 14px 26px;

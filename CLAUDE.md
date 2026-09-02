@@ -318,12 +318,14 @@ The division of labour is deliberate:
 be three card grids in a row, and with the step cards, privacy rows and
 provider chips the page ran to ~28 bordered boxes and five card grids — every
 section after the demo was "centred heading → visual → grid of cards", and
-the eye starts skimming by the second one. Now graph and search share the
-**side-by-side** `.split` shape (visual left, points right — consistent by
-choice; the camera's zoom cap means a full-width canvas mostly holds dead
-space), differentiated by content: graph = interactive framed canvas +
-unboxed captions (`.fnotes`), search = static modal + marked list (`.plist`).
-Agents = the page's only card grid, four wide. Before adding a card anywhere,
+the eye starts skimming by the second one. Now all three pillars use the
+**side-by-side** `.split` shape (the camera's zoom cap means a full-width
+canvas mostly holds dead space), differentiated by content and direction:
+graph = interactive framed canvas left + unboxed captions (`.fnotes`);
+search = static modal left + marked list (`.plist`); agents = marked list
+left + static file-tree mock right (`.split.rev`, 400px visual column). The
+flip is deliberate — three visual-left splits in a row read as a repeat.
+There are no card grids left on the page. Before adding a card anywhere,
 check whether the section it lands in already has a form.
 **The graph split's visual column must stay ≥520px** (it is 560): below that
 the explorer caps the granularity slider's range — the phone rule — and
@@ -358,22 +360,39 @@ One visual per pillar at most, and only one of them moves:
 - Search gets a **static mock** (`.search-still`) that runs no JavaScript —
   every element carries its settled state in the markup. It reuses the demo
   modal's own `.vs-*` classes so the two surfaces cannot drift apart.
-- Agents gets **no visual**: the demo's chat sits directly above it. Its grid
-  is four cards, not eight — "Approval" was dropped because the demo *is* that
-  feature and the section intro says it again, and the three minor ones
-  (images/PDFs, helper agents, parallel chats) are one quiet `.fmore` line
-  under the grid rather than three more boxes. Each card's keyword carries a
-  14px Lucide glyph (`.fic`). Where the plugin has a real icon for the thing,
-  use it — History gets `message-square` because that is the chat view's own
-  icon (`Chat.ts` → `getIcon`). Memory, skills and MCP are text-headed
-  settings sections with no glyph in the app, so those are chosen rather than
-  mirrored; say which is which in the markup comment. Avoid `git-fork`, which
-  the demo already uses for the graph-selection chip.
-
-`.fcell` reads `--cell-bg` so a card stays raised against whichever background
-its section uses. Only the agents pillar uses cards now, and it sits on a
-`--bg-2` band, so its `<section>` sets `--cell-bg: var(--surface)` — without
-that the cards do not separate from the band at all.
+- Agents gets a **static file-tree mock** (`.ftree`) of Obsidian's explorer
+  showing the agent's folders, because the section's one claim is "everything
+  it knows is a note" and a tree is that claim made visible. The headline
+  says **assistant**, not agent, and says where it lives ("An assistant that
+  lives in your vault"): the eyebrow keeps the plugin's name for the feature,
+  but a first-time reader may not know what an agent is, and a headline that
+  only states the claim ("Everything it knows is a note") was judged weak for
+  the same reason — it assumes you already know what "it" is. It used to be
+  four cards (Memory, Skills, Connections, History) with no visual, which was
+  four unrelated nouns and the only pillar with nothing to look at. Every name
+  in the tree is a real default — `Agents/` with `Memories/`, `Skills/` and
+  one folder per agent holding `AGENT.md` (`agentPaths.ts`), the default
+  agent "S2B Agent" (`dataStore` `createDefaultAgent`), the bundled skill
+  folders (`src/skills/defaults/`), and `Chats/` (`targetFolder`) holding a
+  `.chat` file. Obsidian hides `.md` and badges other extensions, so AGENT
+  and SKILL carry no suffix and the chat carries a CHAT tag. Row metrics are
+  measured off the live explorer (see the CSS comment); re-measure rather than
+  eyeball if Obsidian's explorer changes. The memory note and chat are named
+  for the demo's story. Four points: memory, skills and chats are the "it's a
+  file" claims the tree shows, and plugin integrations (Dataview, Tasks,
+  TaskNotes from `CURATED_PLUGIN_INTEGRATIONS`; Canvas and Bases as seeded
+  core-plugin skills; auto-discovery of any plugin exposing `api`) is the
+  fourth, with a seeded `dataview` skill folder in the tree as its trace.
+  Approval lives in the lede (the demo *is* that feature); MCP, images/PDFs,
+  helper agents and parallel chats are the quiet `.fmore` line. **Memory is not opt-in any more** — the plugin
+  removed `memoryEnabled` (data migration v9→v10); an agent takes part iff
+  its AGENT.md keeps its `# Memory` section — so never write "opt in" here.
+  The marks carry Lucide glyphs: `message-square` is the chat view's own icon
+  (`Chat.ts` → `getIcon`) and `puzzle` is the plugin's own fallback glyph for
+  a plugin (`getPluginIcon`); `brain` and `graduation-cap` are chosen, since
+  memory and skills are text-headed settings sections with no glyph in the
+  app. Avoid `git-fork`, which the demo already uses for the graph-selection
+  chip.
 
 ### Section backgrounds
 
@@ -382,8 +401,8 @@ From the demo down, sections **strictly alternate** plain and tinted
 agents tinted, privacy plain, final CTA tinted. The rule exists because the
 page once ran three plain sections, one band, two plain, one band, which
 read as arbitrary. Anything that sits on a tinted band has to lift off it:
-the granularity explorer's frame uses `--bg`, the agents cards use
-`--surface` (above). Anything with `--bg-2` fills of its own — the privacy
+the granularity explorer's frame uses `--bg`, the agents file tree uses the
+Obsidian background token. Anything with `--bg-2` fills of its own — the privacy
 claim cards — belongs on a plain section. If you add or
 remove a section, re-alternate the whole run rather than tinting the new one
 to taste, and keep the final CTA on a band.
@@ -519,7 +538,9 @@ hand before each release. Work through this list against the sources above:
 - [ ] `src/scripts/vendor/*` — diff each file against its plugin source
       (paths in the provenance headers); refresh the copies and the commit
       hash if the plugin's layout/tuning changed
-- [ ] `help/faq` — the "What's next?" list still reflects reality
+- [ ] `help/faq` — the "What's next?" project board link still resolves and
+      the board is still public (the roadmap is deliberately *not* duplicated
+      here — it went stale as a hand-written list)
 - [ ] `search/how-it-works` and `graph/how-it-works` — constants and the
       "verified against" version note on each; sources are listed at the foot
       of both pages

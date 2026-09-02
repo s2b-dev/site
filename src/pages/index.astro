@@ -816,78 +816,91 @@ const starLabel =
 	  </div>
 	</section>
 
-	<section id="agents-section" style="background:var(--bg-2); border-block:1px solid var(--border); --cell-bg:var(--surface);">
+	<section id="agents-section" style="background:var(--bg-2); border-block:1px solid var(--border);">
 	  <div class="wrap">
 	    <div class="sec-head">
 	      <div class="eyebrow">Agents</div>
-	      <h2>An assistant you stay in front of</h2>
+	      {/* "Assistant", not "agent", in the headline: the eyebrow keeps the
+	          plugin's own name for the feature, but a first-time reader may
+	          not know what an agent is. The headline has to say what it is. */}
+	      <h2>An assistant that lives in your vault</h2>
 	      <p>
-	        It reads your notes before it answers, and it asks before it writes.
-	        The draft in the demo above is waiting on exactly that.
+	        Ask it about your notes, or hand it the editing. Nothing about it
+	        is hidden: its memory, its skills, its own instructions and every
+	        chat are files in your vault. The one thing it can't do is change a
+	        note without asking.
 	      </p>
 	    </div>
-	    {/* Four cards, not eight. "Approval" used to lead this grid and is gone:
-	        the entire demo above IS that feature, and the intro says it again —
-	        a card would be the third telling. The three that remained after it
-	        (images/PDFs, helpers, parallel chats) are real but minor, so they
-	        are one line below rather than three more boxes. */}
-	    {/* Icons are Lucide, like every other glyph on the page. `message-square`
-	        is the plugin's own chat-view icon (Chat.ts getIcon), so History
-	        carries the real one; the plugin has no glyph for memory, skills or
-	        MCP — those are text-headed settings sections — so those three are
-	        chosen to read at 16px rather than mirrored from the UI. Kept
-	        outline-only at the same 2px stroke as the rest of the page. */}
-	    <div class="fgrid">
-	      <div class="fcell">
-	        <span class="k">
-	          {/* `brain` — memory. */}
-	          <svg class="fic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+	    {/* Points first, tree second: the other two pillars put the visual on the
+	        left, so this one flips (`.split.rev`), which gives the run of three a
+	        rhythm instead of a repeat. The tree is a static mock of Obsidian's
+	        file explorer — like the search still it runs no JS. Every name in it
+	        is a real default: `Agents/` (agentPaths.ts DEFAULT_AGENT_FOLDER) with
+	        its fixed `Memories/` and `Skills/` subfolders, `S2B Agent` (the
+	        default agent, dataStore createDefaultAgent) holding its AGENT.md,
+	        the bundled core skill folders (src/skills/defaults/), and `Chats/`
+	        (dataStore targetFolder) holding a `.chat` file — Obsidian shows
+	        non-markdown files with an extension badge and hides `.md`, which is
+	        why AGENT and SKILL carry no suffix and the chat carries CHAT. The
+	        memory note and the chat are named for the demo's story so the tree
+	        reads as its aftermath. Row metrics are measured off the live
+	        explorer (13px, 4px 8px padding, 17px per level, 4px radius). */}
+	    <div class="split rev">
+	      <div>
+	        {/* Four points, not four cards: memory, skills and chats are the
+	            "it's a file" claims the tree shows, and plugin integrations are
+	            the fourth because they are what makes the agent part of the
+	            vault rather than a chat beside it (the seeded `dataview` skill
+	            folder in the tree is that point's trace). Approval is in the
+	            lede (and the demo IS that feature); MCP, images/PDFs, helpers
+	            and parallel chats are the quiet line below. The marks carry the same
+	            Lucide glyphs the cards had — message-square is the plugin's own
+	            chat-view icon (Chat.ts getIcon); brain and graduation-cap are
+	            chosen, since memory and skills are text-headed settings sections
+	            with no glyph in the app. */}
+	        <ul class="plist">
+	          <li><span class="ck ck-ic"><svg class="pic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
 	            <path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z"/>
 	            <path d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z"/>
 	            <path d="M15 13a4.5 4.5 0 0 1-3-4 4.5 4.5 0 0 1-3 4"/>
-	          </svg>
-	          Memory
-	        </span>
-	        <h4>Picks up where you left off</h4><p>Opt in and it keeps working notes on your projects: real notes in your vault, and never a stale copy of them.</p>
-	      </div>
-	      <div class="fcell">
-	        <span class="k">
-	          {/* `graduation-cap` — something taught, matching "teach it". */}
-	          <svg class="fic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+	          </svg></span><span><strong>It remembers in notes.</strong> What it learns about your projects goes into a Memories folder as ordinary notes. Read them, edit them, delete the ones you disagree with.</span></li>
+	          <li><span class="ck ck-ic"><svg class="pic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
 	            <path d="M21.42 10.922a1 1 0 0 0-.019-1.838L12.83 5.18a2 2 0 0 0-1.66 0L2.6 9.08a1 1 0 0 0 0 1.832l8.57 3.908a2 2 0 0 0 1.66 0z"/>
 	            <path d="M22 10v6"/><path d="M6 12.5V16a6 3 0 0 0 12 0v-3.5"/>
-	          </svg>
-	          Skills
-	        </span>
-	        <h4>Teach it new tricks</h4><p>It comes knowing how to explore your vault, edit notes and search the web. Teach it more by writing plain notes.</p>
+	          </svg></span><span><strong>Teach it by writing a note.</strong> It comes knowing how to explore your vault, edit notes and search the web. Each skill is a folder with one note in it, and yours go in the same place.</span></li>
+	          <li><span class="ck ck-ic"><svg class="pic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+	            <path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z"/>
+	            <path d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z"/>
+	            <path d="M15 13a4.5 4.5 0 0 1-3-4 4.5 4.5 0 0 1-3 4"/>
+	          </svg></span><span><strong>Every chat is a file.</strong> Conversations are saved in your vault, so they sync, turn up in search and can be embedded in a note. Rewrite a question and the old thread stays.</span></li>
+	          {/* `puzzle` — the plugin's own fallback glyph for a plugin
+	              (pluginIntegrations.ts getPluginIcon). Facts: CURATED_PLUGIN_INTEGRATIONS
+	              is Dataview, Tasks, TaskNotes; canvas and bases are seeded core-plugin
+	              skills; any enabled plugin exposing `api` is auto-discovered. */}
+	          <li><span class="ck ck-ic"><svg class="pic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15.39 4.39a1 1 0 0 0 1.68-.474 2.5 2.5 0 1 1 3.014 3.015 1 1 0 0 0-.474 1.68l1.683 1.682a2.414 2.414 0 0 1 0 3.414L19.61 15.39a1 1 0 0 1-1.68-.474 2.5 2.5 0 1 0-3.014 3.015 1 1 0 0 1 .474 1.68l-1.683 1.682a2.414 2.414 0 0 1-3.414 0L8.61 19.61a1 1 0 0 0-1.68.474 2.5 2.5 0 1 1-3.014-3.015 1 1 0 0 0 .474-1.68l-1.683-1.682a2.414 2.414 0 0 1 0-3.414L4.39 8.61a1 1 0 0 1 1.68.474 2.5 2.5 0 1 0 3.014-3.015 1 1 0 0 1-.474-1.68l1.683-1.682a2.414 2.414 0 0 1 3.414 0z"/></svg></span><span><strong>It works with your other plugins.</strong> Ask about overdue tasks and it asks the Tasks plugin directly. Dataview, Tasks and TaskNotes are ready to go, it reads and writes canvases and Bases, and any plugin with a public API can be switched on per agent.</span></li>
+	        </ul>
+	        <p class="fmore fmore-left">
+	          It also connects to outside tools and sources (via MCP), reads
+	          images and PDFs, hands focused jobs to helper agents with their own
+	          instructions, and runs as many chats side by side as you like.
+	        </p>
 	      </div>
-	      <div class="fcell">
-	        <span class="k">
-	          {/* `plug` — an outside tool being connected. Deliberately not
-	              `git-fork`, which is already the graph-selection chip. */}
-	          <svg class="fic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-	            <path d="M12 22v-5"/><path d="M9 8V2"/><path d="M15 8V2"/>
-	            <path d="M18 8v5a4 4 0 0 1-4 4h-4a4 4 0 0 1-4-4V8Z"/>
-	          </svg>
-	          Connections
-	        </span>
-	        <h4>Bring your other tools</h4><p>Hook up outside tools and sources (via MCP) when you want the agent to reach beyond your vault.</p>
-	      </div>
-	      <div class="fcell">
-	        <span class="k">
-	          {/* `message-square` — the plugin's own chat-view icon. */}
-	          <svg class="fic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-	            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-	          </svg>
-	          History
-	        </span>
-	        <h4>Chats are notes too</h4><p>Every conversation is saved in your vault. Rewrite a question and the old thread stays, so nothing is lost.</p>
+	      <div class="ftree" aria-label="The agent's folders in an Obsidian vault">
+	        <div class="ft-row ft-folder" style="--lvl:0"><i class="ft-chev"></i>Agents</div>
+	        <div class="ft-row ft-folder" style="--lvl:1"><i class="ft-chev"></i>Memories</div>
+	        <div class="ft-row" style="--lvl:2">Exam prep</div>
+	        <div class="ft-row ft-folder" style="--lvl:1"><i class="ft-chev"></i>Skills</div>
+	        <div class="ft-row ft-folder" style="--lvl:2"><i class="ft-chev"></i>explore-vault</div>
+	        <div class="ft-row" style="--lvl:3">SKILL</div>
+	        <div class="ft-row ft-folder closed" style="--lvl:2"><i class="ft-chev"></i>dataview</div>
+	        <div class="ft-row ft-folder closed" style="--lvl:2"><i class="ft-chev"></i>manage-notes</div>
+	        <div class="ft-row ft-folder closed" style="--lvl:2"><i class="ft-chev"></i>web</div>
+	        <div class="ft-row ft-folder" style="--lvl:1"><i class="ft-chev"></i>S2B Agent</div>
+	        <div class="ft-row" style="--lvl:2">AGENT</div>
+	        <div class="ft-row ft-folder" style="--lvl:0"><i class="ft-chev"></i>Chats</div>
+	        <div class="ft-row" style="--lvl:1">Exam checklist<span class="ft-tag">chat</span></div>
 	      </div>
 	    </div>
-	    <p class="fmore">
-	      It also reads images and PDFs, hands focused jobs to helper agents with
-	      their own instructions, and runs as many chats side by side as you like.
-	    </p>
 	  </div>
 	</section>
 
