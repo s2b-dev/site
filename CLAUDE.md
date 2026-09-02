@@ -278,7 +278,11 @@ was ported from a hand-written mockup, so:
   and the plugin contrast. Session replay is a separate Umami flag from
   heatmaps and stays off. The CTA events (`data-umami-event`) are named by
   placement and say `-intent` for `obsidian://` links, which no-op without
-  Obsidian, so a click is intent, not a hand-off.
+  Obsidian, so a click is intent, not a hand-off. The demo's engagement
+  events (`demo-watched-10s/30s/60s`, `demo-completed`, `demo-jump-N`) live
+  in `landing.js` next to the storyline's observer; they fire once per page
+  load via a `track()` guard that is a no-op without the tracker. Event
+  names are what the dashboard counts by — renaming one orphans its history.
 - Everything respects `prefers-reduced-motion`.
 
 Do not "modernize" this into Starlight components or Tailwind without being

@@ -1989,7 +1989,7 @@ function roundRectPath(ctx, x, y, w, h, r) {
       graph.linkedNotes().forEach(function (id) { graph.glow(id, 0.6); });
       graph.link();
     });
-    at(42500, function () { run(1); });
+    at(42500, function () { track('demo-completed', demoOnScreen); run(1); });
   }
 
   /* Reduced motion: no storyline — show the finished, organized state. */
@@ -2022,6 +2022,41 @@ function roundRectPath(ctx, x, y, w, h, r) {
 
   var started = false;
 
+  /* ---- engagement events (Umami) ----
+     Umami only knows visit duration per page; these say how long the DEMO
+     held someone, which is the number the page is built around. Each fires
+     at most once per page load, and only if the tracker is actually present
+     (it is injected async, and not at all inside the heatmap frame). Names
+     are fixed strings on purpose — the dashboard counts by name.
+       demo-watched-10s/30s/60s  cumulative seconds with the demo at least
+                                 half on screen and the tab visible; one
+                                 full loop is 42.5s, so 60s means it looped.
+       demo-completed            the storyline reached its end while on
+                                 screen — someone saw the whole story.
+       demo-jump-N               a timeline card was clicked (a deliberate
+                                 act, so counted even if the demo is
+                                 partly off screen). */
+  var tracked = {};
+  function track(name, cond) {
+    if (!cond || tracked[name]) return;
+    if (!window.umami || typeof window.umami.track !== 'function') return;
+    tracked[name] = true;
+    window.umami.track(name);
+  }
+
+  var demoOnScreen = false;
+  var watched = 0;
+  new IntersectionObserver(function (en) {
+    en.forEach(function (e) { demoOnScreen = e.isIntersecting; });
+  }, { threshold: 0.5 }).observe(vault);
+  setInterval(function () {
+    if (!demoOnScreen || document.visibilityState !== 'visible') return;
+    watched += 1;
+    track('demo-watched-10s', watched >= 10);
+    track('demo-watched-30s', watched >= 30);
+    track('demo-watched-60s', watched >= 60);
+  }, 1000);
+
   /* Clicking a card jumps the storyline to that phase. Under reduced motion
      the demo is a still, so the cards do nothing but stay focusable. */
   stepEls.forEach(function (li) {
@@ -2032,6 +2067,7 @@ function roundRectPath(ctx, x, y, w, h, r) {
       /* Mark started so the IntersectionObserver, if it hasn't fired yet,
          doesn't restart the loop from phase 1 on top of this jump. */
       started = true;
+      track('demo-jump-' + li.dataset.step, true);
       run(Number(li.dataset.step));
     });
   });
