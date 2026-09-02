@@ -82,6 +82,8 @@ was ported from a hand-written mockup, so:
 - Animations live in `src/scripts/landing.js` — an animated hero canvas
   (force-directed graph), a privacy toggle, the integrated workspace demo, and
   the granularity explorer. All vanilla JS driven by `IntersectionObserver`.
+  The hero and explorer canvases only animate while on screen; the demo's
+  loop runs regardless because its storyline is on wall-clock timers.
 - **The demo's graph physics ARE the plugin's**, not an imitation.
   `src/scripts/vendor/` holds verbatim copies of four pure plugin modules
   (`graphLayout.ts`, `graphUtils.ts`, `graphAnimation.ts`, `convexHull.ts`,
@@ -89,18 +91,39 @@ was ported from a hand-written mockup, so:
   its force assembly from the canvas precisely so identical physics can run
   headlessly, and the demo uses that seam. The mini graph and the granularity
   explorer run a real simulation with the plugin's default settings
-  (`DEFAULT_SMART_GRAPH_SETTINGS`) and its transition regimes: fresh-layout
-  settle for the clustering beat, and the `RECLUSTER_*` transition (slow
-  decay, high drag, 3× cohesion boost eased out by smoothstep — from
-  `GraphCanvas.svelte`) for immerse, exit and slider moves. **Do not tune
-  motion constants here** — if the demo moves wrong, either the vendored
-  copies are stale or the harness misuses them. Cluster *assignments* stay
+  (`DEFAULT_SMART_GRAPH_SETTINGS`) and its transition regimes: a fresh-layout
+  settle for the opening web (run to rest **off-screen**, never watched), and
+  the `RECLUSTER_*` transition (slow decay, high drag, 3× cohesion boost
+  eased out by smoothstep — from `GraphCanvas.svelte`) for the wand press,
+  immerse, exit and slider moves. **Do not tune motion constants here** — if
+  the demo moves wrong, either the vendored copies are stale or the harness
+  misuses them.
+  Two things sit between the physics and the pixels, both in `tickSim`:
+  ticks are owed **per millisecond, not per frame** (`dtFrames`), so the
+  layout reaches rest at the same storyline beat on a 60Hz and a 144Hz
+  display; and positions are **interpolated between ticks**, so a frame
+  that carries a fraction of a tick (slow-motion `rate`, or a 120Hz display)
+  does not hold the nodes still and then jump them. That stutter was real:
+  the opening beat once ran at rate 0.34, moving the dots on every third
+  frame — 20Hz motion — and Firefox pinned to a 60Hz display showed it
+  while Safari on a 120Hz panel did not. Firefox on macOS can lock to the
+  *primary* display's refresh rate (Mozilla bug 1749168), so "smooth in
+  Safari, not in Firefox" on one machine is a refresh-rate symptom first.
+  The demo's transitions all play at rate 1 (the plugin's real speed); only
+  the explorer slows its regroups. Cluster *assignments* stay
   authored (the demo does not run Leiden); physics mirrors, membership is
   script. Layouts live in world space with a fitted camera
   (`framingTransform` over full bounds, centred on the outlier-trimmed core),
   which is also why resizes never rebuild — see the gotchas below.
+  **The camera fits the hulls, not the dots**: `cameraTarget` takes a
+  `worldPad` (the hull padding, in world units so it scales with the zoom)
+  and, for the demo, a constant `bottom` reservation for the selection bar.
+  A fit to the dots alone ran the lowest topic under the bar and off the
+  canvas whenever a topic was selected. The reservation is constant rather
+  than toggled with the bar so the camera never refits because a bar
+  appeared.
 - **The demo** (`#demo`) is one looping storyline across a mock Obsidian
-  window, in four phases the progress timeline below it can jump to. The
+  window, in five phases the progress timeline below it can jump to. The
   timeline's dots and rail derive done/active/upcoming purely in CSS from
   the one `.on` class landing.js sets; the fill is deliberately discrete —
   a continuous per-frame fill was tried and pulled the eye off the demo
@@ -108,16 +131,40 @@ was ported from a hand-written mockup, so:
   is, and **pressing the wand** groups it → a lasso immerses into a topic →
   a sub-topic is opened in the chat and the agent drafts a staged edit →
   semantic search finds a missing note, which the agent folds into the same
-  draft before one approval.
+  draft → the additions are approved one by one in the note itself.
+  The approval is its own phase on purpose: it is the trust moment, and it
+  fills the last ten seconds of the loop with a note and Accept buttons on
+  screen — under a caption about search, the timeline was describing the
+  wrong picture for a quarter of the demo.
   That first beat is deliberately a *press*, not a reveal: the notes are
   already connected (by the links you wrote and by meaning), so what the
   plugin contributes is finding the **topics** in that web — hence "It
   groups itself", never "connects itself". The demo's one liberty is
   starting with the wand off; the plugin ships it on.
-  The phases are **one causal story, not four features**: the agent's first
+  **The opening web is already settled when it first paints.** `settleWeb()`
+  scatters and runs the topics-off layout to rest in one go at build and at
+  each loop restart; a never-started graph is left alone (`pristine`) so
+  scrolling the demo into view does not swap one web for another. It used to
+  animate from a random scatter at a third speed, and that read as **three**
+  stages — scatter, web, groups — where the product has two.
+  **Lassos are drawn around a still graph.** The two re-clusters run at real
+  speed and the beats that trace a lasso are timed to when the layout has
+  gone quiet, measured rather than eyeballed: `scripts/demo-settle-timing.mjs`
+  runs the vendored physics over the demo's own `build()` model and reports
+  the tick at which the largest per-tick node step drops under 0.1 world
+  units (p90 ≈ 213 ticks for the wand press, ≈ 234 for the immersion, at
+  16.67ms a tick). The wand press sits 3550ms before the topic lasso and the
+  immersion 3900ms before the sub-topic lasso. If the physics, cluster sizes
+  or link probabilities change, re-run the script and re-derive both gaps;
+  the phase-1 and phase-3 beat comments carry the numbers.
+  The phases are **one causal story, not a feature list**: the agent's first
   answer names the gap it cannot fill, which is what sends the story to
   search. Preserve that chain when editing — the header comment in
-  `landing.js` says so too.
+  `landing.js` says so too. **The gap and the search must be the same
+  question.** The answer names it as a plain noun ("what makes a memory
+  last") and the query repeats it ("how to make it last"); an earlier pair
+  — "what triggers it" against "why do we forget" — asked two different
+  things and left the viewer to bridge them at demo speed.
 - **Never bulk-shift the storyline's `at()` times.** The beats are a causal
   chain, not a playlist: a script that adds an offset "to everything after
   N" splits linked pairs and silently inverts them. Doing exactly that has
@@ -152,11 +199,15 @@ was ported from a hand-written mockup, so:
   and both `LEAVES`/`LEVELS` in the granularity explorer.
   Watch the same trap for verbs generally — "indexing", "syncing",
   "summarising" would all misread as plugin activity.
-- **The search snippets must share no words with the query.** "why do we
-  forget" against "deep sleep and its role in retaining what you learn" is
-  what makes the keyword miss honest and the semantic hit meaningful. They
-  are duplicated in two places that must stay identical: `RESULTS` in
-  `landing.js` (the live modal) and `.search-still` in `index.astro`.
+- **The search snippets must share no words with the query.** "how to
+  make it last" against "deep sleep and its role in retaining what you
+  learn" is what makes the keyword miss honest and the semantic hit
+  meaningful ("what" is in that snippet, which rules out "what makes it
+  stick"; "memories" is in the other, which rules out anything naming
+  memory). They are duplicated in two places that must stay identical:
+  `RESULTS` in `landing.js` (the live modal) and `.search-still` in
+  `index.astro`, and the query is likewise in both `QUERY_SEARCH` and the
+  still.
 - Node counts on the demo's topic pills are the number of dots actually drawn
   in each hull. They were once inflated (five 9-node clusters labelled 12–24)
   and a reader who counts catches that instantly. If you change a count,
@@ -198,6 +249,10 @@ was ported from a hand-written mockup, so:
   widget card rather than the document (`inlineDiffExtension.ts`), and that
   card renders markdown through `MarkdownRenderer.render`, so the reader sees
   a link and never the source. The `.v-wl` span is that rendered link.
+  The finale also **names the node the edges come from** (an accent-stroked
+  "Exam checklist" pill, `graph.label`) and holds ~4s: unlabelled, the
+  payoff was a purple line from an unmarked dot that a viewer could not
+  place as their checklist.
 - The hull geometry comes from the vendored `convexHull.ts`
   (`buildTopicRegion`); the shared physics harness (`simConfigFor`,
   `makeSim`/`retune`, `startFresh`/`startRecluster`/`tickSim`/`settleSim`,
@@ -210,8 +265,15 @@ was ported from a hand-written mockup, so:
   "way wider than it is tall". 920×642 is 1.43:1, and the graph pane with the
   chat open is ~1:1 instead of 2.1:1 — the camera's 1.3× zoom cap means a
   wide pane turns into horizontal dead space rather than a bigger graph.
-  600px is the tallest that still fits a 1366×768 laptop with the timeline
-  below (620 does not). The chat column is 320px in the base rule; there is
+  600px was chosen as the tallest that fits a 1366×768 laptop with the
+  timeline below — but measured, only the timeline's dot row fits: window
+  (642 with its bar) + 30px gap + timeline (139) is 811px against 709px
+  under the nav, so the step titles and captions sit ~100px below the fold
+  on such a laptop. The section head is kept to a two-line heading and a
+  two-line blurb so the reader loses as little as possible scrolling to
+  the window; a shorter window at small viewport heights would fix it
+  fully but changes the aspect ratio argued for above, so it has not been
+  done. The chat column is 320px in the base rule; there is
   no longer a 980px override narrowing it, so `--chat-w` is the single place
   the pinned content width is set.
 - The demo's mock UI uses its own `--ob-*` palette (both themes) matched to
@@ -235,6 +297,12 @@ was ported from a hand-written mockup, so:
   desktop rule is a more specific selector than `.v-chat > *`, so resetting
   only the latter left them stranded at 296px inside a 650px pane — a
   full-width transcript above two narrow boxes hugging the left edge.
+- **An empty transcript shows the real pane's greeting** ("Start a new
+  conversation" / "Ask me anything about your notes.", from
+  `ChatRecommendations.svelte`, which `MessageContainer` renders for zero
+  messages), as `:empty` pseudo-elements on `.v-chat-body`. Without it the
+  pane's slide-in showed 2.7s of blank column — the whole window on a
+  phone — which read as something failing to load.
 - **The transcript grows from the top, then flips to bottom-anchored.** It
   starts empty and fills over ~20s, so bottom-anchoring (a real chat's
   behaviour) left 76% of the pane blank when the first message landed, which

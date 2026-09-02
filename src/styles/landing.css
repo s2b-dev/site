@@ -505,6 +505,24 @@
      flex-end past that point keeps the newest visible; the switch is
      invisible because at the crossover both rules agree. */
   .v-chat-body.overflowing { justify-content: flex-end; }
+  /* Before the first message the pane is not a void: the real
+     MessageContainer renders ChatRecommendations' greeting, centred
+     ("Start a new conversation" / "Ask me anything about your notes.",
+     --font-ui-large medium over --font-ui-small muted). Unpainted, the
+     pane's slide-in showed 2.7s of blank column — the whole window on a
+     phone — which read as something failing to load. Pseudo-elements on
+     :empty, so the first addMsg() removes it and reset() restores it with
+     no JS of its own; they are not children, so the overflow measurement
+     never sees them. */
+  .v-chat-body:empty { justify-content: center; align-items: center; gap: 3px; }
+  .v-chat-body:empty::before {
+    content: 'Start a new conversation';
+    font-size: 17px; font-weight: 500; color: var(--ob-text);
+  }
+  .v-chat-body:empty::after {
+    content: 'Ask me anything about your notes.';
+    font-size: 12.5px; color: var(--ob-text-2);
+  }
   /* Older messages scroll off the top rather than stretching the pane. */
   .v-chat-body > .msg { flex-shrink: 0; }
   /* Open up the turn boundaries. Within a turn the base 6px holds things
@@ -1007,7 +1025,7 @@
   }
   .steps {
     list-style: none; counter-reset: s;
-    display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;
+    display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px;
     margin-top: 30px;
   }
   .steps li { position: relative; border-radius: 11px; }
@@ -1394,7 +1412,7 @@
     .hero-mask { --fog-w: 105%; --fog-h: 46%; --fog-a1: 0.97; --fog-a2: 0.8; }
   }
   @media (max-width: 1000px) {
-    /* Vertical timeline: a 2×2 grid would break the rail, and four unboxed
+    /* Vertical timeline: a 2-column grid would break the rail, and five unboxed
        entries stack shorter than the old cards did. Dot moves left of the
        text; the rail segment turns vertical and bridges the row gap,
        stopping short of the next dot as it does horizontally. */

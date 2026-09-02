@@ -300,14 +300,13 @@ const starLabel =
 	  <div class="wrap">
 	    <div class="sec-head">
 	      <div class="eyebrow">How it works</div>
-	      <h2>Connect your notes, then build on them</h2>
-	      {/* One sentence, one story — not a list of the three features below.
+	      <h2>Your notes group themselves, then you build on them</h2>
+	      {/* One story, not a list of the three features below.
 	          The demo's own causal chain is topic → draft → missing piece, and
 	          the blurb should set that up rather than enumerate parts. */}
 	      <p>
-	        One evening of exam prep: your notes sort themselves into topics, you
-	        hand one to the agent, and it drafts your revision section, finding
-	        the note you'd forgotten, and asking before it saves anything.
+	        One evening of exam prep: your notes sort into topics, the agent
+	        drafts from one, a search fills the gap it names, and you approve.
 	      </p>
 	    </div>
 
@@ -615,13 +614,22 @@ const starLabel =
 	      <li data-step="3">
 	        <button type="button">
 	          <strong>Hand it to the agent</strong>
-	          <span>Send a sub-topic straight to the chat. The agent reads those notes and drafts. Nothing is saved without your OK.</span>
+	          <span>Send a sub-topic straight to the chat. The agent reads those notes and drafts a section, and says what it could not find.</span>
 	        </button>
 	      </li>
 	      <li data-step="4">
 	        <button type="button">
-	          <strong>Find the piece you're missing</strong>
-	          <span>The draft is short one fact. Searching by meaning turns up the note you forgot you had, and the agent folds it into the same edit.</span>
+	          <strong>Find the missing piece</strong>
+	          <span>You know the note exists but not its words. Searching by meaning turns it up, and the agent folds it into the same edit.</span>
+	        </button>
+	      </li>
+	      {/* The approval is its own phase: it is the trust moment, and for
+	          ten seconds the screen shows a note with Accept buttons — a
+	          caption about search would sit under the wrong picture. */}
+	      <li data-step="5">
+	        <button type="button">
+	          <strong>Approve it in the note</strong>
+	          <span>The additions wait in the note itself. Accept each one, and the checklist links to the notes it came from.</span>
 	        </button>
 	      </li>
 	    </ol>
@@ -787,7 +795,7 @@ const starLabel =
 	            </svg>
 	            psych101
 	          </span>
-	          <span>why do we forget</span>
+	          <span>how to make it last</span>
 	        </div>
 	        <div class="vs-results">
 	          <div class="vs-res on">

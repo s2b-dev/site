@@ -95,6 +95,7 @@ function makeSim(nodes, links, count, represented) {
 }
 
 function retune(state, nodes, links, count, represented) {
+  flattenLerp(state);
   state.nodes = nodes; state.links = links; state.count = count;
   state.baseCohesion = 0.45 * densityForceProfile(count).cohesion;
   state.sim.nodes(nodes);
@@ -103,6 +104,7 @@ function retune(state, nodes, links, count, represented) {
 
 /** Kick off a fresh-layout settle (initial clustering). */
 function startFresh(state, rate) {
+  flattenLerp(state);
   state.reclustering = false; state.retargetTicks = 0;
   state.rate = rate || 1; state.tickAcc = 0;
   state.sim.alphaTarget(0);
@@ -112,6 +114,7 @@ function startFresh(state, rate) {
 
 /** Kick off the plugin's re-cluster transition (new topic ids, same notes). */
 function startRecluster(state, rate) {
+  flattenLerp(state);
   state.reclustering = true; state.retargetTicks = 0;
   state.rate = rate || 1; state.tickAcc = 0;
   state.sim.alphaTarget(0);
@@ -123,6 +126,7 @@ function startRecluster(state, rate) {
 
 /** Kick off the collapse/expand transition: a held alpha, then release. */
 function startRetarget(state, rate) {
+  flattenLerp(state);
   state.reclustering = false;
   state.rate = rate || 1; state.tickAcc = 0;
   state.retargetTicks = RETARGET.holdTicks;
@@ -135,42 +139,92 @@ function startRetarget(state, rate) {
   state.sim.alpha(Math.max(state.sim.alpha(), RETARGET.alpha)).alphaTarget(RETARGET.alpha);
 }
 
+/* ---- render interpolation between ticks ----
+   The simulation advances in whole ticks, but a frame rarely carries exactly
+   one: slow-motion playback (`rate` < 1) owes a fraction, and so does any
+   display faster than 60Hz once ticks are timed per millisecond (below).
+   Drawing the raw positions then holds the nodes still for a frame or two
+   and jumps them — the opening beat at rate 0.34 moved them on every third
+   frame, 20Hz motion, and on a Firefox pinned to a 60Hz display that read
+   as a stutter while a 120Hz Safari looked smooth. So every tick is
+   bracketed: the positions before and after it are kept, and between ticks
+   the nodes are drawn at the point along that segment the accumulator has
+   reached. One tick of latency, and everything that reads n.x/n.y — edges,
+   hulls, lassos, pills, the camera — sees one smooth path. The true
+   positions are put back before the next tick, so the physics never sees an
+   interpolated value; flattenLerp() does the same for any code about to
+   write positions or swap the node set. */
+function snapshot(state, into) {
+  var nodes = state.nodes, buf = state[into];
+  if (!buf || buf.length !== nodes.length * 2) buf = state[into] = new Float64Array(nodes.length * 2);
+  for (var i = 0; i < nodes.length; i++) { buf[2 * i] = nodes[i].x; buf[2 * i + 1] = nodes[i].y; }
+}
+function lerpPositions(state, f) {
+  var from = state.lerpFrom, to = state.lerpTo, nodes = state.nodes;
+  if (!from || !to || to.length !== nodes.length * 2) return;
+  for (var i = 0; i < nodes.length; i++) {
+    nodes[i].x = from[2 * i] + (to[2 * i] - from[2 * i]) * f;
+    nodes[i].y = from[2 * i + 1] + (to[2 * i + 1] - from[2 * i + 1]) * f;
+  }
+}
+/** Land on the true (post-tick) positions and forget the bracket. */
+function flattenLerp(state) {
+  lerpPositions(state, 1);
+  state.lerpFrom = null; state.lerpTo = null;
+}
+
 /**
- * Advance the simulation one frame, mirroring GraphCanvas's tick handler:
+ * Advance the simulation for one frame, mirroring GraphCanvas's tick handler:
  * while reclustering, the cohesion force rides the smoothstep boost, and the
  * base decays come back once the transition has settled; a retarget holds its
  * alpha for its window, then releases the target so the sim can rest.
+ *
+ * `dtFrames` is the frame's length in 60Hz frames. Ticks are owed per unit
+ * TIME, not per frame: the storyline's beats are milliseconds, and a layout
+ * that ticked once per frame reached rest 2.4× sooner on a 144Hz display
+ * than on a 60Hz one — a different beat on every monitor. Callers clamp it
+ * (a tab wake must not dump a backlog of ticks); left undefined it means
+ * "one whole tick, no interpolation", which is what settleSim wants.
  */
-function tickSim(state) {
+function tickSim(state, dtFrames) {
   var sim = state.sim;
+  var headless = dtFrames === undefined;
+  var dt = headless ? 1 : dtFrames;
   if (state.retargetTicks > 0) {
-    state.retargetTicks--;
-    if (state.retargetTicks === 0) sim.alphaTarget(0);
-  } else if (sim.alpha() < sim.alphaMin()) return false;
-  /* Slow motion, not weaker physics. d3's alpha curve is exponential, so a
-     settle front-loads its travel: at the plugin's own settings ~99% of the
-     movement happens in the first second, which is a snap rather than
-     something you can watch. Every attempt to spread it by tuning — slower
-     decay, more drag, lower starting alpha, a tighter scatter — either just
-     appended dead time or (in the low-alpha case) never delivered enough
-     force to separate the clusters at all.
-     So the forces stay EXACTLY the plugin's and we advance them at a
-     fraction of a tick per frame instead. Same trajectory, same end state,
-     played at a speed the eye can follow. `rate` is 1 (real time) unless a
-     beat asks otherwise. */
-  state.tickAcc = (state.tickAcc || 0) + (state.rate || 1);
-  if (state.tickAcc < 1) return true;
-  state.tickAcc -= 1;
-  sim.tick();
-  if (state.reclustering) {
-    var a = sim.alpha();
-    var cluster = sim.force('cluster');
-    if (cluster) cluster.strength(state.baseCohesion * reclusterBoostFactor(a));
-    if (a < RECLUSTER.rampEnd) {
-      state.reclustering = false;
-      sim.alphaDecay(FRESH.alphaDecay).velocityDecay(FRESH.velocityDecay);
+    state.retargetTicks -= dt;
+    if (state.retargetTicks <= 0) { state.retargetTicks = 0; sim.alphaTarget(0); }
+  } else if (sim.alpha() < sim.alphaMin()) {
+    /* At rest: finish on the true positions, not part-way to them. */
+    flattenLerp(state);
+    return false;
+  }
+  /* `rate` is playback speed: 1 is the plugin's real time (one tick per
+     16.7ms), below 1 is slow motion — same forces, same trajectory, same end
+     state, advanced by a fraction of a tick per frame so the eye can follow
+     it. The demo's transitions run at 1; the granularity explorer slows its
+     regroups (see PLAY there). The FRESH settle from scatter that once needed
+     a third speed no longer plays at all — it is run to rest off-screen. */
+  state.tickAcc = (state.tickAcc || 0) + (state.rate || 1) * dt;
+  if (state.tickAcc < 1) {
+    if (!headless) lerpPositions(state, state.tickAcc);
+    return true;
+  }
+  /* Put the true positions back before the physics reads them. */
+  if (headless) flattenLerp(state); else { lerpPositions(state, 1); snapshot(state, 'lerpFrom'); }
+  while (state.tickAcc >= 1) {
+    state.tickAcc -= 1;
+    sim.tick();
+    if (state.reclustering) {
+      var a = sim.alpha();
+      var cluster = sim.force('cluster');
+      if (cluster) cluster.strength(state.baseCohesion * reclusterBoostFactor(a));
+      if (a < RECLUSTER.rampEnd) {
+        state.reclustering = false;
+        sim.alphaDecay(FRESH.alphaDecay).velocityDecay(FRESH.velocityDecay);
+      }
     }
   }
+  if (!headless) { snapshot(state, 'lerpTo'); lerpPositions(state, state.tickAcc); }
   return true;
 }
 
@@ -187,7 +241,6 @@ function settleSim(state) {
   if (cluster) cluster.strength(state.baseCohesion);
   state.reclustering = false;
 }
-
 /**
  * A camera that keeps the world-space layout framed in the canvas — the
  * plugin's framingTransform over full bounds, centred on the outlier-trimmed
@@ -199,10 +252,23 @@ function makeCamera() {
   return { x: 0, y: 0, scale: 1, started: false };
 }
 
-function cameraTarget(nodes, W, H, filter) {
+function cameraTarget(nodes, W, H, filter, opts) {
   var bounds = computeNodeBounds(nodes, filter);
   if (!bounds) return null;
-  var pad = { top: 44, right: 30, bottom: 26, left: 30 };
+  var o = opts || {};
+  /* Fit the HULLS, not the dots. The topic outline extends HULL_PAD world
+     units past its nodes and the pill sits above that, so a fit to the dots
+     alone ran the lowest topic off the canvas — and under the selection bar,
+     which sits over the bottom of the canvas whenever a topic is selected.
+     `worldPad` grows the bounds by the hull padding (in world units, so it
+     scales with the zoom); `bottom` reserves screen pixels for the bar. The
+     reservation is constant rather than toggled with the bar, so the camera
+     never refits just because a bar appeared. */
+  if (o.worldPad) {
+    bounds = { minX: bounds.minX - o.worldPad, maxX: bounds.maxX + o.worldPad,
+      minY: bounds.minY - o.worldPad, maxY: bounds.maxY + o.worldPad };
+  }
+  var pad = { top: 44, right: 30, bottom: 26 + (o.bottom || 0), left: 30 };
   return framingTransform(bounds, { width: W, height: H }, pad, 1.3,
     computeCoreNodeBounds(nodes, filter));
 }
@@ -522,11 +588,23 @@ function roundRectPath(ctx, x, y, w, h, r) {
   document.addEventListener('visibilitychange', function () {
     if (!document.hidden) lastT = 0;
   });
-  (function loop(now){ step(now || performance.now()); draw(); requestAnimationFrame(loop); })(performance.now());
+  /* Animate only while on screen. This is a full-viewport canvas cleared
+     and redrawn every frame at up to 2× DPR — on a CPU-rasterised canvas
+     (Firefox on macOS) the most expensive thing on the page — and it used
+     to keep running while the visitor watched the demo below it. `lastT`
+     resets on resume so the first frame back is not a 50ms lurch. */
+  var running = false;
+  function loop(now) { if (!running) return; step(now); draw(); requestAnimationFrame(loop); }
+  function start() { if (running) return; running = true; lastT = 0; requestAnimationFrame(loop); }
+  if (window.IntersectionObserver) {
+    new IntersectionObserver(function (entries) {
+      entries.forEach(function (en) { if (en.isIntersecting) start(); else running = false; });
+    }, { threshold: 0 }).observe(cv);
+  } else start();
 })();
 
 /* ---------- integrated workspace demo ----------
-   One looping storyline in four phases, each carrying a differentiating
+   One looping storyline in five phases, each carrying a differentiating
    feature, all mirroring real plugin behaviour:
    1. the graph opens as the linked-but-ungrouped web the vault already is,
       and pressing the wand (show topics) gathers it into labelled topics
@@ -538,13 +616,18 @@ function roundRectPath(ctx, x, y, w, h, r) {
       staged edits),
    4. the draft is short one fact, so search finds the note that has it —
       by meaning, not by words — and the agent folds it into the SAME staged
-      change, which is then approved hunk by hunk in the note itself.
+      change,
+   5. which is then approved hunk by hunk in the note itself, and the
+      overview shows the checklist linked to the notes it now cites.
 
-   The phases are one story, not four features: each begins from the state the
-   last one left. Phase 4 in particular is caused by phase 3 — the agent's
+   The phases are one story, not a feature list: each begins from the state
+   the last one left. Phase 4 in particular is caused by phase 3 — the agent's
    first answer names the gap it can't fill (see ANSWER), so the search
    resolves a tension the story already has rather than introducing a new
-   feature. Keep that causal chain intact when editing; it is the difference
+   feature. The gap and the query are the SAME question in plain words
+   ("what makes a memory last" / "how to make it last"); an earlier pair
+   asked about triggers and then about forgetting, two hops the viewer had
+   to make alone. Keep that causal chain intact when editing; it is the difference
    between a storyline and a feature reel. */
 (function () {
   var vault = document.getElementById('vault');
@@ -556,7 +639,7 @@ function roundRectPath(ctx, x, y, w, h, r) {
      is drawing drift apart. */
   var LASSO_MS = 560;
 
-  var QUERY_SEARCH = 'why do we forget';
+  var QUERY_SEARCH = 'how to make it last';
   /* "Long-term memory", not "Consolidation". Consolidation is the correct
      term for the process and the notes are a psych course — but a first-time
      viewer watching an AGENT work reads "consolidation" as something the
@@ -755,6 +838,9 @@ function roundRectPath(ctx, x, y, w, h, r) {
     var cam = makeCamera();
     var NODE_SIZE = 3;              /* autoNodeSize(94), fixed in build() */
     var HULL_PAD = 29;              /* nodeDrawRadius(degree 0) + HULL_PADDING(26) */
+    /* The selection bar is 16px up and ~34px tall; 32 on top of the base
+       26px inset keeps a hull's bottom edge clear of it. */
+    var FIT = { worldPad: HULL_PAD, bottom: 32 };
 
     /* Per-lasso wobble. Only two harmonics, both low-frequency (2–4 lobes):
        the real selection region is a big lazy blob, so extra harmonics just
@@ -880,7 +966,7 @@ function roundRectPath(ctx, x, y, w, h, r) {
 
     function roundRect(x, y, w, h, r) { roundRectPath(ctx, x, y, w, h, r); }
 
-    function drawLabelPill(text, x, y, hue, alpha) {
+    function drawLabelPill(text, x, y, hue, alpha, stroke) {
       if (alpha < 0.03) return;
       ctx.globalAlpha = alpha;
       ctx.font = '500 11px Inter, sans-serif';
@@ -897,7 +983,7 @@ function roundRectPath(ctx, x, y, w, h, r) {
       roundRect(x - w / 2, y - h / 2, w, h, h / 2);
       ctx.fillStyle = 'rgba(' + FOG + ', 0.85)';
       ctx.fill();
-      ctx.strokeStyle = hslaH(hue, Math.round(70 * orgE), PALETTE.nodeL, 0.8);
+      ctx.strokeStyle = stroke || hslaH(hue, Math.round(70 * orgE), PALETTE.nodeL, 0.8);
       ctx.lineWidth = 1.5;
       ctx.stroke();
       ctx.fillStyle = TEXT;
@@ -906,6 +992,8 @@ function roundRectPath(ctx, x, y, w, h, r) {
     }
 
     var nodes = [], edges = [], storyEdges = [];
+    /* Finale only: name the node the new edges come from. */
+    var labelOn = false;
     /* Notes the storyline names, as {cluster, offset} — resolved against
        CLUSTER_AT at use time, since clusters are now different sizes. The
        first four sit inside Memory's Long-term memory sub-group (offsets below
@@ -1037,7 +1125,26 @@ function roundRectPath(ctx, x, y, w, h, r) {
 
       NODE_SIZE = autoNodeSize(nodes.length);
       simState = makeSim(nodes, edges, nodes.length);
-      simState.sim.alpha(0);   /* scattered and still until the story starts */
+      settleWeb();
+    }
+    /* True while the graph still sits in its opening state — the un-grouped
+       web, settled and untouched — so reset() can leave a never-started
+       graph alone. Cleared by whatever first assigns topics. */
+    var pristine = false;
+    /** Lay the un-grouped web out to rest, unwatched: the state the story
+        opens on. No clusters are assigned, so the cohesion force is silent
+        and the link structure alone shapes it — the plugin's own topics-off
+        layout. It used to be animated from a random scatter (a third-speed
+        FRESH settle), and that read as THREE stages — scatter, web, groups —
+        where the product has two: your notes are already a web, and the wand
+        finds the topics in it. So the web is on screen from the first frame
+        and the wand press is the first motion the viewer sees. */
+    function settleWeb() {
+      for (var i = 0; i < nodes.length; i++) { nodes[i].cluster = null; scatterNode(nodes[i]); }
+      retune(simState, nodes, edges, nodes.length);
+      startFresh(simState);
+      settleSim(simState);
+      pristine = true;
     }
 
     /** Memory's nodes — the set the immersion rebuilds the graph around. */
@@ -1056,7 +1163,7 @@ function roundRectPath(ctx, x, y, w, h, r) {
       W = r.width; H = r.height;
       cv.width = W * DPR; cv.height = H * DPR;
       ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
-      cameraFollow(cam, cameraTarget(simState.nodes, W, H), true);
+      cameraFollow(cam, cameraTarget(simState.nodes, W, H, null, FIT), true);
       draw();
     }
 
@@ -1064,8 +1171,11 @@ function roundRectPath(ctx, x, y, w, h, r) {
        All node MOTION comes from the plugin's simulation via tickSim. */
     function step() {
       var now = performance.now();
-      tickSim(simState);
-      cameraFollow(cam, cameraTarget(simState.nodes, W, H), false, simState.rate);
+      /* Frame length, clamped at 50ms: a stalled frame (scroll, tab wake)
+         pauses the graph rather than lurching it. */
+      var dt = Math.min(50, now - lastT);
+      tickSim(simState, dt / 16.667);
+      cameraFollow(cam, cameraTarget(simState.nodes, W, H, null, FIT), false, simState.rate);
 
       /* Colour and hulls arrive as the layout firms up, the way topics land
          in the real graph. Slowed to match the settle's playback rate — at
@@ -1088,7 +1198,6 @@ function roundRectPath(ctx, x, y, w, h, r) {
          the cursor always took 560ms — the stroke ran ahead of the hand
          drawing it, and by a different amount on every display. Sharing the
          clock is what keeps them aligned. */
-      var dt = Math.min(50, now - lastT);
       if (lassoP < lassoT) lassoP = Math.min(lassoT, lassoP + dt / LASSO_MS);
       else lassoP += (lassoT - lassoP) * 0.2;
       if (lasso2P < lasso2T) lasso2P = Math.min(lasso2T, lasso2P + dt / LASSO_MS);
@@ -1280,6 +1389,18 @@ function roundRectPath(ctx, x, y, w, h, r) {
             HUES[0] + SUBHUE_OFFSETS[sc2], imm);
         }
       }
+      /* The finale names the node the new edges come from. Without it the
+         payoff was a purple line from an unmarked dot: the reader could not
+         tell it was their checklist, now linked to the notes it cites. Rides
+         the node's glow so it fades in with the edges. */
+      if (labelOn) {
+        var cl = namedNode('checklist');
+        if (cl && cl.glow > 0.02) {
+          drawLabelPill('Exam checklist', TX(cl.x), TY(cl.y) - screenR(cl) - 16,
+            0, cl.glow * leaving, ACCENT);
+        }
+      }
+
     }
 
     /** Centre and radii (screen px) for a lasso around a group. */
@@ -1295,12 +1416,14 @@ function roundRectPath(ctx, x, y, w, h, r) {
 
     /* Assign the overview's topics — what Leiden landing feels like. */
     function assignOverviewClusters() {
+      pristine = false;
       for (var i = 0; i < nodes.length; i++) nodes[i].cluster = nodes[i].home;
     }
     /* Assign Memory's sub-topics and rebuild the sim around only its notes —
        handleImmerse rebuilds the graph with the selection, then the finer
        partition lands as a re-cluster. */
     function assignImmersion() {
+      pristine = false;
       var mem = memNodes();
       for (var i = 0; i < mem.length; i++) mem[i].cluster = 10 + mem[i].subc;
       retune(simState, mem, memLinks, mem.length);
@@ -1311,38 +1434,31 @@ function roundRectPath(ctx, x, y, w, h, r) {
     }
 
     var api = {
-      /* Topics hidden, layout live: no clusters are assigned, so the
-         cohesion force is silent and the link structure alone lays the
-         graph out — the plugin's own wand-off state, and the state the wand
-         press then acts on. Played at a third speed: this is the page's
-         opening beat, and at real time the plugin's own settle is
-         essentially a snap (see tickSim). */
-      untangle: function () {
-        startFresh(simState, 0.34);
-      },
       organize: function () {
         /* The wand press: communities are assigned, so the cohesion force
-           starts to feel them. The web is already laid out by untangle(),
-           so this is the plugin's re-cluster transition — the groups
-           tighten OUT of the web — rather than a fresh settle from
-           scatter. */
+           starts to feel them. The web is already laid out (settleWeb), so
+           this is the plugin's re-cluster transition — the groups tighten
+           OUT of the web — rather than a fresh settle from scatter.
+           Played at REAL TIME (rate 1), as every transition here now is: a
+           recluster starts at alpha 0.22 under heavy drag, so it is a
+           watchable 2–3s rather than a snap, and the storyline waits for
+           it to be still before the lasso (see the phase-1 beats). */
         assignOverviewClusters();
-        startRecluster(simState, 0.55);
+        startRecluster(simState);
         organizeT = 1;
       },
       immerse: function () {
         /* Same notes, finer topics: the plugin's re-cluster transition, over
-           a graph rebuilt to hold only the selection. Less slowed than the
-           opening beat — a recluster already starts at alpha 0.22 with heavy
-           drag, so it reads far less like a snap to begin with. */
+           a graph rebuilt to hold only the selection. Real time; phase 3's
+           start is timed to when it has gone quiet. */
         assignImmersion();
-        startRecluster(simState, 0.55);
+        startRecluster(simState);
         immT = 1;
       },
       /* Ease back out to the overview — the Exit immersion beat. */
       unimmerse: function () {
         assignExit();
-        startRecluster(simState, 0.55);
+        startRecluster(simState);
         immT = 0; lassoT = 0; lassoP = 0; lasso2T = 0; lasso2P = 0;
       },
       /* Sweep the sub-topic lasso (used while immersed). */
@@ -1355,7 +1471,7 @@ function roundRectPath(ctx, x, y, w, h, r) {
         startRecluster(simState);
         settleSim(simState);
         imm = 1; immT = 1;
-        cameraFollow(cam, cameraTarget(simState.nodes, W, H), true);
+        cameraFollow(cam, cameraTarget(simState.nodes, W, H, null, FIT), true);
       },
       lasso: function () { lassoT = 1; },
       /* Point on a lasso's stroke at progress `p` (0–1), in canvas
@@ -1371,6 +1487,11 @@ function roundRectPath(ctx, x, y, w, h, r) {
         var n = namedNode(id);
         if (n) n.glowT = amt;
         if (REDUCED) { if (n) n.glow = amt; draw(); }
+      },
+      /* Show the checklist's name pill (finale). */
+      label: function (on) {
+        labelOn = !!on;
+        if (REDUCED) draw();
       },
       pop: function (id) {
         var n = namedNode(id);
@@ -1400,6 +1521,7 @@ function roundRectPath(ctx, x, y, w, h, r) {
       },
       reset: function () {
         storyEdges = [];
+        labelOn = false;
         organizeT = 0; organize = 0; orgE = 0;
         immT = 0; imm = 0;
         lassoT = 0; lassoP = 0;
@@ -1408,15 +1530,15 @@ function roundRectPath(ctx, x, y, w, h, r) {
         lassoJit = makeJitter(); lasso2Jit = makeJitter();
         for (var i = 0; i < nodes.length; i++) {
           nodes[i].glowT = 0; nodes[i].glow = 0; nodes[i].pop = 0;
-          nodes[i].cluster = null;
-          scatterNode(nodes[i]);
         }
-        /* Back to the full graph, still and un-partitioned, until the story
-           starts it — alpha 0 means tickSim is a no-op. */
-        retune(simState, nodes, edges, nodes.length);
-        simState.sim.alpha(0);
-        simState.reclustering = false;
-        cameraFollow(cam, cameraTarget(nodes, W, H), true);
+        /* Back to the opening web, settled and still. A graph that never
+           left it — the first start, before any wand press — keeps the
+           layout it already shows: re-laying it out here would swap one
+           settled web for another the moment the demo scrolls into view.
+           After a full loop the notes are re-scattered and settled to rest
+           in one go (a cut, like the rest of the restart). */
+        if (!pristine) settleWeb();
+        cameraFollow(cam, cameraTarget(nodes, W, H, null, FIT), true);
         if (REDUCED) draw();
       },
       /* Snap the clustering to done — used when jumping past phase 1. */
@@ -1428,7 +1550,7 @@ function roundRectPath(ctx, x, y, w, h, r) {
            `organize` toward it every frame, so a target left at 0 would
            drain the colour back out over the seconds after a phase jump. */
         organize = 1; organizeT = 1; orgE = 1;
-        cameraFollow(cam, cameraTarget(simState.nodes, W, H), true);
+        cameraFollow(cam, cameraTarget(simState.nodes, W, H, null, FIT), true);
       },
       /* Reduced motion: jump straight to the organized end state. */
       final: function () {
@@ -1437,7 +1559,7 @@ function roundRectPath(ctx, x, y, w, h, r) {
         startFresh(simState);
         settleSim(simState);
         organize = 1; organizeT = 1; orgE = 1; imm = 0; immT = 0;
-        cameraFollow(cam, cameraTarget(nodes, W, H), true);
+        cameraFollow(cam, cameraTarget(nodes, W, H, null, FIT), true);
         draw();
       }
     };
@@ -1519,8 +1641,8 @@ function roundRectPath(ctx, x, y, w, h, r) {
      notes support and names what they don't cover. That gap is what sends the
      story to search — without it, phase 4 arrives to solve a problem nobody
      had, and the agent would be "discovering" sleep after already citing it. */
-  var ANSWER = 'From your 9 Long-term memory notes: the three stages, and the hippocampus diagram. None of them say what triggers it, so the section stops there:';
-  var ANSWER2 = 'That’s the trigger: it happens during deep sleep. Folded into the same draft:';
+  var ANSWER = 'Your Long-term memory notes cover the three stages and the hippocampus diagram. None say what makes a memory last, so the section stops there.';
+  var ANSWER2 = 'That’s what makes it last: deep sleep. I’ve folded it into the same draft.';
   /* The staged edit, shaped like the real PendingChangesBar: a summary row
      ("1 update pending" + Accept All / Reject All) over a collapsible entry
      carrying the change type and the note it touches. The entry shows no
@@ -1639,6 +1761,12 @@ function roundRectPath(ctx, x, y, w, h, r) {
   var typeRun = 0;
   function stopTyping() { typeRun++; }
 
+  /* Each keystroke waits speed × (0.65–1.35): the MEAN is `speed`, the worst
+     case 1.35×, so a line of n characters is done within n × speed × 1.35.
+     Any beat that reacts to the finished line (the send press, the search's
+     empty state) has to be scheduled past that bound — the jitter used to be
+     one-sided (speed × 1–1.7) and the checklist question was sent while it
+     was still being typed. */
   function typeInto(el, text, speed, hidePh) {
     if (hidePh) hidePh.classList.add('off');
     var run = ++typeRun;
@@ -1648,7 +1776,7 @@ function roundRectPath(ctx, x, y, w, h, r) {
       el.textContent = text.slice(0, i);
       if (hidePh) hidePh.classList.add('off');
       i++;
-      timers.push(setTimeout(tick, speed + Math.random() * speed * 0.7));
+      timers.push(setTimeout(tick, speed * (0.65 + Math.random() * 0.7)));
     })();
   }
 
@@ -1708,7 +1836,7 @@ function roundRectPath(ctx, x, y, w, h, r) {
 
   /* Where each phase begins on the timeline. Jumping to a phase replays from
      that offset, after fast-forwarding whatever earlier phases established. */
-  var PHASE_AT = { 1: 0, 2: 5100, 3: 9200, 4: 22200 };
+  var PHASE_AT = { 1: 0, 2: 5100, 3: 11600, 4: 25300, 5: 36300 };
 
   /* Put the world into the state phase `n` expects to start from, without
      any of the animation that normally gets it there. */
@@ -1737,6 +1865,14 @@ function roundRectPath(ctx, x, y, w, h, r) {
       var pcb = pending.querySelector('.pcb');
       if (pcb) pcb.classList.add('on', 'open');
     }
+    if (n >= 5) {
+      /* the missing note was found, attached and folded in: the second
+         exchange sits in the transcript and the same entry is still pending */
+      addMsg('<div class="msg-atts"><span class="msg-att">📝 Lecture 8 — Sleep.md</span></div>');
+      addMsg('<div class="msg-user">' + QUERY_CHAT2 + '</div>');
+      addMsg('<div class="act">Read <em>Lecture 8 — Sleep</em></div>');
+      addMsg('<div class="msg-ai">' + ANSWER2 + '</div>');
+    }
   }
 
   /** Run the storyline, optionally starting at phase `from` (default 1). */
@@ -1752,35 +1888,47 @@ function roundRectPath(ctx, x, y, w, h, r) {
     }
 
     /* 1 — the vault is already a web; the wand groups it.
-       The graph opens un-grouped, every connection drawn from the first
-       frame (links you wrote solid, meaning-based ones dashed), and lays
-       itself out grey — the plugin's topics-off state. It holds that shape
-       long enough to register, and then the cursor presses the wand and
-       THAT assigns the topics: the grouping arrives as something the
-       plugin did to your web, not a reveal that was always scheduled. */
-    at(150, function () { setStep(1); graph.untangle(); vWand.classList.add('hint'); });
+       The graph opens un-grouped and ALREADY laid out — every connection
+       drawn from the first frame (links you wrote solid, meaning-based ones
+       dashed), grey, the plugin's topics-off state — and holds that shape
+       until the cursor presses the wand. THAT assigns the topics: the
+       grouping arrives as something the plugin did to your web, not a
+       reveal that was always scheduled. The layout itself is never watched
+       (graph.reset settles it off-screen): scatter → web → groups read as
+       three stages where the product has two.
+
+       The press is early so that the re-cluster, at the plugin's real
+       speed, is STILL by the time phase 2 lassos it. Measured headlessly
+       over this demo's own build() (scripts/demo-settle-timing.mjs): the
+       largest per-tick step of any node drops under 0.1 world units by
+       ~213 ticks (p90) — 3550ms at 60 ticks/s. The lasso stroke starts at
+       5300, so the press lands at 1750. Move one and move the other. */
+    at(150, function () { setStep(1); vWand.classList.add('hint'); });
     /* The cursor materialises short of the button and travels the last
        stretch — popping in on top of it would read as a cut. */
-    at(2100, function () {
+    at(600, function () {
       var g = graphPane.getBoundingClientRect();
       var r = vWand.getBoundingClientRect();
       cursorAt(r.left - g.left - 54, r.top - g.top + r.height + 42, true);
       cursorShow();
     });
-    at(2400, function () { cursorToEl(vWand); });
-    at(3050, function () {
+    at(900, function () { cursorToEl(vWand); });
+    at(1550, function () {
       vWand.classList.add('pressed');
       vWand.classList.remove('hint');
       cursorClick();
     });
-    at(3250, function () {
+    at(1750, function () {
       vWand.classList.remove('pressed');
       vWand.classList.add('on');
       graph.organize();
     });
-    at(3900, function () { cursorHide(); });
+    at(2400, function () { cursorHide(); });
 
-    /* 2 — lasso the Memory topic and immerse into it */
+    /* 2 — lasso the Memory topic and immerse into it. The lasso is drawn
+       around a still graph: a stroke traced while the notes were still
+       gathering deformed with them, and read as the selection chasing the
+       layout. */
     at(5100, function () {
       setStep(2);
       cursorAt(graph.lassoPoint(1, 0).x - 3, graph.lassoPoint(1, 0).y - 2, true);
@@ -1808,21 +1956,27 @@ function roundRectPath(ctx, x, y, w, h, r) {
 
     /* 3 — select a sub-topic inside the immersion and open it in the chat.
        The lassoed notes reach the composer as the ambient graph-selection
-       chip, exactly how the real bar's "Open in Chat" works. */
-    at(9200, function () {
+       chip, exactly how the real bar's "Open in Chat" works.
+       Starts 3700ms after the immersion began (7900) so the sub-topics have
+       stopped moving before the lasso traces one: the same headless
+       measurement puts the immersion re-cluster's largest per-tick step
+       under 0.1 world units by ~234 ticks (p90) = 3900ms, which is when the
+       stroke starts (11800). Shifting phase 3 shifts phase 4 with it; the
+       budget on the phase-4 beat is relative to phase 3 and still holds. */
+    at(11600, function () {
       setStep(3);
       vExit.classList.remove('on');   /* make room for the selection bar */
       cursorAt(graph.lassoPoint(2, 0).x - 3, graph.lassoPoint(2, 0).y - 2, true);
       cursorShow();
     });
-    at(9400, function () {
+    at(11800, function () {
       graph.lasso2();
       cursorTraceLasso(function (p) { return graph.lassoPoint(2, p); }, LASSO_MS);
     });
-    at(10300, function () { vSel2.classList.add('on'); syncDismiss(); });
-    at(10700, function () { cursorToEl(vOpen); });
-    at(11300, function () { vOpen.classList.add('pressed'); cursorClick(); });
-    at(11800, function () {
+    at(12700, function () { vSel2.classList.add('on'); syncDismiss(); });
+    at(13100, function () { cursorToEl(vOpen); });
+    at(13700, function () { vOpen.classList.add('pressed'); cursorClick(); });
+    at(14200, function () {
       vOpen.classList.remove('pressed');
       vSel2.classList.remove('on');
       syncDismiss();
@@ -1834,12 +1988,15 @@ function roundRectPath(ctx, x, y, w, h, r) {
       vAttach.classList.add('on');
     });
     /* Wait out the pane's slide-in (0.55s) before typing, so the question
-       isn't being written into a composer that's still moving. */
-    at(12700, function () {
+       isn't being written into a composer that's still moving. The send
+       press is a BUDGET: 48 ticks × 32ms × 1.35 = 2074ms worst case from
+       15100, so the line is complete by 17174 and the press at 17600 leaves
+       ~0.4s of it sitting finished — the way a person pauses before Enter. */
+    at(15100, function () {
       vcCaret.hidden = false;
       typeInto(vcTyped, QUERY_CHAT, 32, vcPh);
     });
-    at(14500, function () {
+    at(17600, function () {
       vSend.classList.add('pressed');
       stopTyping();
       vcCaret.hidden = true;
@@ -1849,22 +2006,22 @@ function roundRectPath(ctx, x, y, w, h, r) {
       vGchip.hidden = true;
       postFirstExchange();
     });
-    at(14800, function () { vSend.classList.remove('pressed'); });
-    at(17500, function () { addMsg('<div class="act">Read 9 notes in <em>Long-term memory</em></div>'); });
+    at(17900, function () { vSend.classList.remove('pressed'); });
+    at(20600, function () { addMsg('<div class="act">Read 9 notes in <em>Long-term memory</em></div>'); });
     /* The draft card follows the stream rather than racing a fixed delay —
        streaming duration varies with the random chunking.
        ANSWER is 25 words at 1–3 words per 55–140ms tick: ~1240ms typical,
        ~1830ms at p99.9, ~2340ms absolute worst, and the card lands 450ms
        after that. Phase 4 must not open its search modal before all of that
        has landed — see the budget on the phase-4 beat below. */
-    at(18400, function () {
+    at(21500, function () {
       streamAnswer(ANSWER, function () {
         timers.push(setTimeout(showSugg, 450));
       });
     });
 
     /* 4 — a piece is missing: search by meaning, attach, the agent folds it
-       into the pending draft. One approval at the very end.
+       into the pending draft. The approval is phase 5, below.
        On mobile the search is reached the way the real app reaches it: there
        is no ⌥A, so the + button in the composer opens the vault picker (the
        same sheet, in picker mode — its placeholder says so). The press is a
@@ -1872,16 +2029,17 @@ function roundRectPath(ctx, x, y, w, h, r) {
        touch dot is scoped to the graph's direct manipulations.
 
        The start time is a BUDGET, not a guess. The answer starts streaming
-       at 18400; the stream + the card's 450ms must both fit before the modal
+       at 21500; the stream + the card's 450ms must both fit before the modal
        opens, which gives the stream 3350ms — against a measured worst case
-       of ~2340ms over 200k runs, so it cannot race. A measured live run
-       lands: stream ends 19801, card 20241, search 22241.
-       This was wrong once: at 19600 the modal opened WHILE the agent was
-       still writing. The reader has to finish the answer and see the draft
+       of ~2340ms over 200k runs, so it cannot race. A measured live run,
+       relative to the stream's start: stream ended at 1401ms, card 1841ms,
+       modal 3841ms.
+       This was wrong once: the modal opened 1200ms after the stream began,
+       WHILE the agent was still writing. The reader has to finish the answer and see the draft
        before the story can say a piece is missing from it — the causal chain
        depends on having read the gap first. If ANSWER gets longer, or the
        chunk timing in streamAnswer changes, re-derive this. */
-    at(22200, function () {
+    at(25300, function () {
       setStep(4);
       if (isMobileDemo()) {
         vPlus.classList.add('pressed');
@@ -1902,41 +2060,41 @@ function roundRectPath(ctx, x, y, w, h, r) {
        the clear land before the add) leaves the empty-state message sitting
        above a full result list, which is exactly the claim the beat is
        supposed to disprove. */
-    at(22700, function () { typeInto(typed, QUERY_SEARCH, 42, ph); });
-    at(23800, function () { vsEmpty.classList.add('on'); });
-    at(24500, function () { vsSem.classList.add('pulse'); });
-    at(25200, function () {
+    at(25800, function () { typeInto(typed, QUERY_SEARCH, 38, ph); });
+    at(26900, function () { vsEmpty.classList.add('on'); });
+    at(27600, function () { vsSem.classList.add('pulse'); });
+    at(28300, function () {
       vsSem.classList.remove('pulse');
       vsSem.classList.add('on');
       setSemLabel('on');
       vsBox.classList.add('glow');
     });
-    at(25800, function () {
+    at(28900, function () {
       vsBox.classList.remove('glow');
       vsEmpty.classList.remove('on');
       resEls.forEach(function (r, k) {
         timers.push(setTimeout(function () { r.classList.add('on'); }, k * 150));
       });
     });
-    at(26800, function () { resEls[0].classList.add('picked'); });
+    at(29900, function () { resEls[0].classList.add('picked'); });
     /* Attach comes AFTER the pick — the hint highlights because there is now
        a selection to attach. */
-    at(27700, function () { vsAtt.classList.add('pulse'); });
-    at(28400, function () {
+    at(30800, function () { vsAtt.classList.add('pulse'); });
+    at(31500, function () {
       vsAtt.classList.remove('pulse');
       vsAtt.classList.add('on');
     });
-    at(28800, function () {
+    at(31900, function () {
       search.classList.remove('on');
       vLchip.hidden = false;
       vAttach.classList.add('on');
     });
     /* Typed in the composer, like the first question — not conjured. */
-    at(29300, function () {
+    at(32400, function () {
       vcCaret.hidden = false;
       typeInto(vcTyped, QUERY_CHAT2, 34, vcPh);
     });
-    at(30500, function () {
+    at(33600, function () {
       vSend.classList.add('pressed');
       stopTyping();
       vcCaret.hidden = true;
@@ -1947,23 +2105,25 @@ function roundRectPath(ctx, x, y, w, h, r) {
       addMsg('<div class="msg-atts"><span class="msg-att">📝 Lecture 8 — Sleep.md</span></div>');
       addMsg('<div class="msg-user">' + QUERY_CHAT2 + '</div>');
     });
-    at(30800, function () { vSend.classList.remove('pressed'); });
-    at(31300, function () { addMsg('<div class="act">Read <em>Lecture 8 — Sleep</em></div>'); });
-    at(32100, function () {
+    at(33900, function () { vSend.classList.remove('pressed'); });
+    at(34400, function () { addMsg('<div class="act">Read <em>Lecture 8 — Sleep</em></div>'); });
+    at(35200, function () {
       /* The bar pulses only once the answer has finished streaming, so the
          two acknowledgements don't arrive on top of each other. */
       streamAnswer(ANSWER2, pulseSugg);
     });
 
-    /* Review in the note itself: clicking the bar's path opens the note over
-       the graph, scrolled to the pending change — revealAndScroll(), as the
-       real link does. Each group carries its own Accept, so the two additions
+    /* 5 — review in the note itself: clicking the bar's path opens the note
+       over the graph, scrolled to the pending change — revealAndScroll(), as
+       the real link does. Its own phase because it is the trust moment and
+       the last ten seconds of the loop. Each group carries its own Accept, so the two additions
        are approved individually: per-hunk control is the point of this beat. */
-    at(33200, function () {
+    at(36300, function () {
+      setStep(5);
       var link = document.getElementById('vNoteLink');
       if (link) link.classList.add('pressed');
     });
-    at(33500, function () {
+    at(36600, function () {
       var link = document.getElementById('vNoteLink');
       if (link) link.classList.remove('pressed');
       /* The note replaces the GRAPH only — the chat stays open beside it, so
@@ -1973,19 +2133,19 @@ function roundRectPath(ctx, x, y, w, h, r) {
       vNote.classList.add('on');
       if (isMobileDemo()) setPane('graph');
     });
-    at(34600, function () {
+    at(37700, function () {
       var b = vNote.querySelector('#vDiff1 .v-diff-acc');
       if (b) b.classList.add('pressed');
     });
-    at(34950, function () {
+    at(38050, function () {
       var g = document.getElementById('vDiff1');
       if (g) g.classList.add('done');
     });
-    at(35700, function () {
+    at(38800, function () {
       var b = vNote.querySelector('#vDiff2 .v-diff-acc');
       if (b) b.classList.add('pressed');
     });
-    at(36050, function () {
+    at(39150, function () {
       var g = document.getElementById('vDiff2');
       if (g) g.classList.add('done');
       /* Both groups resolved: the entry is settled, so the bar goes. The
@@ -1997,8 +2157,8 @@ function roundRectPath(ctx, x, y, w, h, r) {
       pending.innerHTML = '';
       showNotice();
     });
-    at(36800, function () { vNoteClose.classList.add('pressed'); });
-    at(37100, function () {
+    at(39900, function () { vNoteClose.classList.add('pressed'); });
+    at(40200, function () {
       vNoteClose.classList.remove('pressed');
       vNote.classList.remove('on');
     });
@@ -2007,29 +2167,31 @@ function roundRectPath(ctx, x, y, w, h, r) {
        note draws its new connections. Closes the loop where it began.
        This is the payoff for the whole storyline (the edit you approved is
        what changes the map), so it is paced to be READ: the edges land ~1.4s
-       after the overview settles, and the loop then holds for ~2.6s more.
+       after the overview settles, the checklist node is named, and the loop
+       then holds for ~4.1s more.
        At the previous timing they appeared 1.2s before the restart, which was
        too brief to connect them to the approval that caused them. */
-    at(37500, function () { cursorToEl(vExitBtn); cursorShow(); });
-    at(38000, function () { vExitBtn.classList.add('pressed'); cursorClick(); });
-    at(38500, function () {
+    at(40600, function () { cursorToEl(vExitBtn); cursorShow(); });
+    at(41100, function () { vExitBtn.classList.add('pressed'); cursorClick(); });
+    at(41600, function () {
       vExitBtn.classList.remove('pressed');
       vExit.classList.remove('on');
       setPane('graph');
       graph.unimmerse();
       cursorHide();
     });
-    at(39900, function () {
+    at(43000, function () {
       /* The notes the approved edit now cites light up, and the checklist
          pops — the map changing is the consequence of the approval, which is
          why this is the last thing the loop shows. Glow and edges are driven
          by the same list, so a note can never light up without gaining a link
          or vice versa. */
       graph.glow('checklist', 1); graph.pop('checklist');
+      graph.label(true);
       graph.linkedNotes().forEach(function (id) { graph.glow(id, 0.6); });
       graph.link();
     });
-    at(42500, function () { track('demo-completed', demoOnScreen); run(1); });
+    at(47100, function () { track('demo-completed', demoOnScreen); run(1); });
   }
 
   /* Reduced motion: no storyline — show the finished, organized state. */
@@ -2057,6 +2219,7 @@ function roundRectPath(ctx, x, y, w, h, r) {
     vsSem.classList.add('on');
     resEls.forEach(function (r) { r.classList.add('on'); });
     graph.linkedNotes().concat('checklist').forEach(function (id) { graph.glow(id, 1); });
+    graph.label(true);
     graph.link();
   }
 
@@ -2070,7 +2233,7 @@ function roundRectPath(ctx, x, y, w, h, r) {
      are fixed strings on purpose — the dashboard counts by name.
        demo-watched-10s/30s/60s  cumulative seconds with the demo at least
                                  half on screen and the tab visible; one
-                                 full loop is 42.5s, so 60s means it looped.
+                                 full loop is 47.1s, so 60s means it looped.
        demo-completed            the storyline reached its end while on
                                  screen — someone saw the whole story.
        demo-jump-N               a timeline card was clicked (a deliberate
@@ -2256,10 +2419,10 @@ function roundRectPath(ctx, x, y, w, h, r) {
     return 'hsla(' + hue + ', ' + Math.round(70 * topicsVis) + '%, ' + l + ', ' + a + ')';
   }
 
-  /* Playback rate for this canvas's transitions — slow motion, as the demo
-     uses (see tickSim). Every regroup here is a re-cluster, which already
-     starts gentler than a fresh settle, so it needs less slowing than the
-     demo's opening beat: enough to watch groups migrate, not so much that a
+  /* Playback rate for this canvas's transitions — slow motion (see tickSim;
+     the fractional ticks are interpolated, so this does not stutter). Every
+     regroup here is a re-cluster, which already starts gentler than a fresh
+     settle: enough slowing to watch groups migrate, not so much that a
      control you are dragging feels laggy. */
   var PLAY = 0.5;
   /* Slightly quicker for slider moves: that transition answers a control the
@@ -2425,7 +2588,7 @@ function roundRectPath(ctx, x, y, w, h, r) {
     }
     if (REDUCED) {
       settleSim(simState);
-      cameraFollow(cam, cameraTarget(activeNodes(), W, H), true);
+      cameraFollow(cam, cameraTarget(activeNodes(), W, H, null, { worldPad: HULL_PAD }), true);
       draw();
     }
   }
@@ -2477,14 +2640,18 @@ function roundRectPath(ctx, x, y, w, h, r) {
     if (REDUCED) {
       topicsVis = on ? 1 : 0;
       settleSim(simState);
-      cameraFollow(cam, cameraTarget(activeNodes(), W, H), true);
+      cameraFollow(cam, cameraTarget(activeNodes(), W, H, null, { worldPad: HULL_PAD }), true);
       draw();
     }
   }
 
+  var lastStep = 0;
   function step() {
-    tickSim(simState);
-    cameraFollow(cam, cameraTarget(activeNodes(), W, H), false, simState.rate);
+    var now = performance.now();
+    var dt = lastStep ? Math.min(3, (now - lastStep) / 16.667) : 1;
+    lastStep = now;
+    tickSim(simState, dt);
+    cameraFollow(cam, cameraTarget(activeNodes(), W, H, null, { worldPad: HULL_PAD }), false, simState.rate);
     /* Colour fades with the motion rather than ahead of it — at the old 0.25
        the grey/colour swap finished long before the layout had relaxed or
        regathered, so the two halves of the wand toggle read as separate
@@ -2666,7 +2833,7 @@ function roundRectPath(ctx, x, y, w, h, r) {
     syncSliderRange();
     /* The layout is world-space; a resize only re-fits the camera. Repaint
        synchronously — assigning cv.width wiped the canvas. */
-    cameraFollow(cam, cameraTarget(activeNodes(), W, H), true);
+    cameraFollow(cam, cameraTarget(activeNodes(), W, H, null, { worldPad: HULL_PAD }), true);
     draw();
   }
 
@@ -2695,7 +2862,7 @@ function roundRectPath(ctx, x, y, w, h, r) {
     }
     if (REDUCED) {
       settleSim(simState);
-      cameraFollow(cam, cameraTarget(activeNodes(), W, H), true);
+      cameraFollow(cam, cameraTarget(activeNodes(), W, H, null, { worldPad: HULL_PAD }), true);
       draw();
     }
   }
@@ -2736,7 +2903,7 @@ function roundRectPath(ctx, x, y, w, h, r) {
     };
     new IntersectionObserver(function (entries) {
       entries.forEach(function (en) {
-        if (en.isIntersecting && !running) { running = true; requestAnimationFrame(loop); }
+        if (en.isIntersecting && !running) { running = true; lastStep = 0; requestAnimationFrame(loop); }
         else if (!en.isIntersecting) running = false;
       });
     }, { threshold: 0.15 }).observe(cv);
