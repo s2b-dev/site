@@ -32,7 +32,7 @@ one, or pointing at two different self-hosted endpoints.
 2. Pull a chat model and an embedding model:
 
 ```bash
-ollama pull llama3.1 && ollama pull mxbai-embed-large
+ollama pull llama3.1 && ollama pull qwen3-embedding:0.6b
 ```
 
 3. In plugin settings, add an **Ollama** provider. The default base URL is
@@ -69,6 +69,20 @@ Use the most capable model your provider offers. Agent quality depends heavily
 on reasoning and tool-use ability. Frontier cloud models give the best results.
 For a fully local setup, pair a capable Ollama chat model with a strong
 embedding model.
+
+For **embedding**, `qwen3-embedding` is a good default. It is multilingual, and
+it is available on Ollama, oMLX and OpenRouter, so the same choice follows you
+between a local and a hosted setup. Sizes go 0.6b / 4b / 8b; `0.6b` is the
+laptop-friendly one.
+
+:::note
+Some embedding models expect a search query to be phrased differently from the
+text being searched. The plugin handles that automatically for the families
+that need it — Qwen3-Embedding, harrier, gte-Qwen2, BGE English and
+mxbai — based on the model id. There is no setting, and switching models
+needs no reindex. See
+[Query instructions](/search/how-it-works/#query-instructions-for-asymmetric-models).
+:::
 
 :::tip
 Vision and PDF support is detected per model at runtime, so a model that

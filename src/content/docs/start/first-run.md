@@ -29,7 +29,8 @@ rather than exact words, and the graph gains semantic similarity edges between
 notes that aren't explicitly linked.
 
 This can run fully locally through [Ollama](https://ollama.com/); a strong
-starting point is `mxbai-embed-large`. No note content leaves your machine.
+starting point is `qwen3-embedding:0.6b` — multilingual, and small enough to be
+comfortable on a laptop. No note content leaves your machine.
 
 Configure it under **Settings → Smart Second Brain → Embedding model**.
 

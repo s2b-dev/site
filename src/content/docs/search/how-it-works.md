@@ -90,6 +90,48 @@ The over-fetch factor is load-bearing rather than cosmetic: a note's supporting
 chunks only contribute to its score if they were actually retrieved, so
 under-fetching silently degrades aggregation back into first-hit-wins.
 
+### Query instructions for asymmetric models
+
+`vectorstore/queryInstruction.ts`
+
+Some embedding models are trained to encode a **query** differently from a
+**document**: the query carries a one-sentence task instruction, documents are
+embedded raw. The plugin adds that instruction automatically, matching on the
+model id, so nothing needs configuring.
+
+| Family | Matched on | Added to the query |
+| --- | --- | --- |
+| Qwen3-Embedding, harrier, gte-Qwen2 | `qwen3-embedding`, `harrier`, `gte-qwen` | `Instruct: <task>\nQuery: <query>` |
+| BGE v1/v1.5 English, mxbai | `bge-{small,base,large}-en`, `mxbai-embed-large` | `Represent this sentence for searching relevant passages: ` |
+| Everything else | — | nothing |
+
+Matching on a substring of the id is what makes one rule cover every host's
+spelling of the same model: `qwen/qwen3-embedding-8b` (OpenRouter),
+`qwen3-embedding:0.6b` (Ollama), and `Qwen3-Embedding-4B-4bit-DWQ` (oMLX) all
+land on the same row.
+
+**Why it matters more than the model cards suggest.** Qwen3's card puts the
+cost of omitting it at 1–5%. Measured here it was larger, because a short query
+embedded as if it were a document sits near the centre of the embedding space —
+exactly where content-free notes sit too. The bare query `history` scored 0.53
+against a `.chat` thread and 0.51 against a stub note reading "Note about a
+random topic", but only 0.40 against `Historical Conspiracies.md`, putting the
+right answer at rank 9. With the instruction, the same stored vectors ranked it
+first.
+
+**This is query-side only, so no reindex.** Documents are stored exactly as
+chunked; switching to a model in one of these families changes only how your
+query is encoded.
+
+:::caution[Known gap]
+**e5** (including multilingual-e5), **nomic-embed-text** and
+**snowflake-arctic-embed** are asymmetric too, but they need a matching marker
+on the *documents* as well (`passage: `, `search_document: `), which the index
+does not currently store. Adding only the query half would be unvalidated
+against an index built without it, so these models currently get no instruction
+and are running slightly degraded.
+:::
+
 ### Chunk to note aggregation
 
 `vectorstore/chunkAggregation.ts`
@@ -146,13 +188,21 @@ bands (0.40–0.55) into a useless cluster near 1.0.
 ### Weighted blend
 
 ```
-0.7 × (0.6 · semantic + 0.4 · lexical) + 0.3 × RRF
+0.7 × (0.94 · semantic + 0.06 · lexical) + 0.3 × RRF
 ```
 
 Normalized score carries the relevance signal. RRF (`k = 60`) is retained only
 as a stability term for when one source's magnitudes are degenerate, for
 example every BM25 hit tied. Semantic leads because it is the only source that
-can bridge a vocabulary gap; lexical remains the sole signal for exact terms.
+can bridge a vocabulary gap; lexical remains the sole signal for exact terms,
+and reaches the ranking through RRF and the identity boosts as well as through
+its 0.06 share.
+
+The semantic share was re-swept after query instructions landed, since an
+instructed semantic leg is a better signal than a bare one: `0.86 → 0.94` moved
+the benchmark's core mean from 0.8942 to 0.9427 and restored the size-bias and
+recency axes to 1.0000, with 0.95 starting to lose long-context. Swept on
+harrier only.
 
 ### Identity boosts
 
@@ -202,6 +252,7 @@ change. The signal stays visible without distorting the ranking.
 | cosine band | stable | Ordering preserved from wide (0.9 / 0.5 / 0.3) to very narrow (0.42 / 0.418 / 0.416). |
 | note length | bounded | A 0.75-scoring long note can never beat a 0.90-scoring short one; it asymptotes at 0.8625 regardless of chunk count. |
 | embedding model | stable | qwen3-8b 0.9966, harrier-oss-0.6b 0.9934. A fixed lift cap fitted to qwen's separation scored only 0.9729 on harrier; making the cap adapt to result-set spread recovered it. |
+| query instruction | improves hard queries | Semantic-only on the hard tier, 0.7008 → 0.7983 nDCG@10, the one measurement whose confidence interval cleared zero. Measured on harrier-oss-v1-0.6b only; Qwen3 itself is unmeasured (same family and format, so expected to match), and the BGE entry comes from the model card rather than a measurement here. |
 | latency | local-bound | About 97% of query time is the embedding call. Local MLX ~28 ms versus remote ~1626 ms; ANN search ~47 ms and lexical ~6 ms are effectively free. |
 
 ### Benchmark
@@ -226,5 +277,6 @@ blanket penalty on long notes.
 
 `utils/chunkText.ts` · `utils/fileFiltering.ts` ·
 `vectorstore/VectorStoreService.ts` · `vectorstore/chunkAggregation.ts` ·
+`vectorstore/queryInstruction.ts` ·
 `vectorstore/HNSWVectorStore.ts` · `vectorstore/MiniSearchService.ts` ·
 `search/finalSearchRanking.ts` · `search/recentNotes.ts`

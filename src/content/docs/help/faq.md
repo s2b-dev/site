@@ -35,7 +35,8 @@ Worth knowing before you start:
 
 Use the most capable model your provider offers. Agent quality depends heavily
 on reasoning and tool-use ability. For a fully local setup, pair a capable
-Ollama chat model with a strong embedding model such as `mxbai-embed-large`.
+Ollama chat model with a strong embedding model such as `qwen3-embedding:0.6b`,
+which is multilingual and runs comfortably on a laptop.
 
 ## Does it work with non-English vaults?
 
