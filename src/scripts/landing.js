@@ -326,6 +326,15 @@ function roundRectPath(ctx, x, y, w, h, r) {
 
   var nodes = [], edges = [], centers = [];
 
+  /* The plugin's own degree-driven radius (nodeDrawRadius in graphUtils.ts,
+     non-topic branch), at the hero's smaller base size. Sizing off anything
+     else — a random roll, or an index — draws big dots with no links behind
+     them, which is the one thing a reader can check by eye. */
+  var NODE_BASE = 1.4;
+  function drawRadius(degree) {
+    return NODE_BASE + Math.min(Math.log1p(degree) * 1.6, NODE_BASE * 5);
+  }
+
   function build() {
     nodes = []; edges = []; centers = [];
     var perCluster = 13;
@@ -333,6 +342,7 @@ function roundRectPath(ctx, x, y, w, h, r) {
        one: the hero is full-viewport, so min(W,H) swings wildly between a
        wide desktop and a tall phone and the layout stretches with it. */
     var unit = Math.sqrt(W * H);
+    var hubs = [];
     for (var c = 0; c < K; c++) {
       var a = (c / K) * Math.PI * 2 - Math.PI / 2;
       var rad = unit * 0.30;
@@ -347,22 +357,50 @@ function roundRectPath(ctx, x, y, w, h, r) {
           ox: (Math.random()-0.5)*spread*2,
           oy: (Math.random()-0.5)*spread*2,
           vx: 0, vy: 0,
-          r: 1.7 + Math.random()*2.3,
-          hub: j === 0
+          degree: 0
         });
         var n0 = nodes[nodes.length-1];
         n0.x = centers[c].x + n0.ox;
         n0.y = centers[c].y + n0.oy;
+        if (j === 0) hubs.push(nodes.length - 1);
       }
     }
-    /* intra-community edges (dense) + a few bridges (sparse) */
+
+    var seen = {};
+    function link(n, m, intra) {
+      var key = n + ':' + m;
+      if (seen[key]) return;
+      seen[key] = 1;
+      edges.push([n, m, intra]);
+      nodes[n].degree++; nodes[m].degree++;
+    }
+
+    /* Hub-heavy inside each community, weak ties across — the same structure
+       the demo graph builds, and the reason Leiden finds communities here at
+       all. An even mesh has no communities to detect, and a coin-flip mesh
+       leaves unlinked notes floating. */
     for (var n = 0; n < nodes.length; n++) {
       for (var m = n+1; m < nodes.length; m++) {
-        var same = nodes[n].c === nodes[m].c;
-        if (same && Math.random() < 0.13) edges.push([n,m,1]);
-        else if (!same && Math.random() < 0.004) edges.push([n,m,0]);
+        if (nodes[n].c !== nodes[m].c) continue;
+        var hub = hubs[nodes[n].c];
+        var touchesHub = n === hub || m === hub;
+        if (Math.random() < (touchesHub ? 0.82 : 0.055)) link(n, m, 1);
       }
     }
+    /* Cross-topic ties are hub-to-hub: that is what a bridging note looks
+       like in a real vault, and it keeps the whole graph one connected web. */
+    for (var h = 0; h < hubs.length; h++) {
+      for (var g = h+1; g < hubs.length; g++) {
+        if (Math.random() < 0.45) link(hubs[h], hubs[g], 0);
+      }
+    }
+    /* No orphans. A note with no links is a real thing in a vault, but it is
+       not what this graph is illustrating, and an unconnected dot reads as a
+       rendering fault rather than a fact. */
+    for (var i = 0; i < nodes.length; i++) {
+      if (nodes[i].degree === 0) link(Math.min(i, hubs[nodes[i].c]), Math.max(i, hubs[nodes[i].c]), 1);
+    }
+    for (var k = 0; k < nodes.length; k++) nodes[k].r = drawRadius(nodes[k].degree);
   }
 
   /* Rescale an existing layout into a new box instead of rebuilding it.
@@ -453,8 +491,10 @@ function roundRectPath(ctx, x, y, w, h, r) {
     for (var i = 0; i < nodes.length; i++) {
       var n = nodes[i];
       ctx.beginPath();
-      ctx.arc(n.x, n.y, n.hub ? n.r*1.9 : n.r, 0, Math.PI*2);
-      ctx.fillStyle = n.hub
+      ctx.arc(n.x, n.y, n.r, 0, Math.PI*2);
+      /* Emphasis follows degree too, so the brighter dots are the ones with
+         the most links rather than an arbitrary one per cluster. */
+      ctx.fillStyle = n.degree >= 6
         ? hsla(n.c, PALETTE.hubL, PALETTE.hubA)
         : hsla(n.c, PALETTE.nodeL, PALETTE.nodeA);
       ctx.fill();

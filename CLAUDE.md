@@ -57,6 +57,20 @@ was ported from a hand-written mockup, so:
   the `--g-*` CSS tokens and repaint on the `s2b-theme-change` event — keep
   hue/saturation matching the plugin's cluster formula, and adjust only
   lightness/alpha per theme.
+- **In the hero graph, a node's size and emphasis are derived from its degree**
+  — never rolled at random and never keyed off an index. Radius is the
+  plugin's own `nodeDrawRadius` curve (`base + min(log1p(degree) * k, base*5)`,
+  at the hero's smaller base), and the brighter fill is `degree >= 6` rather
+  than one flagged node per cluster. It used to be `r = 1.7 + random()*2.3`
+  with `hub: j === 0`, over coin-flip edges (13% intra), which drew **large
+  nodes with no links at all** — the size said "important", the canvas showed
+  nothing attached, and that is checkable by eye in a full-viewport hero.
+  So `build()` links first and sizes after: each cluster's hub links ~82% of
+  its members, peripheral pairs at 5.5%, cross-topic ties hub-to-hub at 45%,
+  and any node still at degree 0 is linked to its hub. That yields ~8.5×
+  hub-to-ordinary degree and radii of ~2.5–5.9px. Verify with a Monte-Carlo
+  over `build()`'s logic (300 trials: zero isolated nodes) rather than by
+  squinting at the canvas — orphans were ~5.8 per graph and easy to miss.
 - The nav's GitHub star count is fetched **at build time** in the `index.astro`
   frontmatter. A failed fetch is non-fatal: it logs a warning and renders the
   button without a count, so builds still pass offline or when rate-limited.
