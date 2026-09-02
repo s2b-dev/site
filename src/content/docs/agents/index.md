@@ -97,7 +97,8 @@ disk. It proposes changes, which appear as an inline diff in the editor, and
 you accept or reject them.
 
 The one exception is the agent's memory folder, where writes auto-apply. That
-is opt-in and scoped to that folder alone. See [Memory](/agents/memory/).
+is scoped to that folder alone, and an agent only uses it while its system
+prompt note still has a memory section. See [Memory](/agents/memory/).
 
 :::caution
 The agent is instructed never to claim a change has already been applied,
@@ -185,16 +186,16 @@ Agents/
 ├── Memories/                    shared memory notes; writes auto-apply
 ├── Skills/
 │   └── <name>/SKILL.md          every skill, including the bundled ones
-└── System Prompts/
-    └── <Agent Name>/
-        ├── Base.md              the base system prompt
-        └── Memory.md            memory-usage instructions
+└── <Agent Name>/
+    └── AGENT.md                 the agent's system prompt, memory instructions included
 ```
 
-The root is configurable; `Agents/` is only the default. The three
-subdirectory names inside it are fixed.
+The root is configurable (**Agents folder** under **Settings → Agents**);
+`Agents/` is only the default. `Memories/` and `Skills/` are fixed names.
+Every other folder directly under the root is one agent, holding a single
+`AGENT.md`.
 
-Because both prompt files sit in a folder named after the agent, renaming,
+Because the whole agent is one note in a folder named after it, renaming,
 duplicating, or deleting an agent is a single folder operation. Copy the folder
 and you have copied the agent.
 
@@ -204,18 +205,33 @@ dominate any result about the plugin itself.
 
 ### The system prompt is a note
 
-Each agent's system prompt is `Base.md` above, with its memory instructions
-alongside it in `Memory.md`. They are ordinary notes, editable in Obsidian
-like anything else.
+Each agent's system prompt is the body of its `AGENT.md`. It is an ordinary
+note, editable in Obsidian like anything else, and it ships in three sections:
+the base instructions, a `# Current Date` section, and a `# Memory` section
+holding the memory instructions. **Deleting a section is how you opt out of
+it.** Remove `# Memory` and that agent stops using memory; there is no separate
+toggle.
 
-The shipped defaults remain available for comparison: a diff view shows what
-you changed and lets you reset. If a plugin update changes a default you had
-customized, you get a notice rather than a silent overwrite.
+Values that must stay live are written into the note as placeholders and filled
+in each time the prompt is assembled: `{{date}}` becomes today's date, and
+`{{memoryFolder}}` becomes the current memory folder. Leave them in place.
+Changing the Agents folder later never leaves a stale path baked into the note.
+
+The note carries a small frontmatter block the plugin manages (`author` and
+`version`). The version records which shipped default your copy started from,
+which is how the plugin tells an untouched copy from one you edited.
+
+The shipped default remains available for comparison. When your note differs
+from it, the Agent editor's **System prompt** row shows a **Diff with default**
+button; the diff view shows what you changed and lets you reset. When a plugin
+update moves the default, an untouched note is updated silently, and a
+customized one is left alone with a notice rather than a silent overwrite.
 
 ## Where the answer comes from
 
-The assembled system prompt is the base prompt, plus memory instructions when
-memory is on, plus the descriptions of every enabled skill. Skill *bodies* are
-not included up front. They're advertised by description and loaded on demand,
+The assembled system prompt is the agent's note with its placeholders filled
+in, plus the descriptions of every enabled skill (and a short guard saying no
+write tools are enabled, when none is). Skill *bodies* are not included up
+front. They're advertised by description and loaded on demand,
 so a dozen skills don't cost you a dozen skill-bodies' worth of context on
 every turn.

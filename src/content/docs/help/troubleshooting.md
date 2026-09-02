@@ -124,7 +124,7 @@ helps; the plugin chunks by heading for exactly this reason.
 
 A built-in tool is bound only when an **enabled skill** attaches it via
 `allowed-tools`. If the agent says it can't search or can't write notes, check
-that the relevant core skill (`explore-vault`, `edit-notes`, `web`) is enabled
+that the relevant core skill (`explore-vault`, `manage-notes`, `web`) is enabled
 for that agent.
 
 ### A tool override vetoed it
@@ -134,10 +134,13 @@ Open the Agent editor → General → Tools and check the switch.
 
 ### Memory isn't working
 
-Memory needs `manage_notes`. With the toggle on but no write tool available,
-the memory instructions are not injected at all. That is deliberate: telling
-an agent to record memories with a tool it lacks produces confusion rather than
-silence. Enable `edit-notes` for that agent.
+Memory has no toggle. An agent uses it as long as the `# Memory` section is
+still in its `AGENT.md`; if it never reads memory, open that note from the Agent
+editor's **System prompt** row and check the section is there.
+
+If it reads memories but never records any, it lacks `manage_notes`: enable the
+`manage-notes` core skill for that agent and check the Tools modal hasn't vetoed
+the tool. See [Memory](/agents/memory/).
 
 ### It says it edited a note, but nothing changed
 
