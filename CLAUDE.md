@@ -549,8 +549,17 @@ hand before each release. Work through this list against the sources above:
 - [ ] `start/providers` — provider table matches `PROVIDER_TEMPLATES`
 - [ ] `agents/skills` — bundled core skills match `src/skills/defaults/`
 - [ ] `agents/integrations` — curated list matches
-      `CURATED_PLUGIN_INTEGRATIONS`, and the seeded-at-startup core-plugin
-      integrations match `src/skills/integrations/`
+      `CURATED_PLUGIN_INTEGRATIONS`; the seeded-at-startup core-plugin
+      integrations are the entries in `src/skills/integrations/` whose
+      frontmatter carries `corePluginId` (canvas, bases). **Those two sets do
+      not partition that directory**, and the page must not present it as
+      though they do: a skill can carry `linkedPlugin` without a curated
+      entry, in which case nothing ever seeds it — `resolvePluginIntegrations`
+      gates every row on `pluginExposesApi`, so a plugin with no public `api`
+      (obsidian-charts, which renders through `dataviewjs`) is offered by
+      neither the curated nor the auto-discovery path. Reconcile the count
+      against `CURATED_PLUGIN_INTEGRATIONS` alone, then account for each
+      leftover skill directory explicitly
 - [ ] `agents/index` — tool list matches `BUILT_IN_TOOL_IDS`
 - [ ] `start/installation` — `minAppVersion` and platform support match
       `manifest.json`

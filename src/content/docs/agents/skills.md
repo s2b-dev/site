@@ -56,9 +56,11 @@ on the next startup.
 
 ## Integration skills
 
-Some skills are written against another Obsidian plugin's API (Dataview,
-Tasks, TaskNotes, Obsidian Charts, Canvas, and Bases) and are seeded only when
-that plugin is present.
+Some skills are written against another Obsidian plugin. The Canvas and Bases
+ones cover Obsidian's own core plugins and seed at startup whenever that core
+plugin is enabled. The Dataview, Tasks and TaskNotes ones seed when you enable
+the integration, which is a deliberate opt-in rather than something that
+follows from having the plugin installed.
 
 They are ordinary skills once seeded, but enabling one also grants the agent a
 tool that runs code against that plugin, so they're opt-in per plugin. See
