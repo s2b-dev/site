@@ -283,6 +283,20 @@ was ported from a hand-written mockup, so:
   in `landing.js` next to the storyline's observer; they fire once per page
   load via a `track()` guard that is a no-op without the tracker. Event
   names are what the dashboard counts by — renaming one orphans its history.
+- **Privacy and providers are one section** (`#privacy`). They used to be
+  two consecutive centred sections saying the same thing twice — the toggle
+  is "On my computer" vs "Cloud AI", and the providers lede restated that
+  two run locally and are trusted. Now the toggle swaps the provider line
+  as well as the claims: the providers are evidence for the claims beneath,
+  not a roll call. All six are in the markup and CSS shows the group
+  matching `.provs[data-mode]`, so the local state renders without JS and
+  the brand SVGs never pass through `innerHTML`. The lede carries the "six
+  providers" count, since the default state shows only two. The line is
+  **unboxed text with inline marks** ("Runs with · Ollama · oMLX"), not
+  pills: as pills it was a second row of buttons under the toggle, and a
+  reader tried to click it. The nav's
+  Install link targets the final CTA (`#start`), which is the only section
+  with an install button.
 - Everything respects `prefers-reduced-motion`.
 
 Do not "modernize" this into Starlight components or Tailwind without being
@@ -357,9 +371,22 @@ One visual per pillar at most, and only one of them moves:
   the demo already uses for the graph-selection chip.
 
 `.fcell` reads `--cell-bg` so a card stays raised against whichever background
-its section uses. Only the agents pillar uses cards now, and it sits on the
-page background; a card grid on a `--bg-2` section would need `--cell-bg:
-var(--surface)` to separate at all.
+its section uses. Only the agents pillar uses cards now, and it sits on a
+`--bg-2` band, so its `<section>` sets `--cell-bg: var(--surface)` — without
+that the cards do not separate from the band at all.
+
+### Section backgrounds
+
+From the demo down, sections **strictly alternate** plain and tinted
+(`--bg-2` with a `border-block`): demo plain, graph tinted, search plain,
+agents tinted, privacy plain, final CTA tinted. The rule exists because the
+page once ran three plain sections, one band, two plain, one band, which
+read as arbitrary. Anything that sits on a tinted band has to lift off it:
+the granularity explorer's frame uses `--bg`, the agents cards use
+`--surface` (above). Anything with `--bg-2` fills of its own — the privacy
+claim cards — belongs on a plain section. If you add or
+remove a section, re-alternate the whole run rather than tinting the new one
+to taste, and keep the final CTA on a band.
 
 The mobile bottom-sheet rules for the search modal are scoped to `.v-search`
 (the demo's overlay). Unscoped they also hit `.search-still`, which reuses the
@@ -481,7 +508,9 @@ hand before each release. Work through this list against the sources above:
 - [ ] `agents/index` — tool list matches `BUILT_IN_TOOL_IDS`
 - [ ] `start/installation` — `minAppVersion` and platform support match
       `manifest.json`
-- [ ] Landing page (`src/pages/index.astro`) — provider list, and the cells in
+- [ ] Landing page (`src/pages/index.astro`) — provider line in `#privacy`
+      (each entry carries a `data-mode` of `local` or `cloud`; its mode must
+      match whether `PROVIDER_TEMPLATES` marks it trusted), and the cells in
       all three pillar sections (`#graph-section`, `#search-section`,
       `#agents-section`) against the sources above
 - [ ] Landing page — the granularity explorer still describes a control the

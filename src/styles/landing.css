@@ -1079,7 +1079,7 @@
     opacity: 0; transition: opacity .25s ease;
   }
   .shield-mark.trusted .shield-check { opacity: 1; }
-  .toggle-row { display: flex; gap: 8px; justify-content: center; margin-bottom: 26px; }
+  .toggle-row { display: flex; gap: 8px; justify-content: center; margin-bottom: 18px; }
   .tg {
     padding: 8px 15px; border-radius: 999px; font-size: 13px; font-weight: 500;
     border: 1px solid var(--border-2); background: transparent; color: var(--text-2);
@@ -1088,6 +1088,25 @@
   .tg.on { background: var(--accent-2); border-color: var(--accent-2); color: #fff; }
   /* Same ring as the step cards; the UA default ignores the pill radius. */
   .tg:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  /* Provider line: sits between the toggle and the claims and swaps with
+     it — both groups are in the markup, and only the one matching the row's
+     `data-mode` is shown, so the providers read as evidence for the claims
+     below rather than a separate roll call. (This used to be its own
+     section, which restated the local/cloud split a second time.)
+     Unboxed on purpose: as pills it was a second row of buttons under the
+     toggle, and only the toggle is clickable. */
+  .provs {
+    display: flex; flex-wrap: wrap; align-items: center; justify-content: center;
+    gap: 6px 16px; margin-bottom: 30px;
+    font-size: 13.5px; color: var(--text-2);
+  }
+  .provs[data-mode="local"] > [data-mode="cloud"],
+  .provs[data-mode="cloud"] > [data-mode="local"] { display: none; }
+  .prov-lead { color: var(--text-3); }
+  .prov { display: inline-flex; align-items: center; gap: 6px; }
+  /* Brand marks vary a lot in optical weight, so they sit slightly muted
+     rather than at full text colour. */
+  .prov-mark { width: 14px; height: 14px; flex-shrink: 0; color: var(--text-3); }
   .privacy-more { text-align: center; font-size: 13px; color: var(--text-3); margin-top: 28px; }
   .privacy-more a { color: var(--text-2); text-decoration: underline; text-underline-offset: 2px; }
   .privacy-more a:hover { color: var(--accent); }
@@ -1095,7 +1114,7 @@
   .privacy-list li {
     display: flex; gap: 12px; font-size: 14.5px; color: var(--text-2);
     padding: 15px 18px; border-radius: 11px;
-    background: var(--bg); border: 1px solid var(--border);
+    background: var(--bg-2); border: 1px solid var(--border);
     animation: pl-in .32s ease both;
   }
   @keyframes pl-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
@@ -1114,9 +1133,9 @@
   .fcell {
     border: 1px solid var(--border); border-radius: 11px; padding: 19px;
     /* Cards have to read as raised against the section behind them. Only the
-       agents pillar uses cards now, and it sits on the page background — a
-       section on --bg-2 would need to set --cell-bg to something further out
-       (--surface) for the card to separate at all. */
+       agents pillar uses cards now, and it sits on a --bg-2 band, so it sets
+       --cell-bg to the next step out (--surface); on the page background the
+       default is enough. */
     background: var(--cell-bg, var(--bg-2));
   }
   .fcell h4 { font-size: 14.5px; font-weight: 600; margin-bottom: 5px; }
@@ -1182,7 +1201,9 @@
      another view of the plugin rather than a stray illustration. */
   .g-explore {
     border: 1px solid var(--border); border-radius: 14px;
-    background: var(--bg-2); overflow: hidden;
+    /* The page background, not --bg-2: the graph pillar sits on a tinted
+       band, and the frame has to lift off it the way the demo window does. */
+    background: var(--bg); overflow: hidden;
   }
   /* Beside the captions in a .split, the grid gap is the spacing; the frame
      carries no margin of its own. The visual column is 560px — comfortably
@@ -1310,22 +1331,6 @@
     border: 1px solid var(--ob-accent-soft);
   }
   .vs-chip-ic { width: 12px; height: 12px; flex-shrink: 0; }
-
-  .provs { display: flex; flex-wrap: wrap; gap: 9px; justify-content: center; }
-  .prov {
-    display: inline-flex; align-items: center; gap: 8px;
-    padding: 8px 16px; border: 1px solid var(--border); border-radius: 999px;
-    background: var(--bg-2); font-size: 13.5px;
-  }
-  /* Brand marks vary a lot in optical weight, so they sit slightly muted
-     rather than at full text colour. */
-  .prov-mark { width: 15px; height: 15px; flex-shrink: 0; color: var(--text-2); }
-  /* Green "local" badge, carrying the plugin's trusted-provider shield. */
-  .prov em {
-    display: inline-flex; align-items: center; gap: 3px;
-    font-style: normal; color: var(--green); font-size: 11px; margin-left: 3px;
-  }
-  .trust-mark { width: 11px; height: 11px; flex-shrink: 0; }
 
   .final { text-align: center; padding: 100px 0; }
   .final h2 { margin-bottom: 14px; }

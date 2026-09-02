@@ -2763,10 +2763,14 @@ function roundRectPath(ctx, x, y, w, h, r) {
   // shield-check for the trusted (local) case, plain shield otherwise —
   // the same distinction the plugin's onboarding draws.
   var shield = document.getElementById('shieldMark');
+  // Provider chips are all in the markup; landing.css shows the group that
+  // matches this attribute.
+  var provs = document.getElementById('provList');
 
   function set(mode) {
     btns.forEach(function (b) { b.classList.toggle('on', b.dataset.mode === mode); });
     if (shield) shield.classList.toggle('trusted', mode === 'local');
+    if (provs) provs.dataset.mode = mode;
     render(mode);
   }
 
