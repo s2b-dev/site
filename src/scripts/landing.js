@@ -529,7 +529,7 @@ function roundRectPath(ctx, x, y, w, h, r) {
      entire point of the semantic phase. */
   var RESULTS = [
     { id: 'lec8', n: 'Lecture 8 — Sleep',  p: 'Psych 101', t: 'deep sleep and its role in retaining what you learn' },
-    { id: 'slides', n: 'Week 7 slides.pdf', p: 'Psych 101', t: 'slide 18 — the hippocampus and storing memories' }
+    { id: 'slides', n: 'Week 7 slides.pdf', p: 'Psych 101', t: 'slide 18, the hippocampus and storing memories' }
   ];
 
   /* --- element refs --- */
@@ -1479,8 +1479,8 @@ function roundRectPath(ctx, x, y, w, h, r) {
      notes support and names what they don't cover. That gap is what sends the
      story to search — without it, phase 4 arrives to solve a problem nobody
      had, and the agent would be "discovering" sleep after already citing it. */
-  var ANSWER = 'From your 9 Long-term memory notes — the three stages, and the hippocampus diagram. None of them say what triggers it, so the section stops there:';
-  var ANSWER2 = 'That’s the trigger — it happens during deep sleep. Folded into the same draft:';
+  var ANSWER = 'From your 9 Long-term memory notes: the three stages, and the hippocampus diagram. None of them say what triggers it, so the section stops there:';
+  var ANSWER2 = 'That’s the trigger: it happens during deep sleep. Folded into the same draft:';
   /* The staged edit, shaped like the real PendingChangesBar: a summary row
      ("1 update pending" + Accept All / Reject All) over a collapsible entry
      carrying the change type and the note it touches. The entry shows no
@@ -2377,8 +2377,8 @@ function roundRectPath(ctx, x, y, w, h, r) {
       btnTopics.setAttribute('aria-pressed', on ? 'true' : 'false');
       btnTopics.classList.toggle('on', on);
       btnTopics.title = on
-        ? 'Hide topics — show the raw graph without clustering'
-        : 'Show topics — colour notes by their detected topic';
+        ? 'Hide topics: show the raw graph without clustering'
+        : 'Show topics: colour notes by their detected topic';
     }
     if (btnCollapse) {
       btnCollapse.disabled = !on;
@@ -2694,13 +2694,13 @@ function roundRectPath(ctx, x, y, w, h, r) {
   var COPY = {
     local: [
       ['ok', 'Nothing leaves your computer.', 'The AI runs on it too, so your notes have nowhere to travel.'],
-      ['ok', 'No account, no bill.', 'Ollama and oMLX are free and offline — the plugin trusts them from the start.'],
+      ['ok', 'No account, no bill.', 'Ollama and oMLX are free and offline, so the plugin trusts them from the start.'],
       ['ok', 'Every note, right away.', 'Nothing to allow or configure, because nothing is being sent anywhere.'],
     ],
     cloud: [
-      ['ok', 'It starts out reading nothing.', 'Every note is private until you allow it — opt-in, not opt-out.'],
+      ['ok', 'It starts out reading nothing.', 'Every note is private until you allow it: opt-in, not opt-out.'],
       ['ok', 'You decide what it can read.', 'Allow a folder, everything carrying a tag, or single notes you pick.'],
-      ['ok', 'Private means private everywhere.', 'Not just in chat — a private note is left out of search, listings and the graph too.'],
+      ['ok', 'Private means private everywhere.', 'Not just in chat: a private note is left out of search, listings and the graph too.'],
     ],
   };
 

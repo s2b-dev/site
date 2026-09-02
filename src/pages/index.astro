@@ -231,7 +231,7 @@ const starLabel =
 	          the blurb should set that up rather than enumerate parts. */}
 	      <p>
 	        One evening of exam prep: your notes sort themselves into topics, you
-	        hand one to the agent, and it drafts your revision section — finding
+	        hand one to the agent, and it drafts your revision section, finding
 	        the note you'd forgotten, and asking before it saves anything.
 	      </p>
 	    </div>
@@ -275,7 +275,7 @@ const starLabel =
 	                the plugin does to your web, not something the animation
 	                was always going to do. */}
 	            <div class="v-gbar" aria-hidden="true">
-	              <span class="v-gbtn" id="vWand" title="Show topics — colour notes by their detected topic">
+	              <span class="v-gbtn" id="vWand" title="Show topics: colour notes by their detected topic">
 	                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
 	                  <path d="m21.64 3.64-1.28-1.28a1.21 1.21 0 0 0-1.72 0L2.36 18.64a1.21 1.21 0 0 0 0 1.72l1.28 1.28a1.2 1.2 0 0 0 1.72 0L21.64 5.36a1.2 1.2 0 0 0 0-1.72"/>
 	                  <path d="m14 7 3 3"/><path d="M5 6v4"/><path d="M19 14v4"/><path d="M10 2v2"/>
@@ -355,7 +355,7 @@ const starLabel =
 	              <p>Revision plan for the memory paper. Work through each topic and
 	                tick it off once you can explain it without the notes.</p>
 	              <h2>Encoding</h2>
-	              <p>Levels of processing — lecture 4.</p>
+	              <p>Levels of processing, lecture 4.</p>
 	              <h2>Long-term memory</h2>
 	              {/* Group 1: the staged addition under Long-term memory. The
 	                  action bar sits above its first changed line, as the CM6
@@ -384,10 +384,10 @@ const starLabel =
 	                    [[Lecture 7 — Long-term memory]] etc. — see LINKED_NOTES in
 	                    landing.js. */}
 	                <div class="v-diff-detail">
-	                  <span class="v-diff-add">Three stages — <span class="v-wl">Lecture 7 — Long-term memory</span>.</span>
+	                  <span class="v-diff-add">Three stages, from <span class="v-wl">Lecture 7 — Long-term memory</span>.</span>
 	                  {/* Links to a PDF by name; the real link carries the
 	                      extension, which the rendered form drops. */}
-	                  <br /><span class="v-diff-add">Hippocampus diagram — <span class="v-wl">Week 7 slides.pdf</span>, slide 18.</span>
+	                  <br /><span class="v-diff-add">Hippocampus diagram in <span class="v-wl">Week 7 slides.pdf</span>, slide 18.</span>
 	                </div>
 	              </div>
 	              <h2>Sleep</h2>
@@ -402,7 +402,7 @@ const starLabel =
 	                  <button class="v-diff-btn v-diff-rej" type="button">Reject</button>
 	                </div>
 	                <div class="v-diff-detail">
-	                  <span class="v-diff-add">Sleep before the exam — recall needs it: <span class="v-wl">Lecture 8 — Sleep</span>.</span>
+	                  <span class="v-diff-add">Sleep before the exam; recall needs it: <span class="v-wl">Lecture 8 — Sleep</span>.</span>
 	                </div>
 	              </div>
 	            </div>
@@ -525,7 +525,7 @@ const starLabel =
 	              plugin's contribution is finding the topics in that web.
 	              The wand is the toggle the demo presses to do it. */}
 	          <strong>It groups itself</strong>
-	          <span>No folders, no tagging. Your notes are already a web of links — one press of the wand gathers it into topics, named for what they're about.</span>
+	          <span>No folders, no tagging. Your notes are already a web of links, and one press of the wand gathers it into topics, named for what they're about.</span>
 	        </button>
 	      </li>
 	      {/* "Immerse" is the plugin's own word for the button, but it is
@@ -540,7 +540,7 @@ const starLabel =
 	      <li data-step="3">
 	        <button type="button">
 	          <strong>Hand it to the agent</strong>
-	          <span>Send a sub-topic straight to the chat. The agent reads those notes and drafts — nothing is saved without your OK.</span>
+	          <span>Send a sub-topic straight to the chat. The agent reads those notes and drafts. Nothing is saved without your OK.</span>
 	        </button>
 	      </li>
 	      <li data-step="4">
@@ -568,7 +568,7 @@ const starLabel =
 	      <div class="eyebrow">Graph</div>
 	      <h2>Your notes, grouped by what they're about</h2>
 	      <p>
-	        Topics are worked out from how your notes actually relate — no
+	        Topics are worked out from how your notes actually relate, with no
 	        folders to maintain, no tags to remember. This one is yours to play
 	        with.
 	      </p>
@@ -601,7 +601,7 @@ const starLabel =
 	          class="g-btn on"
 	          type="button"
 	          aria-pressed="true"
-	          title="Hide topics — show the raw graph without clustering"
+	          title="Hide topics: show the raw graph without clustering"
 	          aria-label="Show or hide the detected topics"
 	        >
 	          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -642,13 +642,13 @@ const starLabel =
 	          max="3"
 	          step="1"
 	          value="1"
-	          aria-label="Granularity — how many topics your notes are grouped into"
+	          aria-label="Granularity: how many topics your notes are grouped into"
 	        />
 	        <span class="g-ctl-value" id="granLevelName">Broad</span>
 	      </div>
 	      <p class="g-cap">
 	        Drag the slider: the same notes, gathered into fewer big topics or
-	        split into smaller ones. The wand hides the topics — the chevrons
+	        split into smaller ones. The wand hides the topics; the chevrons
 	        fold each one to a single point.
 	      </p>
 	    </div>
@@ -663,8 +663,8 @@ const starLabel =
 	        Approval card, applied the other way: Approval was told three
 	        times, immersion was told once.) */}
 	    <div class="fnotes">
-	      <div class="fnote"><span class="k">Topics</span><h4>It works them out for you</h4><p>Related notes are grouped and colour-coded, with an outline drawn around each topic. Nothing to set up — it reads the links and the writing itself.</p></div>
-	      <div class="fnote"><span class="k">Immerse</span><h4>Step inside a topic</h4><p>Circle a topic and the graph rebuilds around just those notes — finer topics appear inside it. Watch it happen in the demo above.</p></div>
+	      <div class="fnote"><span class="k">Topics</span><h4>It works them out for you</h4><p>Related notes are grouped and colour-coded, with an outline drawn around each topic. Nothing to set up: it reads the links and the writing itself.</p></div>
+	      <div class="fnote"><span class="k">Immerse</span><h4>Step inside a topic</h4><p>Circle a topic and the graph rebuilds around just those notes, and finer topics appear inside it. Watch it happen in the demo above.</p></div>
 	      <div class="fnote"><span class="k">Names</span><h4>Topics that name themselves</h4><p>Ask once and each topic gets a name from what's in it. Names are remembered, so it doesn't re-do work it has already done.</p></div>
 	      <div class="fnote"><span class="k">Overview</span><h4>Fold it down to the shape</h4><p>Collapse every topic to a single point when you want the whole vault at a glance, then open the one you care about.</p></div>
 	    </div>
@@ -679,7 +679,7 @@ const starLabel =
 	      <h2>Find it the way you remember it</h2>
 	      <p>
 	        Start with the words you'd expect. When those aren't the words you
-	        used, one press searches by meaning instead — and either way, the
+	        used, one press searches by meaning instead. Either way, the
 	        search can turn straight into a question for the agent.
 	      </p>
 	    </div>
@@ -716,7 +716,7 @@ const starLabel =
 	          </div>
 	          <div class="vs-res on">
 	            <div class="vs-res-top"><span class="vs-res-name">Week 7 slides.pdf</span><span class="vs-res-path">· Psych 101</span></div>
-	            <div class="vs-res-snip">slide 18 — the hippocampus and <mark>storing memories</mark></div>
+	            <div class="vs-res-snip">slide 18, the hippocampus and <mark>storing memories</mark></div>
 	          </div>
 	        </div>
 	        <div class="vs-hints">
@@ -732,7 +732,7 @@ const starLabel =
 	    <ul class="plist">
 	      <li><span class="ck ck-ok">✓</span><span><strong>Narrow it as you type.</strong> Type # for a tag or / for a folder and it becomes a chip on the search box. Stack a few to say "in here, tagged that".</span></li>
 	      <li><span class="ck ck-ok">✓</span><span><strong>For when you forgot the words.</strong> One press and it searches by what you meant, turning up notes that never use your words. It goes back to normal on your next search.</span></li>
-	      <li><span class="ck ck-ok">✓</span><span><strong>Turn a search into a question.</strong> Found nothing useful? Send it to the agent instead — it keeps your wording and whatever you'd narrowed it to.</span></li>
+	      <li><span class="ck ck-ok">✓</span><span><strong>Turn a search into a question.</strong> Found nothing useful? Send it to the agent instead. It keeps your wording and whatever you'd narrowed it to.</span></li>
 	      <li><span class="ck ck-ok">✓</span><span><strong>Write the missing note.</strong> If the note you searched for doesn't exist, make it from the search box without losing your place.</span></li>
 	    </ul>
 	    </div>
@@ -745,8 +745,8 @@ const starLabel =
 	      <div class="eyebrow">Agents</div>
 	      <h2>An assistant you stay in front of</h2>
 	      <p>
-	        It reads your notes before it answers, and it asks before it writes —
-	        the draft in the demo above is waiting on exactly that.
+	        It reads your notes before it answers, and it asks before it writes.
+	        The draft in the demo above is waiting on exactly that.
 	      </p>
 	    </div>
 	    {/* Four cards, not eight. "Approval" used to lead this grid and is gone:
@@ -771,7 +771,7 @@ const starLabel =
 	          </svg>
 	          Memory
 	        </span>
-	        <h4>Picks up where you left off</h4><p>Opt in and it keeps working notes on your projects — real notes in your vault, and never a stale copy of them.</p>
+	        <h4>Picks up where you left off</h4><p>Opt in and it keeps working notes on your projects: real notes in your vault, and never a stale copy of them.</p>
 	      </div>
 	      <div class="fcell">
 	        <span class="k">
@@ -804,7 +804,7 @@ const starLabel =
 	          </svg>
 	          History
 	        </span>
-	        <h4>Chats are notes too</h4><p>Every conversation is saved in your vault. Rewrite a question and the old thread stays — nothing is lost.</p>
+	        <h4>Chats are notes too</h4><p>Every conversation is saved in your vault. Rewrite a question and the old thread stays, so nothing is lost.</p>
 	      </div>
 	    </div>
 	    <p class="fmore">
@@ -842,11 +842,11 @@ const starLabel =
 	         without JS; the toggle swaps it (see landing.js). -->
 	    <ul class="privacy-list" id="privacyList">
 	      <li><span class="ck ck-ok">✓</span><span><strong>Nothing leaves your computer.</strong> The AI runs on it too, so your notes have nowhere to travel.</span></li>
-	      <li><span class="ck ck-ok">✓</span><span><strong>No account, no bill.</strong> Ollama and oMLX are free and offline — the plugin trusts them from the start.</span></li>
+	      <li><span class="ck ck-ok">✓</span><span><strong>No account, no bill.</strong> Ollama and oMLX are free and offline, so the plugin trusts them from the start.</span></li>
 	      <li><span class="ck ck-ok">✓</span><span><strong>Every note, right away.</strong> Nothing to allow or configure, because nothing is being sent anywhere.</span></li>
 	    </ul>
 
-	    <p class="privacy-more">Set it up once and forget it — or read <a href="/privacy/model/">how the privacy model works</a>.</p>
+	    <p class="privacy-more">Set it up once and forget it, or read <a href="/privacy/model/">how the privacy model works</a>.</p>
 	  </div>
 	</section>
 
