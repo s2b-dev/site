@@ -1430,6 +1430,13 @@
        (graph → chat → graph), so instead of a cramped stack, mobile shows
        only the active pane. data-pane is set by landing.js; the height stays
        fixed so switching panes never moves the page. */
+    /* The three dots are desktop window chrome — a phone has no traffic
+       lights, so they read as decoration rather than as a window. Without
+       them the title has nothing to sit beside, so it centres; the 6px
+       margin that spaced it off the dots goes with them. */
+    .vault-bar i { display: none; }
+    .vault-bar { justify-content: center; }
+    .vault-bar span { margin-left: 0; }
     .vault-body { display: flex; flex-direction: column; height: 480px; }
     .vault-body[data-pane="graph"] .v-chat { display: none; }
     .vault-body[data-pane="chat"] .v-main { display: none; }
