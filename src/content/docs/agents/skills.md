@@ -6,7 +6,11 @@ sidebar:
 ---
 
 A skill is a folder in your vault containing a `SKILL.md`: some frontmatter, and
-a body of instructions. That's the whole format.
+a body of instructions. That's the whole format — and it isn't ours. It's
+[Agent Skills](https://agentskills.io/specification), an open format originally
+from Anthropic and now read by a range of agent tools. A skill you wrote for one
+of those works here by copying its folder in, and one you write here travels the
+other way.
 
 Skills live under `Agents/Skills/<name>/SKILL.md`. They are ordinary notes, so
 you can write one in Obsidian without leaving the app.
@@ -110,6 +114,18 @@ Create `Agents/Skills/<name>/SKILL.md` with `name` and `description` in the
 frontmatter, and your instructions in the body. It's discovered on the next
 scan: any directory containing a `SKILL.md` is a skill. There are no reserved
 names.
+
+`name` and `description` are the two fields the format requires: `name` must be
+lowercase letters, numbers and hyphens (up to 64 characters) and must match the
+folder it sits in; `description` is capped at 1024 characters. The optional
+`license`, `compatibility` and `metadata` fields are read and preserved, so a
+skill written elsewhere keeps them.
+
+`allowed-tools` is how this plugin grants tools, and it is the one field whose
+effect is specific to Smart Second Brain — the format marks it experimental, and
+what a tool name means is up to each agent. Skills carrying an `allowed-tools`
+line from another tool are still valid here; the names simply won't match
+anything, so they attach nothing.
 
 A user skill with no `allowed-tools` line attaches no tools; it is pure
 guidance, which is often exactly what you want. Keep skills narrow and the
