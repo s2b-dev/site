@@ -1,15 +1,21 @@
 ---
 title: How search works
-description: "Hybrid semantic and lexical retrieval with fusion ranking, as implemented in Smart Second Brain."
+description: "Lexical and semantic retrieval, and the fusion ranking behind the agent's hybrid strategy, as implemented in Smart Second Brain."
 sidebar:
   order: 2
 ---
 
-Search runs two retrieval paths concurrently and fuses them:
+The full pipeline runs two retrieval paths concurrently and fuses them:
 
 ```
 index → retrieve ×2 → aggregate → normalize → fuse → boost → recency → rank
 ```
+
+That fused path is the `hybrid` strategy, which only the agent's `search_notes`
+tool can select. The search window runs a single path at a time, lexical by
+default and semantic after you press Tab, so for it the `retrieve ×2` and
+`fuse` stages collapse to one retriever and the boost, recency and rank stages
+apply to that one list. See [Choosing a strategy](/search/#choosing-a-strategy).
 
 Every constant below is read from source. Measurements come from a 300-note
 generated corpus with an 18-case graded relevance benchmark.

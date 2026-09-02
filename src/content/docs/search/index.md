@@ -11,8 +11,9 @@ no API key, no index build to wait through. Open the command palette and run
 
 ## Two retrieval paths
 
-Search runs a **lexical** path and, when an embedding model is configured, a
-**semantic** path, then fuses their results into one ranking.
+Search has a **lexical** path and, when an embedding model is configured, a
+**semantic** path. The search window runs one of them at a time; only the
+agent can ask for both fused into a single ranking.
 
 **Lexical** matches the words you typed. It is BM25-style scoring over a
 MiniSearch index, with fuzzy matching for typos and prefix matching so partial
@@ -23,25 +24,37 @@ embedded chunks of your notes, so a search for *"why my mornings feel
 scattered"* can surface a note that only ever says "context switching". This
 path requires an embedding model. See [What works without a model](/start/first-run/).
 
-Results from both paths are normalized, fused, and re-ranked before you see
-them. [How search works](/search/how-it-works/) documents the pipeline in full,
+Results are normalized, boosted, and re-ranked before you see them.
+[How search works](/search/how-it-works/) documents the pipeline in full,
 including the constants.
 
 ## Choosing a strategy
 
-Search exposes three strategies:
+The search window always opens in **lexical** mode. Press **Tab** (or the
+semantic button in the tap bar on mobile) to run the current query
+**semantically** instead. That switch is a one-shot: the semantic results stay
+on screen, but as soon as you change the query text the next search runs
+lexically again. Switching requires a search embedding index; without one the
+plugin shows a notice pointing at the setting.
 
-| Strategy | What it matches | Needs an embedding model |
-| --- | --- | --- |
-| `lexical` | Exact and fuzzy words | No |
-| `semantic` | Meaning and concepts | Yes |
-| `hybrid` | Both, fused | Yes |
+Reach for lexical when you know the vocabulary: a project code name, a person,
+an error string. Reach for semantic when you know the idea but not the words
+your past self used.
 
-Reach for `lexical` when you know the vocabulary: a project code name, a
-person, an error string. Reach for `semantic` when you know the idea but not
-the words your past self used. `hybrid` is the sensible default once embeddings
-are configured, and is what the agent escalates to when a query mixes an exact
-term with a fuzzy concept.
+The two modes are deliberately not fused in the search window. Pressing Tab
+means you have looked at the lexical results and they are not what you wanted,
+and mixing them back in re-injects the ordering you just rejected.
+
+| Strategy | What it matches | Needs an embedding model | Available to |
+| --- | --- | --- | --- |
+| `lexical` | Exact and fuzzy words | No | You and the agent |
+| `semantic` | Meaning and concepts | Yes | You and the agent |
+| `hybrid` | Both, fused | Yes | The agent only |
+
+`hybrid` exists only on the agent's `search_notes` tool, and even there it is
+not the default: the agent starts lexical and is told to escalate, reaching for
+hybrid when a query mixes a specific term such as a name, tag, or filename with
+a fuzzy concept.
 
 ## Filters
 
@@ -86,8 +99,9 @@ transcript inside another note. See
 ## The `search_notes` tool
 
 The agent reaches the same pipeline through its `search_notes` tool, with the
-same strategies and filters. When you ask the agent a question about your
-notes, this is what runs. See [Agents](/agents/).
+same filters and one extra strategy, `hybrid`, which fuses the lexical and
+semantic paths. When you ask the agent a question about your notes, this is
+what runs. See [Agents](/agents/).
 
 :::note
 If no embedding model is configured, the agent is told so in the tool result
