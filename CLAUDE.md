@@ -488,7 +488,7 @@ in the plugin repo, checked out alongside this one at `../smart-second-brain`:
 
 Note that the plugin's `AGENTS.md` prose can itself drift — it currently names
 the core skills `vault`/`notes`/`web`/`update`, while the actual directories are
-`edit-notes`, `explore-vault`, `manage-skills`, and `web`. **Prefer the source
+`explore-vault`, `manage-notes`, `manage-skills`, and `web`. **Prefer the source
 files over any prose description of them**, including the plugin's own.
 
 If that checkout is not accessible in the current session, say so rather than
