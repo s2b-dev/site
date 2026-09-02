@@ -263,8 +263,13 @@ was ported from a hand-written mockup, so:
   full-page height. Two things follow, and the gate handles both:
   - `100dvh` inside that frame is the frame height, so the hero would swallow
     the whole frame and clip every later section (umami#4373, unfixed). The
-    gate sets `framed` when `self !== top` and `landing.css` gives the hero a
-    fixed `min-height` in that case. Nothing legitimately embeds this site.
+    gate sets `framed` when `self !== top`; `landing.css` gives the hero a
+    fixed pre-JS `min-height`, and the last IIFE in `landing.js` then solves
+    for the hero height that makes the page exactly the frame's height —
+    the frame *is* the recorded page height and the hero is the only
+    viewport-sized element, so that reproduces the recorded layout and the
+    click markers align. Add another `vh`-sized element and that arithmetic
+    breaks. Nothing legitimately embeds this site.
   - The framed copy would load the trackers and write a pageview plus
     scroll rows with `viewport_h ≈ 6700` into the very dataset on display,
     so when framed the gate loads nothing.

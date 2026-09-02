@@ -2739,3 +2739,35 @@ function roundRectPath(ctx, x, y, w, h, r) {
   });
 })();
 
+/* ---------- framed: fit the hero to Umami's heatmap frame ---------- */
+/* Only runs when index.astro's gate has set `framed` (self !== top), which
+   in practice means Umami's heatmap viewer: it iframes the LIVE page at the
+   recorded full-page height and draws the recorded clicks over it. The hero
+   is the page's only viewport-sized element, so the frame's height is
+   exactly `realHero + rest`, and `rest` (everything else) is measurable
+   here. Solving for the hero reproduces the recorded layout for whatever
+   viewport the data came from, so the markers land on what was clicked —
+   a fixed height (landing.css's 840px, which is what the page has until
+   this runs) would draw them offset by the difference. Two passes: the
+   first changes the document height that the second measures. Re-fit on
+   load, since web fonts can shift `rest` by a few pixels. */
+(function () {
+  if (!document.documentElement.classList.contains('framed')) return;
+  var hero = document.querySelector('.hero');
+  if (!hero) return;
+
+  function fit() {
+    // Content height from the body's own box, NOT scrollHeight: scrollHeight
+    // is floored at the viewport, so whenever the content is shorter than
+    // the frame it reports the frame height, `rest` absorbs the gap and the
+    // hero never grows — the exact case (a tall recorded viewport) this
+    // exists for. The nav is sticky, so it is in flow and counted.
+    var rest = document.body.getBoundingClientRect().height - hero.getBoundingClientRect().height;
+    var target = window.innerHeight - rest;
+    if (target > 0) hero.style.minHeight = target + 'px';
+  }
+
+  fit(); fit();
+  window.addEventListener('load', function () { requestAnimationFrame(fit); });
+})();
+

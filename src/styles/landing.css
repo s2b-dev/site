@@ -234,11 +234,11 @@
   /* Inside Umami's heatmap viewer the page is iframed at its full recorded
      height, and 100dvh becomes that height — the hero would swallow the
      whole frame and clip every later section (umami#4373). `framed` is set
-     pre-paint by index.astro when self !== top. The constant stands in for
-     a viewport the frame cannot know: ~840px is a common laptop browser
-     height minus the nav. Clicks recorded on taller viewports will sit
-     somewhat below the element they hit — that offset is the upstream bug,
-     and far better than the frame showing nothing past the hero. */
+     pre-paint by index.astro when self !== top. This constant is only the
+     pre-JS value: landing.js then solves for the hero height that makes the
+     page exactly the frame's height, which reproduces the recorded layout
+     so the click markers align. 840px (a common laptop browser height minus
+     the nav) keeps the frame sane if that script never runs. */
   :root.framed .hero { min-height: 840px; }
   #graph {
     position: absolute; inset: 0; width: 100%; height: 100%;
