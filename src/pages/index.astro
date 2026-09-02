@@ -126,6 +126,27 @@ const starLabel =
 			src="https://static.cloudflareinsights.com/beacon.min.js"
 			data-cf-beacon='{"token": "303916a95994415190ed79caf5046bde"}'
 		></script>
+
+		{/* Self-hosted Umami, running alongside the Cloudflare beacon above.
+		    It adds what Cloudflare cannot measure: real unique visitors (its
+		    "visits" metric counts cross-host referrals, so bookmarked and
+		    returning traffic is miscounted) and custom events, for questions
+		    like which install CTA actually converts.
+
+		    Also cookieless — Umami hashes IP + user-agent + a rotating salt
+		    into a per-day identifier and stores nothing on the device — so the
+		    footer's disclosure covers both without a consent banner.
+
+		    `defer` rather than `async`: the tracker fires its pageview on
+		    execution, and deferring to after parse keeps it off the critical
+		    path. The website id is public by design, like the CF token.
+		    Same two-surface rule as above — the docs get this via
+		    `starlight.head` in astro.config.mjs. */}
+		<script
+			defer
+			src="https://analytics.leonardheininger.de/script.js"
+			data-website-id="e178beda-ae04-4f1e-9ac6-3620bfc1107b"
+		></script>
 	</head>
 
 	<body>
@@ -942,7 +963,7 @@ const starLabel =
 	        disclosed one. Deliberately not on the privacy pages — those are
 	        about where your notes go, and this is a different system. */}
 	    <p class="foot-note">
-	      This website uses Cloudflare Web Analytics — no cookies, no tracking
+	      This website uses cookieless analytics — no cookies, no tracking
 	      across sites. The plugin itself has no analytics.
 	    </p>
 	  </div>

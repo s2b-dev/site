@@ -48,6 +48,19 @@ export default defineConfig({
 						'data-cf-beacon': '{"token": "303916a95994415190ed79caf5046bde"}',
 					},
 				},
+				// Self-hosted Umami, alongside the Cloudflare beacon above. Adds
+				// unique visitors and custom events, which Cloudflare does not
+				// measure. Also cookieless, so the landing page's footer
+				// disclosure covers both. The website id is public by design.
+				// The landing page carries this same tag in its own <head>.
+				{
+					tag: 'script',
+					attrs: {
+						defer: true,
+						src: 'https://analytics.leonardheininger.de/script.js',
+						'data-website-id': 'e178beda-ae04-4f1e-9ac6-3620bfc1107b',
+					},
+				},
 			],
 			// The landing page at "/" is a custom route, not a Starlight page.
 			disable404Route: false,
