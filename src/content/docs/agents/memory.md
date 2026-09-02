@@ -1,6 +1,6 @@
 ---
 title: Memory
-description: Opt-in working memory stored as real notes in your vault.
+description: Working memory stored as real notes in your vault.
 sidebar:
   order: 4
 ---
@@ -9,7 +9,10 @@ Memory lets an agent remember things between conversations: that you prefer
 short answers, that your work is tracked under `#work`, that a project you keep
 asking about lives in a particular folder.
 
-It's off by default. Enable it per agent in the Agent editor.
+It's on by default. Each agent's system prompt note, `AGENT.md`, ships with a
+`# Memory` section; delete that section and the agent stops using memory. There
+is no separate toggle. See
+[The system prompt is a note](/agents/#the-system-prompt-is-a-note).
 
 ## It's just a folder
 
@@ -18,9 +21,9 @@ them. Delete the ones you disagree with. There is no opaque store and nothing
 to export. It's your vault.
 
 The folder is **global**: remembered facts belong to you, not to one agent, so
-every memory-enabled agent shares it. What's per-agent is the *instructions* for
-how eagerly to read and record, which live in that agent's
-`Agents/System Prompts/<Agent Name>/Memory.md`.
+every agent with a memory section shares it. What's per-agent is the
+*instructions* for how eagerly to read and record, which are the `# Memory`
+section of that agent's `Agents/<Agent Name>/AGENT.md`.
 
 ## Writes here auto-apply
 
@@ -33,13 +36,15 @@ The rest of your vault is unaffected. See [Agents](/agents/).
 
 ## Requires note-writing
 
-Memory needs `manage_notes`, since recording a memory is a note write. If the
-agent has no write tool, because no enabled skill attaches it or a tool
-override vetoed it, the memory instructions are **not** injected at all, even
-with the toggle on.
+Recording a memory is a note write, so it needs `manage_notes`, which the
+`manage-notes` core skill attaches. An agent without that tool, because no
+enabled skill attaches it or a tool override vetoed it, can still **read** its
+memory folder (listing and reading notes come with `explore-vault`) but cannot
+add to it.
 
-That's deliberate: telling an agent to record memories with a tool it doesn't
-have produces a confused agent, not a memoryless one.
+In that case the assembled prompt ends with a note that no write tools are
+enabled and that the agent must not claim to modify notes, so it should tell
+you it can't record something rather than pretend it did.
 
 ## Pointers, not copies
 
@@ -62,11 +67,14 @@ doesn't know, rather than asking permission to look in its own folder.
 
 ## Customizing
 
-`Memory.md` is a note. If the agent records too much, tell it to record less.
-If you want it to keep a specific kind of note, say so there.
+The `# Memory` section is part of a note. If the agent records too much, tell
+it to record less. If you want it to keep a specific kind of note, say so
+there. The folder path at the top of the section is a `{{memoryFolder}}`
+placeholder filled in from the Agents folder setting; leave it as it is.
 
-The shipped default remains available as a diff, so you can see what you've
-changed and reset if an edit doesn't work out.
+The shipped default remains available as a diff (**Diff with default** in the
+Agent editor, shown once your note differs), so you can see what you've changed
+and reset if an edit doesn't work out.
 
 ## Excluded from search
 
