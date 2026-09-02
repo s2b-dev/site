@@ -147,6 +147,28 @@ const starLabel =
 			src="https://analytics.leonardheininger.de/script.js"
 			data-website-id="e178beda-ae04-4f1e-9ac6-3620bfc1107b"
 		></script>
+
+		{/* Umami's recorder, for heatmaps only — "Replays" stays off in the
+		    website's settings, and the two are independent flags
+		    (`heatmapEnabled` vs `replayEnabled`), not one switch. Heatmaps
+		    aggregate click and scroll positions; replays would retain
+		    individual sessions as watchable recordings, which is a different
+		    proposition on a site that sells privacy.
+
+		    This is rrweb (~190KB, vs ~5KB for the tracker above), so it is
+		    landing-page-only: the docs pages get the tracker via
+		    `starlight.head` but NOT this, since there is no layout question to
+		    answer there and it would be the heaviest thing on a text page.
+
+		    Still cookieless — no identifier is stored on the device. But this
+		    does capture in-page interaction, which pageview counting does not,
+		    so the footer disclosure says so rather than leaning on the
+		    technically-true "no cookies". */}
+		<script
+			defer
+			src="https://analytics.leonardheininger.de/recorder.js"
+			data-website-id="e178beda-ae04-4f1e-9ac6-3620bfc1107b"
+		></script>
 	</head>
 
 	<body>
@@ -972,12 +994,21 @@ const starLabel =
 	      <a href="https://obsidian.md">Obsidian</a>
 	    </div>
 	    {/* The site's analytics, disclosed because this audience checks: an
-	        undisclosed request to cloudflareinsights.com reads worse than a
+	        undisclosed request to an analytics host reads worse than a
 	        disclosed one. Deliberately not on the privacy pages — those are
-	        about where your notes go, and this is a different system. */}
+	        about where your notes go, and this is a different system.
+
+	        Says "which parts of this page get clicked" because the landing
+	        page now loads Umami's recorder for heatmaps. "No cookies" alone
+	        would still be true and would still mislead: aggregate interaction
+	        capture is more than counting pageviews, and a reader who found
+	        rrweb in the network tab after reading a cookie-focused disclosure
+	        would rightly feel it was written to be technically accurate
+	        rather than honest. Session replay is off. */}
 	    <p class="foot-note">
-	      This website uses cookieless analytics — no cookies, no tracking
-	      across sites. The plugin itself has no analytics.
+	      This website uses cookieless analytics — pages viewed, and which
+	      parts of this page get clicked. No cookies, no tracking across sites,
+	      no session recordings. The plugin itself has no analytics.
 	    </p>
 	  </div>
 	</footer>
