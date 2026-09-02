@@ -231,6 +231,15 @@
     display: flex; flex-direction: column; align-items: center; justify-content: center;
     text-align: center; padding: 70px 24px; overflow: hidden;
   }
+  /* Inside Umami's heatmap viewer the page is iframed at its full recorded
+     height, and 100dvh becomes that height — the hero would swallow the
+     whole frame and clip every later section (umami#4373). `framed` is set
+     pre-paint by index.astro when self !== top. The constant stands in for
+     a viewport the frame cannot know: ~840px is a common laptop browser
+     height minus the nav. Clicks recorded on taller viewports will sit
+     somewhat below the element they hit — that offset is the upstream bug,
+     and far better than the frame showing nothing past the hero. */
+  :root.framed .hero { min-height: 840px; }
   #graph {
     position: absolute; inset: 0; width: 100%; height: 100%;
     z-index: 0; display: block;

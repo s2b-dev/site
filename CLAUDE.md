@@ -245,10 +245,35 @@ was ported from a hand-written mockup, so:
   researchers): no mono-font "dev" styling, no jargon in demo content or copy.
   Inter throughout — clean and minimal is the brief; display faces have been
   tried and rejected.
-- Two scripts are **inlined** in `index.astro` with `is:inline` and must stay
-  in `<head>`, both because they run before first paint: the theme script (sets
-  `data-theme`, so the wrong palette never flashes) and the intro gate (sets a
-  class, so the intro animation does not flash on repeat visits).
+- Three scripts are **inlined** in `index.astro` with `is:inline` and must stay
+  in `<head>`, all because they run before first paint: the theme script (sets
+  `data-theme`, so the wrong palette never flashes), the analytics gate (sets
+  `framed` and injects the trackers — see below), and the intro gate (sets a
+  class, so the intro animation does not flash on repeat visits; it bails when
+  `framed`). The analytics gate must run **before** the intro gate, which
+  reads its class.
+- **Analytics.** Two cookieless trackers on both surfaces: Cloudflare Web
+  Analytics (beacon) and self-hosted Umami at `analytics.leonardheininger.de`
+  (tracker; plus its rrweb recorder for heatmaps on the landing page only —
+  ~190KB, and the docs have no layout question worth it). The docs get theirs
+  via `starlight.head` in `astro.config.mjs`; the landing page has its own
+  copy because it bypasses Starlight. Both are **injected by an inline gate,
+  never static tags**, because of one Umami behaviour: its heatmap viewer
+  does not show a snapshot, it **iframes the live page** at the recorded
+  full-page height. Two things follow, and the gate handles both:
+  - `100dvh` inside that frame is the frame height, so the hero would swallow
+    the whole frame and clip every later section (umami#4373, unfixed). The
+    gate sets `framed` when `self !== top` and `landing.css` gives the hero a
+    fixed `min-height` in that case. Nothing legitimately embeds this site.
+  - The framed copy would load the trackers and write a pageview plus
+    scroll rows with `viewport_h ≈ 6700` into the very dataset on display,
+    so when framed the gate loads nothing.
+  The footer disclosure is one sentence and two parts of it are load-bearing:
+  "click and scroll" (the gap between "cookieless" and what rrweb captures)
+  and the plugin contrast. Session replay is a separate Umami flag from
+  heatmaps and stays off. The CTA events (`data-umami-event`) are named by
+  placement and say `-intent` for `obsidian://` links, which no-op without
+  Obsidian, so a click is intent, not a hand-off.
 - Everything respects `prefers-reduced-motion`.
 
 Do not "modernize" this into Starlight components or Tailwind without being

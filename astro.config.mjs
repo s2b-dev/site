@@ -35,31 +35,18 @@ export default defineConfig({
 					tag: 'link',
 					attrs: { rel: 'icon', href: '/favicon.ico', sizes: '32x32' },
 				},
-				// Cloudflare Web Analytics: cookieless, no cross-site tracking,
-				// so no consent banner. The token is public by design (it ships
-				// in the markup on every page load). The landing page carries
-				// the same tag in its own <head> — it bypasses Starlight's
+				// Analytics: Cloudflare Web Analytics (cookieless second opinion)
+				// and self-hosted Umami (unique visitors, events). Both ids are
+				// public by design. Injected rather than static so they can be
+				// skipped when the page is framed: Umami's heatmap viewer iframes
+				// the live page, and the framed copy would otherwise record a
+				// pageview into the dataset being displayed. The landing page has
+				// the same gate in its own <head> (plus Umami's recorder, which
+				// the docs deliberately do not load) — it bypasses Starlight's
 				// layout, so this entry does not reach it.
 				{
 					tag: 'script',
-					attrs: {
-						type: 'module',
-						src: 'https://static.cloudflareinsights.com/beacon.min.js',
-						'data-cf-beacon': '{"token": "303916a95994415190ed79caf5046bde"}',
-					},
-				},
-				// Self-hosted Umami, alongside the Cloudflare beacon above. Adds
-				// unique visitors and custom events, which Cloudflare does not
-				// measure. Also cookieless, so the landing page's footer
-				// disclosure covers both. The website id is public by design.
-				// The landing page carries this same tag in its own <head>.
-				{
-					tag: 'script',
-					attrs: {
-						defer: true,
-						src: 'https://analytics.leonardheininger.de/script.js',
-						'data-website-id': 'e178beda-ae04-4f1e-9ac6-3620bfc1107b',
-					},
+					content: `(function(){var f=false;try{f=window.self!==window.top}catch(e){f=true}if(f)return;function add(a){var s=document.createElement('script');for(var k in a)s.setAttribute(k,a[k]);document.head.appendChild(s)}add({type:'module',src:'https://static.cloudflareinsights.com/beacon.min.js','data-cf-beacon':'{"token": "303916a95994415190ed79caf5046bde"}'});add({defer:'',src:'https://analytics.leonardheininger.de/script.js','data-website-id':'e178beda-ae04-4f1e-9ac6-3620bfc1107b'})})();`,
 				},
 			],
 			// The landing page at "/" is a custom route, not a Starlight page.

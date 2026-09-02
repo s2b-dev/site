@@ -99,9 +99,68 @@ const starLabel =
 			})();
 		</script>
 
-		{/* Must run before first paint so the intro does not flash. */}
+		{/* Analytics, and the one case where they must NOT load.
+
+		    Umami's heatmap viewer does not show a stored snapshot — it iframes
+		    the LIVE page, sized to the recorded full-page height (~6700px), and
+		    draws clicks over it. That has two consequences this script handles:
+
+		    1. Inside that frame, 100dvh is the frame height, so the hero
+		       (`min-height: calc(100dvh - 58px)`) swallows the entire frame and
+		       every later section is clipped away. Open upstream as
+		       umami-software/umami#4373, unfixed as of 3.3.1. The `framed`
+		       class set here lets landing.css give the hero a fixed height in
+		       that case. Set pre-paint so the frame never lays out tall first.
+		    2. The framed page would otherwise load these very scripts, and each
+		       viewing of the heatmap would record a pageview plus scroll rows
+		       with viewport_h ≈ 6700 into the dataset it is displaying. Nothing
+		       legitimately embeds this site, so framed ⇒ do not measure.
+
+		    The tags are injected rather than static so that gating is possible;
+		    dynamically inserted scripts are async, so this still never blocks
+		    paint. Umami's tracker reads its website id off
+		    `document.currentScript`, which is set for injected classic scripts.
+		    Both ids are public by design. The docs pages get the same gate via
+		    `starlight.head` in astro.config.mjs (tracker + beacon, no recorder). */}
 		<script is:inline>
 			(function () {
+			  var framed = false;
+			  try { framed = window.self !== window.top; } catch (e) { framed = true; }
+			  if (framed) { document.documentElement.classList.add('framed'); return; }
+			  function add(attrs) {
+			    var s = document.createElement('script');
+			    for (var k in attrs) s.setAttribute(k, attrs[k]);
+			    document.head.appendChild(s);
+			  }
+			  /* Cloudflare Web Analytics: cookieless, kept as a second opinion
+			     while the self-hosted instance proves itself. */
+			  add({
+			    type: 'module',
+			    src: 'https://static.cloudflareinsights.com/beacon.min.js',
+			    'data-cf-beacon': '{"token": "303916a95994415190ed79caf5046bde"}'
+			  });
+			  /* Umami: unique visitors and the CTA events (`data-umami-event`). */
+			  add({
+			    defer: '',
+			    src: 'https://analytics.leonardheininger.de/script.js',
+			    'data-website-id': 'e178beda-ae04-4f1e-9ac6-3620bfc1107b'
+			  });
+			  /* Umami's recorder, for heatmaps only — replays are a separate flag
+			     and stay off. rrweb at ~190KB, so landing page only. */
+			  add({
+			    defer: '',
+			    src: 'https://analytics.leonardheininger.de/recorder.js',
+			    'data-website-id': 'e178beda-ae04-4f1e-9ac6-3620bfc1107b'
+			  });
+			})();
+		</script>
+
+		{/* Must run before first paint so the intro does not flash. Skipped when
+		    framed (see above): the intro's 22vh travel would be ~1500px inside
+		    the heatmap frame, and nobody is watching. */}
+		<script is:inline>
+			(function () {
+			  if (document.documentElement.classList.contains('framed')) return;
 			  try {
 			    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 			    if (sessionStorage.getItem('s2b-intro-seen') === '1') return;
@@ -113,62 +172,8 @@ const starLabel =
 			})();
 		</script>
 
-		{/* Cloudflare Web Analytics: cookieless, no cross-site tracking, so no
-		    consent banner. Deliberately NOT `is:inline` — that is reserved for
-		    the two pre-paint scripts above; a beacon must never block paint.
-		    The token is public by design (it ships in the markup on every page
-		    load). The docs pages get the same tag via `starlight.head` in
-		    astro.config.mjs — both surfaces have to be added separately because
-		    this landing page bypasses Starlight's layout. Disclosed in the
-		    footer below. */}
-		<script
-			type="module"
-			src="https://static.cloudflareinsights.com/beacon.min.js"
-			data-cf-beacon='{"token": "303916a95994415190ed79caf5046bde"}'
-		></script>
-
-		{/* Self-hosted Umami, running alongside the Cloudflare beacon above.
-		    It adds what Cloudflare cannot measure: real unique visitors (its
-		    "visits" metric counts cross-host referrals, so bookmarked and
-		    returning traffic is miscounted) and custom events, for questions
-		    like which install CTA actually converts.
-
-		    Also cookieless — Umami hashes IP + user-agent + a rotating salt
-		    into a per-day identifier and stores nothing on the device — so the
-		    footer's disclosure covers both without a consent banner.
-
-		    `defer` rather than `async`: the tracker fires its pageview on
-		    execution, and deferring to after parse keeps it off the critical
-		    path. The website id is public by design, like the CF token.
-		    Same two-surface rule as above — the docs get this via
-		    `starlight.head` in astro.config.mjs. */}
-		<script
-			defer
-			src="https://analytics.leonardheininger.de/script.js"
-			data-website-id="e178beda-ae04-4f1e-9ac6-3620bfc1107b"
-		></script>
-
-		{/* Umami's recorder, for heatmaps only — "Replays" stays off in the
-		    website's settings, and the two are independent flags
-		    (`heatmapEnabled` vs `replayEnabled`), not one switch. Heatmaps
-		    aggregate click and scroll positions; replays would retain
-		    individual sessions as watchable recordings, which is a different
-		    proposition on a site that sells privacy.
-
-		    This is rrweb (~190KB, vs ~5KB for the tracker above), so it is
-		    landing-page-only: the docs pages get the tracker via
-		    `starlight.head` but NOT this, since there is no layout question to
-		    answer there and it would be the heaviest thing on a text page.
-
-		    Still cookieless — no identifier is stored on the device. But this
-		    does capture in-page interaction, which pageview counting does not,
-		    so the footer disclosure says so rather than leaning on the
-		    technically-true "no cookies". */}
-		<script
-			defer
-			src="https://analytics.leonardheininger.de/recorder.js"
-			data-website-id="e178beda-ae04-4f1e-9ac6-3620bfc1107b"
-		></script>
+		{/* Analytics tags are injected by the gate script above, not written
+		    here — see its comment for why. Disclosed in the footer below. */}
 	</head>
 
 	<body>
