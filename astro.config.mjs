@@ -35,6 +35,19 @@ export default defineConfig({
 					tag: 'link',
 					attrs: { rel: 'icon', href: '/favicon.ico', sizes: '32x32' },
 				},
+				// Cloudflare Web Analytics: cookieless, no cross-site tracking,
+				// so no consent banner. The token is public by design (it ships
+				// in the markup on every page load). The landing page carries
+				// the same tag in its own <head> — it bypasses Starlight's
+				// layout, so this entry does not reach it.
+				{
+					tag: 'script',
+					attrs: {
+						type: 'module',
+						src: 'https://static.cloudflareinsights.com/beacon.min.js',
+						'data-cf-beacon': '{"token": "303916a95994415190ed79caf5046bde"}',
+					},
+				},
 			],
 			// The landing page at "/" is a custom route, not a Starlight page.
 			disable404Route: false,

@@ -112,6 +112,20 @@ const starLabel =
 			  document.documentElement.classList.add('intro-on');
 			})();
 		</script>
+
+		{/* Cloudflare Web Analytics: cookieless, no cross-site tracking, so no
+		    consent banner. Deliberately NOT `is:inline` — that is reserved for
+		    the two pre-paint scripts above; a beacon must never block paint.
+		    The token is public by design (it ships in the markup on every page
+		    load). The docs pages get the same tag via `starlight.head` in
+		    astro.config.mjs — both surfaces have to be added separately because
+		    this landing page bypasses Starlight's layout. Disclosed in the
+		    footer below. */}
+		<script
+			type="module"
+			src="https://static.cloudflareinsights.com/beacon.min.js"
+			data-cf-beacon='{"token": "303916a95994415190ed79caf5046bde"}'
+		></script>
 	</head>
 
 	<body>
@@ -923,6 +937,14 @@ const starLabel =
 	      <a href={COMMUNITY_URL}>Community plugin</a>
 	      <a href="https://obsidian.md">Obsidian</a>
 	    </div>
+	    {/* The site's analytics, disclosed because this audience checks: an
+	        undisclosed request to cloudflareinsights.com reads worse than a
+	        disclosed one. Deliberately not on the privacy pages — those are
+	        about where your notes go, and this is a different system. */}
+	    <p class="foot-note">
+	      This website uses Cloudflare Web Analytics — no cookies, no tracking
+	      across sites. The plugin itself has no analytics.
+	    </p>
 	  </div>
 	</footer>
 		<script src="../scripts/landing.js"></script>
