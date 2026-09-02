@@ -26,13 +26,13 @@ Turn off the skill, and the agent loses the tool.
 
 ```markdown
 ---
-name: edit-notes
-description: Create, update, delete, and move notes. All writes are staged...
+name: manage-notes
+description: Create, update, delete, and move notes. All writes are staged for the user's review...
 allowed-tools: manage_notes
 ---
 
 ## Write Operations
-- All write operations are staged for user approval...
+- All write operations (create, update, delete, move) are staged for user approval...
 ```
 
 ## Bundled core skills
@@ -42,9 +42,12 @@ Four ship with the plugin and are seeded into your vault on first run:
 | Skill | Attaches | Covers |
 | --- | --- | --- |
 | `explore-vault` | `search_notes`, `list_directory`, `read_content`, `grep_notes`, `get_all_tags`, `get_properties`, `execute_javascript` | Finding and reading notes: verify tags and properties before querying, and what to do when a search comes back weak |
-| `edit-notes` | `manage_notes` | Creating and editing notes, and the staging policy |
+| `manage-notes` | `manage_notes` | Creating, editing, deleting and moving notes: the staging policy, and how to replace or withdraw an edit it has already staged |
 | `web` | `fetch_url`, `web_search` | Reaching the public internet, vault-first |
 | `manage-skills` | `manage_skills` | Authoring and revising skills |
+
+Older vaults had `manage-notes` under the name `edit-notes`; the plugin
+renames the folder on update and keeps your on/off setting for it.
 
 They are ordinary notes once seeded, so edit them freely. If a plugin update
 changes a default you had customized, you get a notice rather than a silent
