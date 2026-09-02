@@ -245,6 +245,14 @@ was ported from a hand-written mockup, so:
   researchers): no mono-font "dev" styling, no jargon in demo content or copy.
   Inter throughout — clean and minimal is the brief; display faces have been
   tried and rejected.
+- **Facts over pitch, and the plugin's own feature names.** The pillar
+  points name the feature as the plugin does (Memory, Skills, Chats,
+  Integrations) and state what it does, in the register of a tool
+  description. Earlier leads like "Teach it by writing a note" and "It
+  remembers in notes" were pulled for reading as marketing and for hiding
+  the feature's real name — a reader deciding whether to install wants to
+  know there is a thing called Skills and what it consists of. Plain words
+  for the explanation, real names for the things.
 - Three scripts are **inlined** in `index.astro` with `is:inline` and must stay
   in `<head>`, all because they run before first paint: the theme script (sets
   `data-theme`, so the wrong palette never flashes), the analytics gate (sets
@@ -321,10 +329,13 @@ section after the demo was "centred heading → visual → grid of cards", and
 the eye starts skimming by the second one. Now all three pillars use the
 **side-by-side** `.split` shape (the camera's zoom cap means a full-width
 canvas mostly holds dead space), differentiated by content and direction:
-graph = interactive framed canvas left + unboxed captions (`.fnotes`);
-search = static modal left + marked list (`.plist`); agents = marked list
-left + static file-tree mock right (`.split.rev`, 400px visual column). The
-flip is deliberate — three visual-left splits in a row read as a repeat.
+graph = unboxed captions (`.fnotes`) + interactive framed canvas on the
+right; search = static modal left + marked list (`.plist`); agents = marked
+list + static chat still on the right (`.split.rev.narrow`, 400px column).
+Visuals go right, left, right: `.split.rev` puts the visual second (text
+first in the markup) and keeps the 560px column the graph explorer needs.
+Two visual-left splits followed by one visual-right was tried and read as a
+slip rather than a rhythm.
 There are no card grids left on the page. Before adding a card anywhere,
 check whether the section it lands in already has a form.
 **The graph split's visual column must stay ≥520px** (it is 560): below that
@@ -360,38 +371,40 @@ One visual per pillar at most, and only one of them moves:
 - Search gets a **static mock** (`.search-still`) that runs no JavaScript —
   every element carries its settled state in the markup. It reuses the demo
   modal's own `.vs-*` classes so the two surfaces cannot drift apart.
-- Agents gets a **static file-tree mock** (`.ftree`) of Obsidian's explorer
-  showing the agent's folders, because the section's one claim is "everything
-  it knows is a note" and a tree is that claim made visible. The headline
-  says **assistant**, not agent, and says where it lives ("An assistant that
-  lives in your vault"): the eyebrow keeps the plugin's name for the feature,
-  but a first-time reader may not know what an agent is, and a headline that
-  only states the claim ("Everything it knows is a note") was judged weak for
-  the same reason — it assumes you already know what "it" is. It used to be
-  four cards (Memory, Skills, Connections, History) with no visual, which was
-  four unrelated nouns and the only pillar with nothing to look at. Every name
-  in the tree is a real default — `Agents/` with `Memories/`, `Skills/` and
-  one folder per agent holding `AGENT.md` (`agentPaths.ts`), the default
-  agent "S2B Agent" (`dataStore` `createDefaultAgent`), the bundled skill
-  folders (`src/skills/defaults/`), and `Chats/` (`targetFolder`) holding a
-  `.chat` file. Obsidian hides `.md` and badges other extensions, so AGENT
-  and SKILL carry no suffix and the chat carries a CHAT tag. Row metrics are
-  measured off the live explorer (see the CSS comment); re-measure rather than
-  eyeball if Obsidian's explorer changes. The memory note and chat are named
-  for the demo's story. Four points: memory, skills and chats are the "it's a
-  file" claims the tree shows, and plugin integrations (Dataview, Tasks,
-  TaskNotes from `CURATED_PLUGIN_INTEGRATIONS`; Canvas and Bases as seeded
-  core-plugin skills; auto-discovery of any plugin exposing `api`) is the
-  fourth, with a seeded `dataview` skill folder in the tree as its trace.
+- Agents gets a **static chat still** (`.chat-still`): the demo's chat pane
+  frozen on one exchange, reusing the demo's own classes (`.v-chat`, `.msg`,
+  `.act`, `.msg-ai`, `.pcb`, the composer) so it cannot drift from the demo
+  window. Every activity line is a real tool summary from
+  `toolSummaryModel.ts` — past-tense label, then `, ` and the outcome:
+  "Loaded skill explore-vault", "Searched notes for “lecture”, found 4
+  notes", "Read Lecture 8 — Sleep, 61 lines". The skill load is on show
+  because Skills is a point beside it. The staged edit is an **Update**
+  because that is the only badge `landing.css` styles; the count wording is
+  the real bar's. Its story (flashcards from two lectures into "Week 7
+  review") is deliberately not the demo's. Two earlier visuals were pulled:
+  four cards (no visual at all, four unrelated nouns) and a file-tree mock
+  of the agent's folders (`Agents/Memories`, `Skills/…/SKILL.md`, `Chats/`)
+  — truthful, but it read as ugly, and "a chat repeats the demo" applies
+  equally to the graph and search stills. The headline says **assistant**,
+  not agent, and says where it lives ("An assistant that lives in your
+  vault"): the eyebrow keeps the plugin's name for the feature, but a
+  first-time reader may not know what an agent is, and a headline that only
+  states a claim ("Everything it knows is a note") assumes you already know
+  what "it" is. Four points, named as the plugin names them: Memory
+  (**not opt-in any more** — the plugin removed `memoryEnabled` in data
+  migration v9→v10; an agent takes part iff its AGENT.md keeps its
+  `# Memory` section — so never write "opt in"), Skills (the four core
+  skill folders in `src/skills/defaults/`), Chats (`.chat` files in
+  `targetFolder`, indexed, embeddable, branching), Integrations (Dataview,
+  Tasks, TaskNotes from `CURATED_PLUGIN_INTEGRATIONS`; Canvas and Bases as
+  seeded core-plugin skills; auto-discovery of any plugin exposing `api`).
   Approval lives in the lede (the demo *is* that feature); MCP, images/PDFs,
-  helper agents and parallel chats are the quiet `.fmore` line. **Memory is not opt-in any more** — the plugin
-  removed `memoryEnabled` (data migration v9→v10); an agent takes part iff
-  its AGENT.md keeps its `# Memory` section — so never write "opt in" here.
-  The marks carry Lucide glyphs: `message-square` is the chat view's own icon
-  (`Chat.ts` → `getIcon`) and `puzzle` is the plugin's own fallback glyph for
-  a plugin (`getPluginIcon`); `brain` and `graduation-cap` are chosen, since
-  memory and skills are text-headed settings sections with no glyph in the
-  app. Avoid `git-fork`, which the demo already uses for the graph-selection
+  subagents and parallel chats are the quiet `.fmore` line. The marks carry
+  Lucide glyphs: `message-square` is the chat view's own icon (`Chat.ts` →
+  `getIcon`) and `puzzle` is the plugin's own fallback glyph for a plugin
+  (`getPluginIcon`); `brain` and `graduation-cap` are chosen, since memory
+  and skills are text-headed settings sections with no glyph in the app.
+  Avoid `git-fork`, which the demo already uses for the graph-selection
   chip.
 
 ### Section backgrounds
@@ -401,7 +414,7 @@ From the demo down, sections **strictly alternate** plain and tinted
 agents tinted, privacy plain, final CTA tinted. The rule exists because the
 page once ran three plain sections, one band, two plain, one band, which
 read as arbitrary. Anything that sits on a tinted band has to lift off it:
-the granularity explorer's frame uses `--bg`, the agents file tree uses the
+the granularity explorer's frame uses `--bg`, the agents chat still uses the
 Obsidian background token. Anything with `--bg-2` fills of its own — the privacy
 claim cards — belongs on a plain section. If you add or
 remove a section, re-alternate the whole run rather than tinting the new one

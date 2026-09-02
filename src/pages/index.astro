@@ -651,14 +651,30 @@ const starLabel =
 	      </p>
 	    </div>
 
-	    {/* Side by side like the search section, visual left for consistency —
-	        the camera's zoom cap (the plugin's 1.3×) means a compact layout
-	        never magnifies to fill a wide canvas, so the full-width frame
-	        carried mostly dead space; the captions now use it instead.
+	    {/* Side by side like the search section — the camera's zoom cap (the
+	        plugin's 1.3×) means a compact layout never magnifies to fill a
+	        wide canvas, so the full-width frame carried mostly dead space; the
+	        captions now use it instead. Visual on the RIGHT (`.split.rev`,
+	        captions first in the markup): the three pillars go right, left,
+	        right, which reads as a rhythm where left, left, right read as a
+	        slip.
 	        The visual column must stay ≥520px: below that the explorer caps
 	        the slider's range (eight labelled topics are unreadable narrower),
 	        and desktop would silently lose the Finest level. */}
-	    <div class="split">
+	    <div class="split rev">
+	    {/* Four captions, one per graph verb, stacked beside the explorer.
+	        Immerse deliberately POINTS AT the demo rather than re-explaining
+	        it — the demo's second beat is the feature in motion, and this
+	        caption is the index entry for readers who reached this section
+	        without watching it. (Same principle that dropped the agents grid's
+	        Approval card, applied the other way: Approval was told three
+	        times, immersion was told once.) */}
+	    <div class="fnotes">
+	      <div class="fnote"><span class="k">Topics</span><h4>It works them out for you</h4><p>Related notes are grouped and colour-coded, with an outline drawn around each topic. Nothing to set up: it reads the links and the writing itself.</p></div>
+	      <div class="fnote"><span class="k">Immerse</span><h4>Step inside a topic</h4><p>Circle a topic and the graph rebuilds around just those notes, and finer topics appear inside it. Watch it happen in the demo above.</p></div>
+	      <div class="fnote"><span class="k">Names</span><h4>Topics that name themselves</h4><p>Ask once and each topic gets a name from what's in it. Names are remembered, so it doesn't re-do work it has already done.</p></div>
+	      <div class="fnote"><span class="k">Overview</span><h4>Fold it down to the shape</h4><p>Collapse every topic to a single point when you want the whole vault at a glance, then open the one you care about.</p></div>
+	    </div>
 	    {/* The page's only visitor-driven surface. Three controls, all mirrors
 	        of the graph's own: the Granularity slider, the wand that shows/
 	        hides the detected topics (physical in the plugin: hiding them
@@ -732,19 +748,6 @@ const starLabel =
 
 	    {/* Unboxed on purpose: these are captions to the explorer beside them,
 	        not peers of it — boxes here would read as another card grid. */}
-	    {/* Four captions, one per graph verb, stacked beside the explorer.
-	        Immerse deliberately POINTS AT the demo rather than re-explaining
-	        it — the demo's second beat is the feature in motion, and this
-	        caption is the index entry for readers who reached this section
-	        without watching it. (Same principle that dropped the agents grid's
-	        Approval card, applied the other way: Approval was told three
-	        times, immersion was told once.) */}
-	    <div class="fnotes">
-	      <div class="fnote"><span class="k">Topics</span><h4>It works them out for you</h4><p>Related notes are grouped and colour-coded, with an outline drawn around each topic. Nothing to set up: it reads the links and the writing itself.</p></div>
-	      <div class="fnote"><span class="k">Immerse</span><h4>Step inside a topic</h4><p>Circle a topic and the graph rebuilds around just those notes, and finer topics appear inside it. Watch it happen in the demo above.</p></div>
-	      <div class="fnote"><span class="k">Names</span><h4>Topics that name themselves</h4><p>Ask once and each topic gets a name from what's in it. Names are remembered, so it doesn't re-do work it has already done.</p></div>
-	      <div class="fnote"><span class="k">Overview</span><h4>Fold it down to the shape</h4><p>Collapse every topic to a single point when you want the whole vault at a glance, then open the one you care about.</p></div>
-	    </div>
 	    </div>
 	  </div>
 	</section>
@@ -824,34 +827,29 @@ const starLabel =
 	          plugin's own name for the feature, but a first-time reader may
 	          not know what an agent is. The headline has to say what it is. */}
 	      <h2>An assistant that lives in your vault</h2>
+	      {/* Factual register, not pitch: name the plugin's features by their
+	          own names (Memory, Skills, Chats, Integrations) and say what each
+	          does. The reader is choosing a tool. */}
 	      <p>
-	        Ask it about your notes, or hand it the editing. Nothing about it
-	        is hidden: its memory, its skills, its own instructions and every
-	        chat are files in your vault. The one thing it can't do is change a
-	        note without asking.
+	        Each agent is a chat with tools for reading and editing your vault.
+	        Its instructions, memory, skills and every conversation are files in
+	        that vault, and any change it makes to a note is staged for your
+	        approval.
 	      </p>
 	    </div>
-	    {/* Points first, tree second: the other two pillars put the visual on the
-	        left, so this one flips (`.split.rev`), which gives the run of three a
-	        rhythm instead of a repeat. The tree is a static mock of Obsidian's
-	        file explorer — like the search still it runs no JS. Every name in it
-	        is a real default: `Agents/` (agentPaths.ts DEFAULT_AGENT_FOLDER) with
-	        its fixed `Memories/` and `Skills/` subfolders, `S2B Agent` (the
-	        default agent, dataStore createDefaultAgent) holding its AGENT.md,
-	        the bundled core skill folders (src/skills/defaults/), and `Chats/`
-	        (dataStore targetFolder) holding a `.chat` file — Obsidian shows
-	        non-markdown files with an extension badge and hides `.md`, which is
-	        why AGENT and SKILL carry no suffix and the chat carries CHAT. The
-	        memory note and the chat are named for the demo's story so the tree
-	        reads as its aftermath. Row metrics are measured off the live
-	        explorer (13px, 4px 8px padding, 17px per level, 4px radius). */}
-	    <div class="split rev">
+	    {/* Points first, visual second: the other two pillars put the visual on
+	        the left, so this one flips (`.split.rev`), which gives the run of
+	        three a rhythm instead of a repeat. The visual is a static chat still
+	        (below). A file-tree mock of the agent's folders was tried here and
+	        pulled: truthful, but it read as ugly, and the argument that a chat
+	        would repeat the demo applies just as much to the graph and search
+	        stills, which restate the demo's other two panes. */}
+	    <div class="split rev narrow">
 	      <div>
 	        {/* Four points, not four cards: memory, skills and chats are the
-	            "it's a file" claims the tree shows, and plugin integrations are
-	            the fourth because they are what makes the agent part of the
-	            vault rather than a chat beside it (the seeded `dataview` skill
-	            folder in the tree is that point's trace). Approval is in the
+	            "it's a file" claims, and plugin integrations are the fourth
+	            because they are what makes the agent part of the vault rather
+	            than a chat beside it. Approval is in the
 	            lede (and the demo IS that feature); MCP, images/PDFs, helpers
 	            and parallel chats are the quiet line below. The marks carry the same
 	            Lucide glyphs the cards had — message-square is the plugin's own
@@ -863,42 +861,71 @@ const starLabel =
 	            <path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z"/>
 	            <path d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z"/>
 	            <path d="M15 13a4.5 4.5 0 0 1-3-4 4.5 4.5 0 0 1-3 4"/>
-	          </svg></span><span><strong>It remembers in notes.</strong> What it learns about your projects goes into a Memories folder as ordinary notes. Read them, edit them, delete the ones you disagree with.</span></li>
+	          </svg></span><span><strong>Memory.</strong> What it learns is written to notes in the Memories folder, shared by all agents. Edit or delete them like any other note.</span></li>
 	          <li><span class="ck ck-ic"><svg class="pic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
 	            <path d="M21.42 10.922a1 1 0 0 0-.019-1.838L12.83 5.18a2 2 0 0 0-1.66 0L2.6 9.08a1 1 0 0 0 0 1.832l8.57 3.908a2 2 0 0 0 1.66 0z"/>
 	            <path d="M22 10v6"/><path d="M6 12.5V16a6 3 0 0 0 12 0v-3.5"/>
-	          </svg></span><span><strong>Teach it by writing a note.</strong> It comes knowing how to explore your vault, edit notes and search the web. Each skill is a folder with one note in it, and yours go in the same place.</span></li>
+	          </svg></span><span><strong>Skills.</strong> Exploring the vault, editing notes, managing skills and web search ship as core skills. Each is a folder holding one SKILL note; add your own alongside, or have the agent write one.</span></li>
 	          <li><span class="ck ck-ic"><svg class="pic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
 	            <path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z"/>
 	            <path d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z"/>
 	            <path d="M15 13a4.5 4.5 0 0 1-3-4 4.5 4.5 0 0 1-3 4"/>
-	          </svg></span><span><strong>Every chat is a file.</strong> Conversations are saved in your vault, so they sync, turn up in search and can be embedded in a note. Rewrite a question and the old thread stays.</span></li>
+	          </svg></span><span><strong>Chats.</strong> Every conversation is a file in the Chats folder: synced with the vault, indexed for search, embeddable in a note. Editing an earlier message branches the thread instead of overwriting it.</span></li>
 	          {/* `puzzle` — the plugin's own fallback glyph for a plugin
 	              (pluginIntegrations.ts getPluginIcon). Facts: CURATED_PLUGIN_INTEGRATIONS
 	              is Dataview, Tasks, TaskNotes; canvas and bases are seeded core-plugin
 	              skills; any enabled plugin exposing `api` is auto-discovered. */}
-	          <li><span class="ck ck-ic"><svg class="pic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15.39 4.39a1 1 0 0 0 1.68-.474 2.5 2.5 0 1 1 3.014 3.015 1 1 0 0 0-.474 1.68l1.683 1.682a2.414 2.414 0 0 1 0 3.414L19.61 15.39a1 1 0 0 1-1.68-.474 2.5 2.5 0 1 0-3.014 3.015 1 1 0 0 1 .474 1.68l-1.683 1.682a2.414 2.414 0 0 1-3.414 0L8.61 19.61a1 1 0 0 0-1.68.474 2.5 2.5 0 1 1-3.014-3.015 1 1 0 0 0 .474-1.68l-1.683-1.682a2.414 2.414 0 0 1 0-3.414L4.39 8.61a1 1 0 0 1 1.68.474 2.5 2.5 0 1 0 3.014-3.015 1 1 0 0 1-.474-1.68l1.683-1.682a2.414 2.414 0 0 1 3.414 0z"/></svg></span><span><strong>It works with your other plugins.</strong> Ask about overdue tasks and it asks the Tasks plugin directly. Dataview, Tasks and TaskNotes are ready to go, it reads and writes canvases and Bases, and any plugin with a public API can be switched on per agent.</span></li>
+	          <li><span class="ck ck-ic"><svg class="pic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15.39 4.39a1 1 0 0 0 1.68-.474 2.5 2.5 0 1 1 3.014 3.015 1 1 0 0 0-.474 1.68l1.683 1.682a2.414 2.414 0 0 1 0 3.414L19.61 15.39a1 1 0 0 1-1.68-.474 2.5 2.5 0 1 0-3.014 3.015 1 1 0 0 1 .474 1.68l-1.683 1.682a2.414 2.414 0 0 1-3.414 0L8.61 19.61a1 1 0 0 0-1.68.474 2.5 2.5 0 1 1-3.014-3.015 1 1 0 0 0 .474-1.68l-1.683-1.682a2.414 2.414 0 0 1 0-3.414L4.39 8.61a1 1 0 0 1 1.68.474 2.5 2.5 0 1 0 3.014-3.015 1 1 0 0 1-.474-1.68l1.683-1.682a2.414 2.414 0 0 1 3.414 0z"/></svg></span><span><strong>Integrations.</strong> Enable another plugin for an agent and it can call that plugin's API directly. Dataview, Tasks and TaskNotes come with ready skills, Canvas and Bases files are read and written with the normal tools, and any plugin exposing an API is picked up automatically.</span></li>
 	        </ul>
 	        <p class="fmore fmore-left">
-	          It also connects to outside tools and sources (via MCP), reads
-	          images and PDFs, hands focused jobs to helper agents with their own
-	          instructions, and runs as many chats side by side as you like.
+	          Also: MCP servers, image and PDF attachments, subagents with their
+	          own instructions, and several chats running in parallel.
 	        </p>
 	      </div>
-	      <div class="ftree" aria-label="The agent's folders in an Obsidian vault">
-	        <div class="ft-row ft-folder" style="--lvl:0"><i class="ft-chev"></i>Agents</div>
-	        <div class="ft-row ft-folder" style="--lvl:1"><i class="ft-chev"></i>Memories</div>
-	        <div class="ft-row" style="--lvl:2">Exam prep</div>
-	        <div class="ft-row ft-folder" style="--lvl:1"><i class="ft-chev"></i>Skills</div>
-	        <div class="ft-row ft-folder" style="--lvl:2"><i class="ft-chev"></i>explore-vault</div>
-	        <div class="ft-row" style="--lvl:3">SKILL</div>
-	        <div class="ft-row ft-folder closed" style="--lvl:2"><i class="ft-chev"></i>dataview</div>
-	        <div class="ft-row ft-folder closed" style="--lvl:2"><i class="ft-chev"></i>manage-notes</div>
-	        <div class="ft-row ft-folder closed" style="--lvl:2"><i class="ft-chev"></i>web</div>
-	        <div class="ft-row ft-folder" style="--lvl:1"><i class="ft-chev"></i>S2B Agent</div>
-	        <div class="ft-row" style="--lvl:2">AGENT</div>
-	        <div class="ft-row ft-folder" style="--lvl:0"><i class="ft-chev"></i>Chats</div>
-	        <div class="ft-row" style="--lvl:1">Exam checklist<span class="ft-tag">chat</span></div>
+	      {/* A static chat still — like the search still it runs no JS and reuses
+	          the demo's own classes (.v-chat, .msg, .act, .msg-ai, .pcb, the
+	          composer), so it cannot drift from the demo window. Every activity
+	          line is a real tool summary: label + ", " + outcome, past tense once
+	          done (toolSummaryModel.ts — "Loaded skill <name>", "Searched notes
+	          for “q”, found N notes", "Read <note>, N lines"). The story is not
+	          the demo's: a different ask, different notes, and the skill load
+	          on show because Skills is a point beside it. The staged edit is an
+	          Update (the only badge the site styles) with the real bar's count
+	          wording. Ids are omitted — the demo's composer owns them. */}
+	      <div class="chat-still" aria-label="A conversation in the plugin's chat pane">
+	        <aside class="v-chat">
+	          <div class="v-chat-body">
+	            <div class="msg on"><div class="msg-user">Make flashcards from this week's lectures</div></div>
+	            <div class="msg on"><div class="act">Loaded skill <em>explore-vault</em></div></div>
+	            <div class="msg on"><div class="act">Searched notes for <em>“lecture”</em>, found 4 notes</div></div>
+	            <div class="msg on"><div class="act">Read <em>Lecture 7 — Memory</em>, 84 lines</div></div>
+	            <div class="msg on"><div class="act">Read <em>Lecture 8 — Sleep</em>, 61 lines</div></div>
+	            <div class="msg on"><div class="msg-ai">Twelve cards, one per key term across both lectures. Added them to your review note:</div></div>
+	          </div>
+	          <div class="v-pending">
+	            <div class="pcb on open">
+	              <div class="pcb-sum"><div class="pcb-sum-l">
+	                <svg class="pcb-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v5h5"/><path d="M12 10v6M9 13h6"/></svg>
+	                <span class="pcb-count">1 update pending</span></div>
+	                <div class="pcb-sum-r">
+	                  <span class="pcb-act pcb-accept"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 13 4 4L19 7"/></svg>Accept All</span>
+	                  <span class="pcb-act pcb-reject"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>Reject All</span>
+	                  <span class="pcb-chev" aria-hidden="true">▸</span>
+	                </div>
+	              </div>
+	              <div class="pcb-list"><div class="pcb-entry"><span class="pcb-tgl" aria-hidden="true">▸</span><span class="pcb-badge">Update</span><span class="pcb-path">Week 7 review</span></div></div>
+	            </div>
+	          </div>
+	          <div class="v-composer">
+	            <div class="v-comp-input"><span class="v-comp-ph">Ask about your notes…</span></div>
+	            <div class="v-comp-row">
+	              <span class="v-plus" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5v14"/></svg></span>
+	              <span class="v-agent"><svg class="v-agent-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z"/><path d="M20 2v4"/><path d="M22 4h-4"/><circle cx="4" cy="20" r="2"/></svg>S2B Agent</span>
+	              <span class="v-model">Your model</span>
+	              <span class="v-send" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg></span>
+	            </div>
+	          </div>
+	        </aside>
 	      </div>
 	    </div>
 	  </div>

@@ -1142,43 +1142,27 @@
      the points rather than centring under the whole section. */
   .fmore.fmore-left { text-align: left; margin-top: 22px; }
 
-  /* Points left, visual right — the agents pillar flips the split so three
-     side-by-side pillars in a row don't all read the same. The visual column
-     is narrower than the 560px the other two use: a file tree is mostly
-     whitespace past ~400px. */
-  .split.rev { grid-template-columns: minmax(0, 1fr) minmax(0, 400px); }
+  /* Text left, visual right (text first in the markup). Graph and agents
+     use it, search does not, so the three pillars go right, left, right.
+     The visual column matches the plain split's 560px — the graph explorer
+     needs ≥520px or it caps the slider's range. `.narrow` is the agents
+     chat still: the demo's chat pane is 320px, and a 560px transcript would
+     read as a document, not a chat. */
+  .split.rev { grid-template-columns: minmax(0, 1fr) minmax(0, 560px); }
+  .split.rev.narrow { grid-template-columns: minmax(0, 1fr) minmax(0, 400px); }
 
-  /* File-tree mock: Obsidian's file explorer, measured live (13px text,
-     4px 8px row padding, 24px base inset plus 17px per level, 4px row
-     radius, muted text for files and folders alike). Static — every state
-     is in the markup. On the tinted band the panel uses the Obsidian
-     background, which lifts it the same way the demo window lifts. */
-  .ftree {
-    border: 1px solid var(--border); border-radius: 14px;
-    background: var(--ob-bg); padding: 12px 10px;
-    font-size: 13px; line-height: 16.9px; color: var(--ob-text-2);
-    user-select: none;
+  /* Chat still: the demo's chat pane, frozen. It reuses .v-chat and the
+     transcript classes wholesale, so only the frame and the width pin need
+     saying here. The pane pins its children to --chat-w for the demo's
+     slide; at 100% that pin is a no-op and the composer's calc still
+     subtracts its own margins. On the tinted band the Obsidian background
+     lifts it the same way the demo window lifts. */
+  .chat-still {
+    border: 1px solid var(--border); border-radius: 14px; overflow: hidden;
+    background: var(--ob-bg);
   }
-  .ft-row {
-    position: relative; display: flex; align-items: center;
-    padding: 4px 8px 4px calc(24px + var(--lvl, 0) * 17px);
-    border-radius: 4px; white-space: nowrap;
-  }
-  /* Obsidian's collapse chevron sits inside the row's inset, 20px left of
-     the label. Drawn with borders rather than an SVG per row. */
-  .ft-chev {
-    position: absolute; left: calc(24px + var(--lvl, 0) * 17px - 17px); top: 50%;
-    width: 6px; height: 6px; margin-top: -5px;
-    border-right: 1.6px solid currentColor; border-bottom: 1.6px solid currentColor;
-    transform: rotate(45deg); opacity: .7;
-  }
-  .ft-folder.closed .ft-chev { transform: rotate(-45deg); margin-top: -3px; }
-  /* Obsidian tags non-markdown files with their extension and hides `.md`. */
-  .ft-tag {
-    margin-left: 8px; padding: 1px 5px; border-radius: 3px;
-    font-size: 9.5px; line-height: 13px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase;
-    background: var(--ob-surface); color: var(--ob-text-2);
-  }
+  .chat-still .v-chat { --chat-w: 100%; border-left: none; }
+  .chat-still .v-chat-body { padding: 16px 14px 12px; }
 
   /* Unboxed feature notes — feature cards without the frame.
      Used where the section already has a strong visual and the text is its
@@ -1389,7 +1373,7 @@
     /* The flipped split stacks visual-first too, so all three pillars read
        the same way on a phone. Named explicitly: `.split.rev` outranks
        `.split`, so the one-column rule above alone leaves it two columns. */
-    .split.rev { grid-template-columns: minmax(0, 1fr); }
+    .split.rev, .split.rev.narrow { grid-template-columns: minmax(0, 1fr); }
     .split.rev > :first-child { order: 2; }
     .split .fnotes {
       grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
