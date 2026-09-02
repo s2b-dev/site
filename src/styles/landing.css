@@ -284,12 +284,6 @@
   .cta-row { display: flex; gap: 11px; justify-content: center; flex-wrap: wrap; }
   .cta-row .btn { padding: 11px 21px; font-size: 14.5px; }
   .hero-note { margin-top: 16px; font-size: 13px; color: var(--text-3); }
-  .graph-cap {
-    position: absolute; bottom: 18px; left: 50%; transform: translateX(-50%);
-    z-index: 3; font-size: 12px; color: var(--text-3);
-    display: flex; align-items: center; gap: 8px; white-space: nowrap;
-  }
-  .graph-cap .lm { color: var(--accent); }
 
   /* ---------- intro ---------- */
   .intro-on .logo-lockup {
@@ -304,7 +298,7 @@
   .intro-on .logo-lockup path:nth-of-type(3) { animation-delay: 1s; }
   .intro-on .reveal { opacity: 0; animation: fadeUp 0.5s ease-out var(--d,0ms) both; }
   .intro-on nav { opacity: 0; animation: fadeUp 0.5s ease-out 2000ms both; }
-  .intro-on #graph, .intro-on .graph-cap { opacity: 0; animation: fadeIn 1.2s ease-out 1600ms both; }
+  .intro-on #graph { opacity: 0; animation: fadeIn 1.2s ease-out 1600ms both; }
 
   @keyframes lift {
     0%   { transform: translateY(var(--off, 22vh)) scale(1.55); }
@@ -1592,14 +1586,13 @@
     }
   }
   @media (max-width: 480px) {
-    /* Keep the nav on one line: the wordmark carries the brand, and the
-       caption is decorative, so both give way before the buttons do. */
+    /* Keep the nav on one line: the wordmark carries the brand, so the
+       spelled-out name gives way before the buttons do. */
     .brand-name { display: none; }
-    .graph-cap { display: none; }
   }
   @media (prefers-reduced-motion: reduce) {
     .intro-on .logo-lockup, .intro-on .logo-lockup path,
-    .intro-on .reveal, .intro-on nav, .intro-on #graph, .intro-on .graph-cap {
+    .intro-on .reveal, .intro-on nav, .intro-on #graph {
       animation: none !important; opacity: 1 !important; transform: none !important;
     }
     .vs-res, .msg { opacity: 1 !important; transform: none !important; }
