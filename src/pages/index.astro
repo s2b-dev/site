@@ -231,8 +231,21 @@ const starLabel =
 	      Chat with your notes, watch them sort themselves into topics,
 	      and search by meaning, all powered by AI you choose, even fully offline.
 	    </p>
+	    {/* Umami event names throughout carry their placement, because the
+	        whole question these answer is *which* CTA converts — an undivided
+	        "install-click" total would not. `data-umami-event` is declarative
+	        and needs no JS, which matters for the obsidian:// links: they
+	        navigate away (or no-op) the moment they are clicked, so a handler
+	        racing the navigation would drop events.
+
+	        Note what this can and cannot measure. `obsidian://` is a no-op when
+	        Obsidian is not installed, so a click records *intent*, not a
+	        successful hand-off — hence "-intent" in the name. The paired
+	        community.obsidian.md fallbacks are the honest denominator: a high
+	        fallback-to-intent ratio means visitors are arriving without
+	        Obsidian, which is a different problem from the button not working. */}
 	    <div class="cta-row reveal" style="--d:2340ms">
-	      <a class="btn btn-primary" href={OBSIDIAN_URI}>
+	      <a class="btn btn-primary" href={OBSIDIAN_URI} data-umami-event="install-intent-hero">
 	        	        {/* Obsidian's own icon (obsidian.md/favicon.svg) — the faceted
 	            small-size mark, which stays legible where a flat silhouette does not. */}
 	        <svg class="ob-mark" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true">
@@ -242,13 +255,13 @@ const starLabel =
 	        </svg>
 	        Install the plugin
 	      </a>
-	      <a class="btn btn-ghost" href={`https://github.com/${REPO}`}>View source</a>
+	      <a class="btn btn-ghost" href={`https://github.com/${REPO}`} data-umami-event="source-hero">View source</a>
 	    </div>
 	    <p class="hero-note reveal" style="--d:2420ms">
 	      Search and the graph work with no AI setup at all.
 	      <br />
 	      <span class="hero-alt">
-	        No Obsidian yet? <a href={COMMUNITY_URL}>View in the community catalogue</a>
+	        No Obsidian yet? <a href={COMMUNITY_URL} data-umami-event="community-hero">View in the community catalogue</a>
 	      </span>
 	    </p>
 	  </div>
@@ -931,7 +944,7 @@ const starLabel =
 	    <h2>Make your second brain smarter</h2>
 	    <p>Free, open source, private by design. Works on desktop and mobile.</p>
 	    <div class="cta-row">
-	      <a class="btn btn-primary" href={OBSIDIAN_URI}>
+	      <a class="btn btn-primary" href={OBSIDIAN_URI} data-umami-event="install-intent-final">
 	        	        {/* Obsidian's own icon (obsidian.md/favicon.svg) — the faceted
 	            small-size mark, which stays legible where a flat silhouette does not. */}
 	        <svg class="ob-mark" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true">
@@ -941,10 +954,10 @@ const starLabel =
 	        </svg>
 	        Open in Obsidian
 	      </a>
-	      <a class="btn btn-ghost" href="/start/installation/">Read the docs</a>
+	      <a class="btn btn-ghost" href="/start/installation/" data-umami-event="docs-final">Read the docs</a>
 	    </div>
 	    <p class="final-alt">
-	      Or browse it on <a href={COMMUNITY_URL}>community.obsidian.md</a>
+	      Or browse it on <a href={COMMUNITY_URL} data-umami-event="community-final">community.obsidian.md</a>
 	    </p>
 	  </div>
 	</section>
@@ -955,7 +968,7 @@ const starLabel =
 	    <div>
 	      <a href={`https://github.com/${REPO}`}>GitHub</a>
 	      <a href={`https://github.com/${REPO}/issues`}>Issues</a>
-	      <a href={COMMUNITY_URL}>Community plugin</a>
+	      <a href={COMMUNITY_URL} data-umami-event="community-footer">Community plugin</a>
 	      <a href="https://obsidian.md">Obsidian</a>
 	    </div>
 	    {/* The site's analytics, disclosed because this audience checks: an
