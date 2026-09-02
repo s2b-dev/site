@@ -70,10 +70,24 @@ on reasoning and tool-use ability. Frontier cloud models give the best results.
 For a fully local setup, pair a capable Ollama chat model with a strong
 embedding model.
 
+Model names move faster than this page does. For a current comparison,
+[Artificial Analysis](https://artificialanalysis.ai/) ranks chat models on
+quality against price and covers open-weights models alongside hosted ones.
+Weight its agentic and tool-use benchmarks over the headline intelligence
+score — the agent spends most of its time calling tools, and a strong reasoner
+that calls them unreliably is the worse choice here.
+
 For **embedding**, `qwen3-embedding` is a good default. It is multilingual, and
 it is available on Ollama, oMLX and OpenRouter, so the same choice follows you
 between a local and a hosted setup. Sizes go 0.6b / 4b / 8b; `0.6b` is the
 laptop-friendly one.
+
+To compare alternatives, the [MTEB leaderboard](https://huggingface.co/spaces/mteb/leaderboard)
+is the standard reference. Read the **Multilingual** board rather than the
+English one unless your vault is English-only, and compare within a size group
+— it buckets models at `<500M`, `500M–1B`, `1B–5B` and `>5B`, and the overall
+top rows are large hosted models that a local setup can't run. What matters for
+retrieval quality is the best model in the size you can actually afford to run.
 
 :::note
 Some embedding models expect a search query to be phrased differently from the

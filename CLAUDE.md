@@ -645,6 +645,14 @@ hand before each release. Work through this list against the sources above:
 - [ ] `help/faq` — the "What's next?" project board link still resolves and
       the board is still public (the roadmap is deliberately *not* duplicated
       here — it went stale as a hand-written list)
+- [ ] `start/providers` — the two outbound leaderboard links (Artificial
+      Analysis, MTEB) still resolve, and the shape claimed about each still
+      holds: that AA carries agentic/tool-use benchmarks beside its headline
+      intelligence score, and that MTEB has a Multilingual board bucketed by
+      size (`<500M`, `500M–1B`, `1B–5B`, `>5B`). They are linked *instead of*
+      naming current top models, so specific model names must not creep into
+      that prose — that is the drift this indirection exists to avoid.
+      No model rankings are duplicated in `help/faq`; it links here
 - [ ] `search/how-it-works` and `graph/how-it-works` — constants and the
       "verified against" version note on each; sources are listed at the foot
       of both pages

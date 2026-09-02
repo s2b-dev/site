@@ -38,6 +38,9 @@ on reasoning and tool-use ability. For a fully local setup, pair a capable
 Ollama chat model with a strong embedding model such as `qwen3-embedding:0.6b`,
 which is multilingual and runs comfortably on a laptop.
 
+For current rankings — and which benchmarks to weight when reading them — see
+[Choosing a model](/start/providers/#choosing-a-model).
+
 ## Does it work with non-English vaults?
 
 Yes. Response quality varies with the model and the language it reasons in, and
