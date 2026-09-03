@@ -1675,53 +1675,24 @@
        (graph → chat → graph), so instead of a cramped stack, mobile shows
        only the active pane. data-pane is set by landing.js; the height stays
        fixed so switching panes never moves the page. */
-    /* ── The timeline's captions, but not their text ──────────────────────
-       The five captions are ~474px on a phone — over half a screen — and
-       every one of them describes a beat the demo is PLAYING as you read
-       it. On desktop they sit beside the window as a legend; stacked under
-       it on a phone they restate what you just watched, which is the one
-       place on this page where the animation genuinely carries the meaning
-       and the prose is the duplicate. The titles stay: they are the jump
-       targets, and "It groups itself → Dive into a topic → …" is legible
-       as a five-step outline on its own.
-       This is the ONLY content that differs by viewport. Justified because
-       the demo is the redundancy — do not extend the pattern to the pillar
-       lists, whose bold leads ("Topics:", "Immerse:") are bare product
-       nouns that say nothing without their description.
-       Clipped, not `display: none`: each caption is inside the <button>
-       that jumps the storyline, so it is that control's accessible name.
-       Removing it from the tree would leave a screen-reader user five
-       buttons with only a title apiece, and hiding it entirely would drop
-       the phase description a sighted user still gets on desktop. */
-    .steps span {
-      position: absolute; width: 1px; height: 1px;
-      padding: 0; margin: -1px; overflow: hidden;
-      clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
-    }
-    /* ── Re-rhythm the stepper for title-only rows ───────────────────────
-       Dropping the captions leaves 24px rows under an 18px gap — a gap
-       nearly as tall as the row it separates, which reads as five loose
-       scattered lines rather than one list, and leaves the rail segments
-       looking like stray ticks. The row heights below are set by the
-       captions' absence, so the spacing and the rail have to be re-derived
-       for them rather than inherited from the tall-row layout at 1000px.
-       Rows are packed to a 22px dot's rhythm and the title gets a little
-       more presence, so the block reads as a deliberate compact stepper —
-       the demo above is rich, and a thin afterthought under it looks like
-       something failed to render. */
-    .steps { gap: 4px; }
-    .steps strong { margin-bottom: 0; font-size: 15px; }
-    /* Vertical padding turns each row into a touch target (24px of text ->
-       40px) and gives the rail a gap to bridge that is shorter than the
-       row, which is what makes a stepper look connected rather than
-       dotted. */
-    .steps li button { padding-top: 8px; padding-bottom: 8px; }
-    .steps li::before { top: 9px; }
-    /* Re-anchored to the padded row: start just under the 22px dot (9 top
-       + 22 = 31) and run to the next one. The 1000px rule's `top: 28px;
-       bottom: -12px` was measured off ~90px caption rows; at 40px it
-       started below the dot and trailed into the gap. */
-    .steps li:not(:last-child)::after { top: 33px; bottom: -5px; }
+    /* ── The timeline keeps its captions here ────────────────────────────
+       These were clipped on mobile for one release: the five captions are
+       ~280px on a phone and each describes a beat the demo is PLAYING as
+       you read it, so on paper the animation carries the meaning and the
+       prose is the duplicate. In practice it read as broken. Every other
+       section on the page keeps its explanatory text at this width, so the
+       one that dropped it looked thin and unfinished under a demo this
+       rich — and a caption you can read at your own pace is not actually
+       interchangeable with a sentence that scrolls past inside a
+       storyline.
+       So: no content on this page differs by viewport. If the phone page
+       needs to lose height again, take it from the furniture (padding,
+       heading blocks) — that is where the pixels are, and it costs the
+       reader nothing.
+       The rows are ~90px with captions, which is what the 1000px rule's
+       rail geometry (`top: 28px; bottom: -12px`) was measured against, so
+       that inherits correctly again and only the gap is tightened. */
+    .steps { gap: 14px; }
     /* The three dots are desktop window chrome — a phone has no traffic
        lights, so they read as decoration rather than as a window. Without
        them the title has nothing to sit beside, so it centres; the 6px
