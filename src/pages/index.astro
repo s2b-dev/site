@@ -8,6 +8,17 @@ const description =
 const REPO = 's2b-dev/smart-second-brain';
 
 /*
+  The share image is a committed PNG rendered by scripts/og-image.mjs, not a
+  per-page generation — one image for every share of every page. The docs
+  point at the same file through `starlight.head` in astro.config.mjs (this
+  page bypasses Starlight, so the tag has to be repeated here; keep the two
+  URLs identical). `twitter:card` was already `summary_large_image`, which
+  without an image rendered every share as a bare link.
+*/
+const ogAlt =
+	'Your vault, but smarter. A free, open-source Obsidian plugin: chat with your notes, see them grouped by topic, search by meaning.';
+
+/*
   Both install links key off the plugin id from manifest.json, not the repo
   name. (The community registry's `repo` field still points at the pre-rename
   your-papa/obsidian-Smart2Brain — an update has been requested; GitHub
@@ -49,6 +60,49 @@ const starLabel =
 		: stars >= 1000
 			? (stars / 1000).toFixed(1).replace(/\.0$/, '') + 'k'
 			: String(stars);
+
+/*
+  Structured data. This is how crawlers and answer engines learn that the site
+  is *about a free open-source Obsidian plugin* rather than a SaaS landing
+  page — the prose says so, but only to a reader.
+
+  Deliberately omitted: `softwareVersion` and `applicationSubCategory`. The
+  version is in the plugin's manifest.json and would become one more
+  hand-maintained fact that drifts between releases (the site has a checklist
+  for those already, and this is not worth adding to it). What is here is
+  either stable (MIT, free, the two URLs) or derived from constants above, so
+  editing the description or the plugin id updates the markup with it.
+
+  `price: '0'` with `AGGREGATE` omitted is the correct shape for genuinely
+  free software: an Offer with a zero price, not a missing Offer. Verified
+  against the plugin's LICENSE (MIT) and manifest.json (isDesktopOnly: false,
+  hence both desktop and mobile in operatingSystem; `author` is the manifest's
+  two names, not an invented organisation). The category is UtilitiesApplication
+  — schema.org has no "editor plugin" value, and BrowserApplication, the
+  nearest-sounding one, would claim it runs in a browser.
+*/
+const structuredData = {
+	'@context': 'https://schema.org',
+	'@type': 'SoftwareApplication',
+	name: 'Smart Second Brain',
+	description,
+	applicationCategory: 'UtilitiesApplication',
+	operatingSystem: 'Obsidian (Windows, macOS, Linux, iOS, Android)',
+	url: 'https://smartsecondbrain.dev/',
+	downloadUrl: COMMUNITY_URL,
+	license: 'https://opensource.org/licenses/MIT',
+	isAccessibleForFree: true,
+	offers: {
+		'@type': 'Offer',
+		price: '0',
+		priceCurrency: 'USD',
+	},
+	author: [
+		{ '@type': 'Person', name: 'Leo310' },
+		{ '@type': 'Person', name: 'nicobrauchtgit' },
+	],
+	sameAs: [`https://github.com/${REPO}`, COMMUNITY_URL],
+};
 ---
 
 <!doctype html>
@@ -67,7 +121,17 @@ const starLabel =
 		<meta property="og:title" content={title} />
 		<meta property="og:description" content={description} />
 		<meta property="og:url" content="https://smartsecondbrain.dev/" />
+		<meta property="og:image" content="https://smartsecondbrain.dev/og.png" />
+		<meta property="og:image:width" content="1200" />
+		<meta property="og:image:height" content="630" />
+		<meta property="og:image:alt" content={ogAlt} />
 		<meta name="twitter:card" content="summary_large_image" />
+		<meta name="twitter:image" content="https://smartsecondbrain.dev/og.png" />
+
+		{/* set:html, not interpolation — Astro HTML-escapes `{...}` in element
+		    content, which would turn the JSON's quotes into &quot; and leave
+		    crawlers with an unparseable block. */}
+		<script type="application/ld+json" set:html={JSON.stringify(structuredData)} />
 
 		<link rel="preconnect" href="https://fonts.googleapis.com" />
 		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />

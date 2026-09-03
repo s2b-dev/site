@@ -412,6 +412,18 @@ was ported from a hand-written mockup, so:
   Install link targets the final CTA (`#start`), which is the only section
   with an install button.
 - Everything respects `prefers-reduced-motion`.
+- **Share image and structured data.** `public/og.png` is a committed PNG
+  rendered by `scripts/og-image.mjs` (`bun scripts/og-image.mjs`; needs Inter
+  installed locally — librsvg falls back to a serif silently, so look at the
+  output). One image for every page: the landing page tags it in its own
+  `<head>` and the docs through `starlight.head` in `astro.config.mjs`, and
+  the two URLs must stay identical. Its decorative graph follows the hero's
+  rules (plugin hues, every node linked to its hub, degree-driven radius).
+  Re-render when the tokens, wordmark or tagline change. The landing page
+  also carries a `SoftwareApplication` JSON-LD block whose checkable claims
+  (author names, platforms, licence) come from the plugin's `manifest.json`
+  and `LICENSE`; it is emitted with `set:html`, since Astro would escape the
+  JSON's quotes otherwise. `public/robots.txt` only declares the sitemap.
 
 Do not "modernize" this into Starlight components or Tailwind without being
 asked — the visual design is the point.

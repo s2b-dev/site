@@ -45,6 +45,13 @@ export default defineConfig({
 			// that request /favicon.ico without reading the markup.
 			favicon: '/favicon.svg',
 			head: [
+				// Share image, the same committed PNG the landing page uses (rendered by
+				// scripts/og-image.mjs). Starlight emits og:title/description per page
+				// but no image, so shares of docs pages rendered as bare links.
+				{ tag: 'meta', attrs: { property: 'og:image', content: 'https://smartsecondbrain.dev/og.png' } },
+				{ tag: 'meta', attrs: { property: 'og:image:width', content: '1200' } },
+				{ tag: 'meta', attrs: { property: 'og:image:height', content: '630' } },
+				{ tag: 'meta', attrs: { name: 'twitter:image', content: 'https://smartsecondbrain.dev/og.png' } },
 				{
 					tag: 'link',
 					attrs: { rel: 'icon', href: '/favicon.ico', sizes: '32x32' },
