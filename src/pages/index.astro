@@ -892,7 +892,15 @@ const structuredData = {
 	            keys the slider answered, and the same the plugin's graph uses
 	            (↑/↓). Starts at Broad, a middling grouping that can visibly go
 	            both ways. `data-level` is the index into LEVELS. */}
-	        <div class="g-seg" id="granSeg" role="radiogroup" aria-labelledby="granLabel">
+	        {/* `aria-label` as well as `aria-labelledby`: the visible
+	            "Granularity" label is hidden below 820px, where the control
+	            wraps to its own row and the word was left stranded on the
+	            line above, right-of-centre and reading as a caption for the
+	            two icon buttons instead of for these four. `aria-labelledby`
+	            still wins wherever the label is rendered, so this is only the
+	            fallback for the widths that hide it — the group is never
+	            nameless. */}
+	        <div class="g-seg" id="granSeg" role="radiogroup" aria-labelledby="granLabel" aria-label="Granularity">
 	          <button class="g-seg-btn" type="button" role="radio" aria-checked="false" data-level="0" tabindex="-1">Broadest</button>
 	          <button class="g-seg-btn on" type="button" role="radio" aria-checked="true" data-level="1" tabindex="0">Broad</button>
 	          <button class="g-seg-btn" type="button" role="radio" aria-checked="false" data-level="2" tabindex="-1">Fine</button>

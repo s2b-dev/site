@@ -1633,13 +1633,22 @@
        give the canvas less height and let the labels crowd a little rather
        than scaling the whole scene down past legibility. */
     .g-explore canvas { height: 290px; }
-    .g-ctl { flex-wrap: wrap; gap: 10px 12px; padding: 13px 15px 4px; }
-    /* Stay on the row while it fits. The slider this replaced always took a
-       row of its own (`flex: 1 0 100%`) because a short track is hard to
-       drag; a segmented control has no such minimum, so it wraps only when
-       it genuinely runs out of room — which, with the narrow canvas already
-       capping the stops at three, is now ~470px rather than the whole
-       breakpoint. `order: 3` keeps it last either way. */
+    .g-ctl { flex-wrap: wrap; gap: 10px; padding: 13px 15px 4px; }
+    /* ── No "Granularity" label on a narrow toolbar ──────────────────────
+       The label only works while the whole control is one centred row. Once
+       `.g-seg` wraps below it (which it does at these widths), the word is
+       left alone on the line above, sitting right-of-centre next to the
+       wand and chevrons — so it reads as a caption for THOSE two buttons
+       rather than for the four it names, and the group it belongs to looks
+       unlabelled. The four stops are self-describing ("Broadest → Finest"),
+       so the toolbar is three controls in a row and the caption below
+       carries the explanation. The radiogroup keeps its name through the
+       `aria-label` in index.astro; the divider goes with the label, having
+       nothing left to divide. */
+    .g-ctl-label, .g-ctl-div { display: none; }
+    /* Wraps only when it genuinely runs out of room (~470px, since the
+       narrow canvas already caps the stops at three). `order: 3` keeps it
+       last either way. */
     .g-seg { flex: 0 1 auto; order: 3; }
     .g-seg-btn { padding: 6px 9px; }
     .g-cap { padding: 0 15px 14px; }
@@ -1689,9 +1698,30 @@
       padding: 0; margin: -1px; overflow: hidden;
       clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
     }
-    /* Titles carry the row alone now, so the 4px that spaced them off the
-       caption is dead space between rows. */
-    .steps strong { margin-bottom: 0; }
+    /* ── Re-rhythm the stepper for title-only rows ───────────────────────
+       Dropping the captions leaves 24px rows under an 18px gap — a gap
+       nearly as tall as the row it separates, which reads as five loose
+       scattered lines rather than one list, and leaves the rail segments
+       looking like stray ticks. The row heights below are set by the
+       captions' absence, so the spacing and the rail have to be re-derived
+       for them rather than inherited from the tall-row layout at 1000px.
+       Rows are packed to a 22px dot's rhythm and the title gets a little
+       more presence, so the block reads as a deliberate compact stepper —
+       the demo above is rich, and a thin afterthought under it looks like
+       something failed to render. */
+    .steps { gap: 4px; }
+    .steps strong { margin-bottom: 0; font-size: 15px; }
+    /* Vertical padding turns each row into a touch target (24px of text ->
+       40px) and gives the rail a gap to bridge that is shorter than the
+       row, which is what makes a stepper look connected rather than
+       dotted. */
+    .steps li button { padding-top: 8px; padding-bottom: 8px; }
+    .steps li::before { top: 9px; }
+    /* Re-anchored to the padded row: start just under the 22px dot (9 top
+       + 22 = 31) and run to the next one. The 1000px rule's `top: 28px;
+       bottom: -12px` was measured off ~90px caption rows; at 40px it
+       started below the dot and trailed into the gap. */
+    .steps li:not(:last-child)::after { top: 33px; bottom: -5px; }
     /* The three dots are desktop window chrome — a phone has no traffic
        lights, so they read as decoration rather than as a window. Without
        them the title has nothing to sit beside, so it centres; the 6px
@@ -2002,13 +2032,17 @@
     .pcb-sum { flex-wrap: wrap; row-gap: 6px; }
     .pcb-sum-l { flex: 1 0 100%; min-width: 0; }
   }
-  /* Below this the three capped stops no longer fit beside the two icon
-     buttons and the label, so the group wraps. Once wrapped it should own
-     the row and split it evenly — left-packed, a short group under a
-     centred row reads as something that fell off rather than a scale. */
+  /* The three capped stops used to wrap to their own row here, because they
+     did not fit beside the two icon buttons AND the "Granularity" label.
+     The label is hidden below 820px now (see that rule), which frees ~90px
+     — measured at 375px, the toolbar needs 259 of 295 — so all three
+     controls stay on one centred row, which is what the plugin's own
+     toolbar looks like. A wrapped group left the icon buttons centred on a
+     line of their own above it, reading as two unrelated rows.
+     Below 360px the stops are tighter but still fit; the phone cap in
+     landing.js is what keeps this to three. */
   @media (max-width: 470px) {
-    .g-seg { flex: 1 0 100%; }
-    .g-seg-btn { flex: 1; padding: 6px 4px; }
+    .g-seg-btn { padding: 6px 7px; }
   }
   @media (max-width: 480px) {
     /* Keep the nav on one line: the wordmark carries the brand, so the
