@@ -411,24 +411,33 @@ const structuredData = {
 	      {/* data-pane drives the mobile one-pane-at-a-time view; the storyline
 	          moves it graph → chat → graph. Ignored on desktop. */}
 	      <div class="vault-body" data-pane="graph">
-	        <div class="v-main">
-	          {/* Simulated cursor — shown for the demo's direct manipulations
-	              (lassoing, pressing the bar buttons, accepting the diff hunks
-	              in the note), where seeing the hand is what makes them read as
-	              gestures.
+	        {/* Simulated cursor — shown for the demo's direct manipulations
+	            (lassoing, pressing the bar buttons, opening the staged note from
+	            the pending bar, accepting the diff hunks), where seeing the hand
+	            is what makes them read as gestures.
 
-	              It sits in `.v-main`, NOT in `.v-graph`, so that it can paint
-	              above the note. `.v-graph` is `position: relative` and so opens
-	              a stacking context, which trapped the cursor below `.v-note`
-	              (z7) whatever z-index it carried — which is why the approval
-	              clicks used to press their buttons with no hand on them. The
-	              two are the same box (`.v-graph` is the only in-flow child of
-	              `.v-main`; the selection bars and the note are absolutely
-	              positioned), so landing.js's graph-pane coordinates stay valid
-	              unchanged. */}
-	          <span class="v-cursor" id="vCursor" aria-hidden="true">
-	            <svg viewBox="0 0 24 24"><path d="M5 2.5 19 12.2l-6.1.7-3.2 5.6z"/></svg>
-	          </span>
+	            It sits in `.vault-body`, above BOTH panes. It has been moved out
+	            twice, for two reasons both worth keeping:
+
+	            - Not in `.v-graph`: that pane is `position: relative` and so
+	              opens a stacking context, which trapped the cursor below
+	              `.v-note` (z7) whatever z-index it carried — the approval
+	              clicks pressed their buttons with no hand on them.
+	            - Not in `.v-main` either: the pending-changes bar lives in the
+	              CHAT pane, and phase 5 opens the note by clicking that bar's
+	              path link. From `.v-main` that press had no cursor — reachable
+	              on desktop only because nothing clipped the overflow, and
+	              impossible on mobile, where `[data-pane="chat"] .v-main` is
+	              `display: none`.
+
+	            landing.js still works in graph-pane coordinates throughout
+	            (`lassoPoint` returns canvas points); `cursorAt` adds the graph
+	            pane's offset within this box, so the call sites are unchanged
+	            and a hidden `.v-main` correctly contributes zero. */}
+	        <span class="v-cursor" id="vCursor" aria-hidden="true">
+	          <svg viewBox="0 0 24 24"><path d="M5 2.5 19 12.2l-6.1.7-3.2 5.6z"/></svg>
+	        </span>
+	        <div class="v-main">
 	          <div class="v-graph">
 	            <canvas id="miniGraph" aria-hidden="true"></canvas>
 	            {/* The one piece of the real top-right toolbar the story

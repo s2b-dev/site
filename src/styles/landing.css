@@ -587,12 +587,13 @@
 
   /* Simulated cursor. Positioned in graph-pane coordinates by landing.js; the
      transition does the travelling, so moves read as a glide rather than a
-     jump. Shown while the storyline is driving the graph, and again while it
-     accepts the diff hunks in the note.
+     jump. Shown while the storyline is driving the graph, while it opens the
+     staged note from the pending bar, and while it accepts the diff hunks.
      Above the note (z7) so the approval clicks have a visible hand on them,
      but below the notice (z9), which is the window's own toast and should
-     never be pointed at. It lives in `.v-main` rather than `.v-graph` for
-     this to be possible at all — see the markup comment in index.astro. */
+     never be pointed at. It lives in `.vault-body` rather than `.v-graph` or
+     `.v-main` so it can paint over the note AND over the chat pane — see the
+     markup comment in index.astro. */
   .v-cursor {
     position: absolute; top: 0; left: 0; z-index: 8;
     width: 17px; height: 17px; pointer-events: none;

@@ -740,17 +740,35 @@ function roundRectPath(ctx, x, y, w, h, r) {
   }
 
   /* --- simulated cursor ---
-     Only used for the graph's direct manipulations (lassoing, pressing the
-     selection-bar buttons): those are gestures, and showing the hand is what
-     makes them read as such. Typing and the search modal deliberately have no
-     cursor — a caret already carries those, and a hovering arrow is noise. */
+     Used for the demo's direct manipulations: lassoing, the selection-bar
+     buttons, opening the staged note from the pending bar, and the per-hunk
+     approvals. Those are gestures, and showing the hand is what makes them
+     read as such — a button that depresses with nothing on it reads as the
+     app acting, which in the approval phase is the opposite of the point.
+     Typing and the search modal deliberately have no cursor — a caret already
+     carries those, and a hovering arrow is noise. */
   var cursor = document.getElementById('vCursor');
   var graphPane = document.querySelector('.v-graph');
+  var vaultBody = document.querySelector('.vault-body');
   var cursorScale = 1;
+  /* Last position in GRAPH-PANE coordinates. Kept rather than parsed back out
+     of `style.transform`, which now holds the offset value — see cursorAt. */
+  var cursorX = 0, cursorY = 0;
 
+  /* Takes graph-pane coordinates (what `lassoPoint` returns and what
+     `cursorToEl` computes) and writes them in `.vault-body` space, which is
+     where the element actually lives so it can also reach the chat pane. The
+     offset is measured per call: the chat column animates the grid track over
+     0.55s, and on mobile `.v-main` is `display:none` while the chat shows —
+     an empty rect, so the offset is 0 and chat coordinates pass through. */
   function cursorAt(x, y, instant) {
+    cursorX = x; cursorY = y;
+    var g = graphPane.getBoundingClientRect();
+    var b = vaultBody.getBoundingClientRect();
     if (instant) cursor.style.transition = 'opacity .25s ease';
-    cursor.style.transform = 'translate(' + x + 'px,' + y + 'px) scale(' + cursorScale + ')';
+    cursor.style.transform =
+      'translate(' + (x + g.left - b.left) + 'px,' + (y + g.top - b.top) + 'px)' +
+      ' scale(' + cursorScale + ')';
     if (instant) {
       /* Force the jump to land before transitions are restored. */
       void cursor.offsetWidth;
@@ -760,23 +778,24 @@ function roundRectPath(ctx, x, y, w, h, r) {
   function cursorShow() { cursor.classList.add('on'); }
   function cursorHide() { cursor.classList.remove('on'); cursorScale = 1; }
 
-  /** Glide to an element's centre, in graph-pane coordinates. */
-  function cursorToEl(el) {
+  /** Glide to an element's centre. Pass `instant` to jump there instead —
+      for a phase jump, where there is no previous position to glide from. */
+  function cursorToEl(el, instant) {
+    if (!el) return;
     var g = graphPane.getBoundingClientRect();
     var r = el.getBoundingClientRect();
-    cursorAt(r.left - g.left + r.width / 2 - 3, r.top - g.top + r.height / 2 - 2);
+    cursorAt(r.left - g.left + r.width / 2 - 3, r.top - g.top + r.height / 2 - 2, instant);
   }
 
   /** A quick dip, the cursor's half of a button press. */
   function cursorClick() {
     cursorScale = 0.8;
     cursor.classList.add('click');
-    var m = /translate\(([^p]+)px,([^p]+)px\)/.exec(cursor.style.transform);
-    if (m) cursorAt(parseFloat(m[1]), parseFloat(m[2]));
+    cursorAt(cursorX, cursorY);
     timers.push(setTimeout(function () {
       cursorScale = 1;
       cursor.classList.remove('click');
-      if (m) cursorAt(parseFloat(m[1]), parseFloat(m[2]));
+      cursorAt(cursorX, cursorY);
     }, 130));
   }
 
@@ -2323,11 +2342,36 @@ function roundRectPath(ctx, x, y, w, h, r) {
        over the graph, scrolled to the pending change — revealAndScroll(), as
        the real link does. Its own phase because it is the trust moment and
        the last ten seconds of the loop. Each group carries its own Accept, so the two additions
-       are approved individually: per-hunk control is the point of this beat. */
+       are approved individually: per-hunk control is the point of this beat.
+
+       The hand arrives for this press too — it used to depress on its own,
+       which in the phase that is meant to read as the VIEWER acting is the
+       one place that misreads worst. This is also the press that reaches
+       into the CHAT pane, and the reason the cursor lives in `.vault-body`:
+       from the graph pane it could not be drawn over the bar on mobile at
+       all (`[data-pane="chat"] .v-main` is `display: none`).
+
+       The approach is early on purpose. The glide is 0.55s and the previous
+       beat is still streaming (ANSWER2 runs ~1240ms typical but ~2340ms
+       worst case from 35200), so it cannot hang off that callback without
+       the press sliding past the loop's end; moving in while the agent
+       finishes writing is what a watching hand would do anyway.
+       It sits BEFORE `PHASE_AT[5]`, so a jump straight to phase 5 drops it —
+       hence the press places the cursor itself when it finds it hidden,
+       instantly rather than gliding in from a stale position. */
+    at(35700, function () {
+      cursorToEl(document.getElementById('vNoteLink'));
+      cursorShow();
+    });
     at(36300, function () {
       setStep(5);
       var link = document.getElementById('vNoteLink');
+      if (!cursor.classList.contains('on')) {
+        cursorToEl(link, true);
+        cursorShow();
+      }
       if (link) link.classList.add('pressed');
+      cursorClick();
     });
     at(36600, function () {
       var link = document.getElementById('vNoteLink');
@@ -2339,11 +2383,14 @@ function roundRectPath(ctx, x, y, w, h, r) {
       vNote.classList.add('on');
       if (isMobileDemo()) setPane('graph');
     });
-    /* The hand comes back for the approvals. This is the trust moment — the
-       one place the viewer is meant to read the clicks as THEIRS — so the
-       buttons must not depress on their own, the way every other press in the
-       storyline is driven by the cursor. (Typing and the search modal stay
-       cursor-less on purpose; a caret already carries those.) */
+    /* The hand carries straight on from the bar into the approvals — it is
+       already up, so this is a glide across the pane, not a re-entrance.
+       (`cursorShow` is kept for the phase-jump path, which enters phase 5
+       cold.) This is the trust moment — the one place the viewer is meant to
+       read the clicks as THEIRS — so no button in the phase may depress on
+       its own, the way every other press in the storyline is driven by the
+       cursor. (Typing and the search modal stay cursor-less on purpose; a
+       caret already carries those.) */
     at(37100, function () {
       cursorToEl(vNote.querySelector('#vDiff1 .v-diff-acc'));
       cursorShow();

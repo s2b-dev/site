@@ -349,6 +349,22 @@ was ported from a hand-written mockup, so:
   by a different amount per display. `graph.step` now advances `lassoP` by
   elapsed time over `LASSO_MS`, and `cursorTraceLasso` takes the same
   constant. Don't reintroduce a per-frame step here.
+- **No button in the demo may depress with no hand on it**, and the cursor
+  therefore lives in `.vault-body` — above *both* panes. It has been moved
+  out of a narrower parent twice, each time after shipping a handless press:
+  out of `.v-graph`, which is `position: relative` and so trapped it under
+  the note (z7) during the approvals; then out of `.v-main`, which cannot
+  reach the pending bar in the chat pane — the phase-5 press that opens the
+  staged note was handless there, on desktop by luck and on mobile outright
+  (`[data-pane="chat"] .v-main` is `display: none`). landing.js still works
+  in **graph-pane coordinates** throughout (`lassoPoint` returns canvas
+  points); `cursorAt` converts to `.vault-body` space per call, so call
+  sites are unchanged and a hidden `.v-main` contributes a zero offset.
+  It also tracks its own last position (`cursorX/cursorY`) rather than
+  parsing `style.transform` back out, which now holds the converted value.
+  Beats that place the cursor **before** their phase's `PHASE_AT` entry are
+  dropped by a timeline jump, so the press itself must place the cursor when
+  it finds it hidden — see the 36300 beat.
 - The page is written for non-technical readers (students, writers,
   researchers): no mono-font "dev" styling, no jargon in demo content or copy.
   Inter throughout — clean and minimal is the brief; display faces have been
