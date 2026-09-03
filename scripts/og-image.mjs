@@ -94,7 +94,10 @@ const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" 
     <text x="72" y="388" font-size="78" font-weight="700" letter-spacing="-2.2">but <tspan fill="url(#grad)">smarter</tspan></text>
     <text x="72" y="456" font-size="24" font-weight="500" fill="${TEXT_2}">A free, open-source Obsidian plugin.</text>
     <text x="72" y="492" font-size="24" font-weight="500" fill="${TEXT_2}">Chat with your notes, see them grouped by topic, search by meaning.</text>
-    <text x="72" y="562" font-size="22" font-weight="500" fill="${TEXT_3}">smartsecondbrain.dev</text>
+    <!-- A destination, not a slogan. "Get started" on a shared image is a
+         button that cannot be pressed; naming where the plugin is actually
+         installed from is the one line here a reader can act on. -->
+    <text x="72" y="562" font-size="22" font-weight="600" fill="${ACCENT}">Install from Obsidian’s community plugins <tspan fill="${TEXT_3}" font-weight="500">· smartsecondbrain.dev</tspan></text>
   </g>
 </svg>`;
 

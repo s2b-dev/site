@@ -2,8 +2,14 @@
 import '../styles/landing.css';
 
 const title = 'Smart Second Brain \u2014 Your vault, but smarter';
+/*
+  Kept under ~150 characters: Google truncates a meta description around there,
+  and social cards clip earlier still on mobile. The long form ("watch them
+  sort themselves into topics, all powered by AI you choose") said the same
+  three things in 171 and lost its tail in every preview.
+*/
 const description =
-	'A free, open-source Obsidian plugin: chat with your notes, watch them sort themselves into topics, and search by meaning, all powered by AI you choose, even fully offline.';
+	'A free, open-source Obsidian plugin. Chat with your notes, see them grouped by topic, search by meaning. Runs fully offline.';
 
 const REPO = 's2b-dev/smart-second-brain';
 
@@ -16,7 +22,7 @@ const REPO = 's2b-dev/smart-second-brain';
   without an image rendered every share as a bare link.
 */
 const ogAlt =
-	'Your vault, but smarter. A free, open-source Obsidian plugin: chat with your notes, see them grouped by topic, search by meaning.';
+	'Your vault, but smarter. A free, open-source Obsidian plugin. Chat with your notes, see them grouped by topic, search by meaning.';
 
 /*
   Both install links key off the plugin id from manifest.json, not the repo
@@ -118,6 +124,9 @@ const structuredData = {
 		<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
 
 		<meta property="og:type" content="website" />
+		<!-- Starlight emits this on every docs page; this page bypasses it. Without
+		     it Discord and Slack render the card with no source above the title. -->
+		<meta property="og:site_name" content="Smart Second Brain" />
 		<meta property="og:title" content={title} />
 		<meta property="og:description" content={description} />
 		<meta property="og:url" content="https://smartsecondbrain.dev/" />
