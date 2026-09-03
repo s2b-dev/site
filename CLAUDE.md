@@ -521,6 +521,19 @@ One visual per pillar at most, and only one of them moves:
 - Search gets a **static mock** (`.search-still`) that runs no JavaScript —
   every element carries its settled state in the markup. It reuses the demo
   modal's own `.vs-*` classes so the two surfaces cannot drift apart.
+  Both carry the **Semantic match badge** top-right of each result, as
+  `SearchModal` renders it: a `s2b-search-result-badges` row inside the title
+  row, pushed over with `margin-left: auto`, holding an **icon-only**
+  `sparkles` glyph (the label is the tooltip — badges are never text in the
+  real modal). Sizes come from the plugin's stylesheet: a 16px box, a 14px
+  glyph at stroke-width 2.1, `--text-faint` at .78 opacity. Every row in
+  both surfaces earns it, because these results only ever appear *after* the
+  semantic toggle goes on — the keyword pass found nothing. The badge markup
+  is duplicated in two places that must stay identical: `VS_BADGES` in
+  `landing.js` and the two `.vs-res-top` rows in `index.astro`. If a result
+  is ever shown from the lexical pass, it takes a different badge
+  (`getBadgeIconId`: title=`type`, content=`align-left`, tag=`tags`, …),
+  not this one.
 - Agents gets a **static chat still** (`.chat-still`): the demo's chat pane
   frozen on one exchange, reusing the demo's own classes (`.v-chat`, `.msg`,
   `.act`, `.msg-ai`, `.pcb`, the composer) so it cannot drift from the demo

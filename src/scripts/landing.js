@@ -781,12 +781,23 @@ function roundRectPath(ctx, x, y, w, h, r) {
   var stepEls = document.querySelectorAll('#steps li');
 
   /* --- search results --- */
+  /* The Semantic match badge, right-aligned in the title row as
+     SearchModal builds it (`s2b-search-result-badges`, icon-only — its label
+     is the tooltip). Every row here earns it: these results only ever appear
+     after the semantic toggle goes on, since the keyword pass found nothing.
+     Kept identical to the `.search-still` copy in index.astro. */
+  var VS_BADGES =
+    '<span class="vs-res-badges"><span class="vs-badge" title="Semantic" aria-label="Semantic match">' +
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+    '<path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"/>' +
+    '<path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/>' +
+    '</svg></span></span>';
   var resEls = RESULTS.map(function (r, i) {
     var d = document.createElement('div');
     d.className = 'vs-res' + (i === 0 ? ' sel' : '');
     d.innerHTML =
       '<div class="vs-res-top"><span class="vs-res-name">' + r.n + '</span>' +
-      (r.p ? '<span class="vs-res-path">· ' + r.p + '</span>' : '') + '</div>' +
+      (r.p ? '<span class="vs-res-path">· ' + r.p + '</span>' : '') + VS_BADGES + '</div>' +
       '<div class="vs-res-snip">' + r.t + '</div>';
     resultsEl.appendChild(d);
     return d;

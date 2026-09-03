@@ -981,6 +981,21 @@
   .vs-res.sel.picked { background: var(--ob-accent-soft); }
   .vs-res-top { display: flex; align-items: baseline; gap: 7px; margin-bottom: 3px; }
   /* The real result title is 15px at normal weight, not a bolded label. */
+  /* Match badges, right-aligned in the title row exactly as the real modal
+     builds them (SearchModal renders `s2b-search-result-badges` inside the
+     title row, pushed over with `margin-left: auto`). They are icon-only
+     there — the label is the tooltip, not visible text — so these are too.
+     Sizes are the plugin's: a 16px box around a 14px glyph at stroke-width
+     2.1, in --text-faint at .78 opacity. */
+  .vs-res-badges {
+    display: flex; gap: 6px; margin-left: auto; flex-shrink: 0;
+    align-self: center;
+  }
+  .vs-badge {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 16px; height: 16px; color: var(--ob-text-3); opacity: 0.78;
+  }
+  .vs-badge svg { width: 14px; height: 14px; stroke-width: 2.1; }
   .vs-res-name { font-size: 15px; font-weight: 400; }
   .vs-res-path { font-size: 12.5px; color: var(--ob-text-2); }
   .vs-res-snip { font-size: 12.5px; color: var(--ob-text-2); }
