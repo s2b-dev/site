@@ -142,11 +142,21 @@ const structuredData = {
 		    crawlers with an unparseable block. */}
 		<script type="application/ld+json" set:html={JSON.stringify(structuredData)} />
 
-		<link rel="preconnect" href="https://fonts.googleapis.com" />
-		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+		{/* Inter is self-hosted from /public/fonts — see the @font-face block at
+		    the top of landing.css for why (Google Fonts transferred visitor IPs
+		    to Google, which LG München I 3 O 17493/20 made expensive). No
+		    preconnect is needed any more: the files are same-origin.
+
+		    Body text is 400; preloading it means the first paint of the hero
+		    copy does not wait for the CSS to be parsed before the font request
+		    starts. The other weights are discovered normally — they are used
+		    below the fold or in short runs, where a swap is not noticeable. */}
 		<link
-			href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
-			rel="stylesheet"
+			rel="preload"
+			href="/fonts/inter-latin-400-normal.woff2"
+			as="font"
+			type="font/woff2"
+			crossorigin
 		/>
 
 		{/*
@@ -1149,12 +1159,6 @@ const structuredData = {
 	      <a href={`https://github.com/${REPO}/issues`}>Issues</a>
 	      <a href={COMMUNITY_URL} data-umami-event="community-footer">Community plugin</a>
 	      <a href="https://obsidian.md">Obsidian</a>
-	      {/* § 5 DDG requires the Impressum to be reachable in at most two
-	          clicks from every page and labelled recognisably — "Impressum",
-	          not "Legal" or "About" (BGH I ZR 228/03). German on both surfaces
-	          for the same reason, on an otherwise English site. */}
-	      <a href="/legal/impressum/">Impressum</a>
-	      <a href="/legal/datenschutz/">Datenschutz</a>
 	    </div>
 	    {/* The site's analytics, disclosed because this audience checks: an
 	        undisclosed request to an analytics host reads worse than a
@@ -1171,8 +1175,7 @@ const structuredData = {
 	        (Session replay is off; only heatmaps are enabled.) */}
 	    <p class="foot-note">
 	      This site uses cookieless analytics, including anonymous click and
-	      scroll data. The plugin has none.{' '}
-	      <a href="/legal/datenschutz/">Details</a>
+	      scroll data. The plugin has none.
 	    </p>
 	  </div>
 	</footer>

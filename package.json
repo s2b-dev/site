@@ -21,6 +21,7 @@
 		"svelte": "^5.56.10"
 	},
 	"devDependencies": {
+		"@fontsource/inter": "^5.3.0",
 		"@types/d3-force": "^3.0.10"
 	}
 }
