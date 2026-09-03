@@ -356,22 +356,37 @@
 
      The markers are absolute document offsets, NOT fractions: the recorder
      stores `event.pageY` and the viewer places each dot at `top: pageY`
-     (scaled by `bucket.width / viewportW` — a WIDTH ratio; viewport height
+     (scaled by `bucketWidth / viewportW` — a WIDTH ratio; viewport height
      never enters the marker math). So the framed render must put every
      section at the same document offset it had while recording, and the
      hero is the only element that can move them: it is the page's one
-     viewport-sized box, and it sits above everything else.
+     viewport-sized box, and it sits above everything else. Its recorded
+     height was `viewportH - 58`, so that is what it needs here.
 
-     That makes the hero height the single unknown, and `landing.js` solves
-     for it at runtime from the frame height itself — see `fitFramedHero`
-     there. This constant is only the pre-JS value, and the fallback if the
-     recovery cannot run. Do NOT replace the runtime solve with a guessed
-     per-bucket table: viewport height is not a function of viewport width
-     (a 1440-wide window is 700px tall on a laptop and 1300px on a desktop
-     panel), and each 10px of error moves every section below the hero by
-     10px — which is what a "nearly aligned but still drifting" heatmap
-     looks like. */
-  :root.framed .hero { min-height: 732px; }
+     Nothing inside the frame can measure that. `innerWidth` is the bucket
+     width (the frame is rendered at it), and `innerHeight` is
+     `snapshot.pageH` — which `pickSnapshotViewport` in getHeatmap.ts sets to
+     the MAX page height ever recorded at the most-clicked viewport pair, i.e.
+     from whichever build of this page was tallest. A runtime solve
+     (`hero = innerHeight - rest`) therefore returns the recorded hero PLUS
+     however much the page has shrunk since its tallest recording, and it
+     has been tried twice: both times it put that whole difference into the
+     hero and moved every section down by it. Do not add a third.
+
+     So the hero takes a constant per width breakpoint — an estimate of the
+     viewport height behind each of Umami's seven width buckets
+     (`SCREEN_WIDTH_BUCKETS = [320, 375, 425, 768, 1024, 1440, 1920]`),
+     minus the 58px nav. It is a guess, and its error is bounded by the guess
+     (it never amplifies content drift), which is the best an in-frame fix
+     can do. Exact alignment needs the viewer to hand the recorded viewport
+     to the frame — see the analytics notes in CLAUDE.md. */
+  :root.framed .hero { min-height: 642px; }  /* 320 bucket:  700 - 58 */
+  @media (min-width: 360px)  { :root.framed .hero { min-height: 682px; } }  /*  375:  740 */
+  @media (min-width: 400px)  { :root.framed .hero { min-height: 722px; } }  /*  425:  780 */
+  @media (min-width: 700px)  { :root.framed .hero { min-height: 902px; } }  /*  768:  960 */
+  @media (min-width: 1000px) { :root.framed .hero { min-height: 652px; } }  /* 1024:  710 */
+  @media (min-width: 1400px) { :root.framed .hero { min-height: 732px; } }  /* 1440:  790 */
+  @media (min-width: 1900px) { :root.framed .hero { min-height: 882px; } }  /* 1920:  940 */
   #graph {
     position: absolute; inset: 0; width: 100%; height: 100%;
     z-index: 0; display: block;

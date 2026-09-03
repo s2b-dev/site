@@ -3244,75 +3244,19 @@ function roundRectPath(ctx, x, y, w, h, r) {
   });
 })();
 
-/* ---------- framed: recover the recorded hero height ---------- */
-/* Only runs when index.astro's gate has set `framed` (self !== top), which
-   in practice means Umami's heatmap viewer.
+/* ---------- framed: the hero inside Umami's heatmap frame ---------- */
+/* Handled entirely in landing.css (`:root.framed .hero`): a constant per
+   width breakpoint. There is deliberately no script here.
 
-   What has to be reproduced. The recorder stores each click as `event.pageY`
-   — an absolute DOCUMENT offset — and the viewer draws the dot at
-   `top: pageY * (bucket.width / viewportW)`. That scale factor is a WIDTH
-   ratio; viewport height never enters it. So a marker lands correctly iff
-   the element it was clicked on sits at the same document offset now as it
-   did when recorded. The hero is the only box on this page whose height
-   depends on the viewport (`calc(100dvh - 58px)`; the intro's 22vh is a
-   transform, and disabled when framed), and it is above every section — so
-   the hero's height is the ONE unknown that can shift the whole page.
-
-   How it is recovered. Umami sizes the frame with `getSnapshotFrameHeight`,
-   which for this page (always > 1.25x the viewport) returns the recorded
-   `pageH`. So `innerHeight` inside the frame is the recorded page height:
-
-       pageH = recordedHero + rest
-
-   `rest` is everything below the hero. It is not viewport-dependent, so the
-   value we measure now equals the value at record time, PROVIDED we measure
-   at the same width — which we do, since the frame renders at the bucket
-   width and reflow is width-driven. Solving gives the recorded hero back:
-
-       recordedHero = innerHeight - rest
-
-   This is the same equation the first, broken version of this code used, and
-   it is worth being precise about why it is right here and was wrong there.
-   That version applied it to a page whose OWN hero was already `100dvh` of
-   the frame — i.e. `rest` was measured against a hero of ~6700px, on a
-   document whose later sections had been pushed far below where they were
-   recorded. Measuring `rest` is only meaningful once the hero is a sane
-   size, which the CSS constant now guarantees before this runs. The two
-   passes below matter for the same reason: the first pass fixes the hero,
-   the second measures a `rest` that is finally trustworthy.
-
-   Failure is safe: if the arithmetic gives a nonsense value (frame not
-   actually a heatmap frame, content still loading) the CSS constant stands.
-*/
-(function () {
-  if (!document.documentElement.classList.contains('framed')) return;
-  var hero = document.querySelector('.hero');
-  if (!hero) return;
-
-  /* Bounds on a plausible recorded viewport. Umami's narrowest bucket is
-     320px wide, so nothing below a phone; the top end covers a tall desktop
-     panel. Outside this range the measurement is not describing a real
-     browser window and the CSS constant is the better answer. */
-  var MIN_HERO = 380;
-  var MAX_HERO = 1800;
-
-  function fit() {
-    // Measure from the body's own border box, NOT scrollHeight: scrollHeight
-    // is floored at the viewport (here, the ~6700px frame), so it would
-    // report the frame height whenever the content is shorter and `rest`
-    // would silently absorb the entire gap. The nav is sticky, so it is in
-    // flow and correctly counted inside `rest`.
-    var rest = document.body.getBoundingClientRect().height
-             - hero.getBoundingClientRect().height;
-    var target = window.innerHeight - rest;
-    if (target >= MIN_HERO && target <= MAX_HERO) {
-      hero.style.minHeight = target + 'px';
-    }
-  }
-
-  fit(); fit();
-  // Web fonts and the lazy graph canvas can shift `rest` by a few pixels
-  // after first paint; re-solve once everything has settled.
-  window.addEventListener('load', function () { requestAnimationFrame(fit); });
-})();
+   A runtime solve — `hero = innerHeight - rest`, on the theory that the
+   frame height is the recorded page height and `rest` is width-driven —
+   has been written twice and reverted twice. The premise fails on the
+   viewer's side: `innerHeight` is `snapshot.pageH`, which
+   `pickSnapshotViewport` (getHeatmap.ts) sets to the MAX page height ever
+   recorded at the most-clicked viewport pair — i.e. from whichever build of
+   this page was tallest, not from the layout the clicks were made on. The
+   solve then returns the recorded hero plus everything the page has shrunk
+   since, and moves every section down by that amount. A local round-trip
+   test cannot expose this, because it replays the same build it recorded.
+   See the CSS comment for what the frame does and does not expose. */
 
