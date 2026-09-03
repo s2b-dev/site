@@ -67,7 +67,7 @@ export default defineConfig({
 				// layout, so this entry does not reach it.
 				{
 					tag: 'script',
-					content: `(function(){var f=false;try{f=window.self!==window.top}catch(e){f=true}if(f)return;function add(a){var s=document.createElement('script');for(var k in a)s.setAttribute(k,a[k]);document.head.appendChild(s)}add({type:'module',src:'https://static.cloudflareinsights.com/beacon.min.js','data-cf-beacon':'{"token": "303916a95994415190ed79caf5046bde"}'});add({defer:'',src:'https://analytics.leonardheininger.de/script.js','data-website-id':'e178beda-ae04-4f1e-9ac6-3620bfc1107b'})})();`,
+					content: `(function(){var f=false;try{f=window.self!==window.top}catch(e){f=true}if(f)return;function add(a){var s=document.createElement('script');for(var k in a)s.setAttribute(k,a[k]);document.head.appendChild(s)}add({type:'module',src:'https://static.cloudflareinsights.com/beacon.min.js','data-cf-beacon':'{"token": "303916a95994415190ed79caf5046bde"}'});add({defer:'',src:'https://analytics.smartsecondbrain.dev/script.js','data-website-id':'e178beda-ae04-4f1e-9ac6-3620bfc1107b'})})();`,
 				},
 			],
 			// The landing page at "/" is a custom route, not a Starlight page.

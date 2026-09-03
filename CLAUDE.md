@@ -377,7 +377,7 @@ was ported from a hand-written mockup, so:
   `framed`). The analytics gate must run **before** the intro gate, which
   reads its class.
 - **Analytics.** Two cookieless trackers on both surfaces: Cloudflare Web
-  Analytics (beacon) and self-hosted Umami at `analytics.leonardheininger.de`
+  Analytics (beacon) and self-hosted Umami at `analytics.smartsecondbrain.dev`
   (tracker; plus its rrweb recorder for heatmaps on the landing page only —
   ~190KB, and the docs have no layout question worth it). The docs get theirs
   via `starlight.head` in `astro.config.mjs`; the landing page has its own
