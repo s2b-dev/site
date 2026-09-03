@@ -1633,6 +1633,15 @@
     /* Hairlines between rows — `:not(:first-child)` so the card's own
        rounded top edge stays clean. */
     .v-selacts .v-selact:not(:first-child) { border-top: 1px solid var(--ob-border); }
+    /* No shrink on press here. The desktop bar's `scale(0.93)` works on a
+       small pill, but these rows are full-bleed inside the card, so scaling
+       pulls the tinted fill away from the row's own edges and leaves an inset
+       rectangle floating in a gap — the press looks like a smaller, separate
+       object rather than the row lighting up. Obsidian's own touch state is a
+       flat fill and nothing else (`.setting-item.mod-action.mobile-tap` sets
+       `--background-modifier-hover`, no transform), so the row simply fills
+       edge to edge. */
+    .v-selacts .v-selact.pressed { transform: none; }
     /* Zoom is promoted from an icon to a labelled row here; the divider has
        nothing left to separate in a single column. */
     .v-selzoom em { display: inline; }
