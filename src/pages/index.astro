@@ -729,7 +729,7 @@ const structuredData = {
 	              plugin's contribution is finding the topics in that web.
 	              The wand is the toggle the demo presses to do it. */}
 	          <strong>It groups itself</strong>
-	          <span>No folders, no tagging. Your notes are already a web of links, and one press of the wand gathers it into topics, named for what they're about.</span>
+	          <span>No folders, no tagging. Your notes are already a web of links, and one press of the wand gathers it into named topics.</span>
 	        </button>
 	      </li>
 	      {/* "Immerse" is the plugin's own word for the button, but it is
@@ -744,7 +744,7 @@ const structuredData = {
 	      <li data-step="3">
 	        <button type="button">
 	          <strong>Hand it to the agent</strong>
-	          <span>Send a sub-topic straight to the chat. The agent reads those notes and drafts a section, and says what it could not find.</span>
+	          <span>Send a sub-topic straight to the chat. The agent reads those notes, drafts a section, and says what it could not find.</span>
 	        </button>
 	      </li>
 	      <li data-step="4">
@@ -818,15 +818,15 @@ const structuredData = {
 	    <ul class="plist">
 	      {/* `git-fork` — the graph view's own icon in the plugin's settings
 	          tabs (Settings.svelte, `{ id: "graph", icon: "git-fork" }`). */}
-	      <li><span class="ck ck-ic"><svg class="pic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><circle cx="18" cy="6" r="3"/><path d="M18 9v2c0 .6-.4 1-1 1H7c-.6 0-1-.4-1-1V9"/><path d="M12 12v3"/></svg></span><span><strong>Topics:</strong> it works them out for you. Related notes are grouped and colour-coded, with an outline drawn around each one. Nothing to set up — it reads the links and the writing itself.</span></li>
+	      <li><span class="ck ck-ic"><svg class="pic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><circle cx="18" cy="6" r="3"/><path d="M18 9v2c0 .6-.4 1-1 1H7c-.6 0-1-.4-1-1V9"/><path d="M12 12v3"/></svg></span><span><strong>Topics:</strong> it works them out for you. Related notes are grouped, colour-coded and outlined, read from your links and your writing. Nothing to set up.</span></li>
 	      {/* `scan-search` — the Immerse button's own glyph in the graph's
 	          selection bar (SmartGraphView), and the same one the demo draws. */}
-	      <li><span class="ck ck-ic"><svg class="pic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/><circle cx="12" cy="12" r="3"/><path d="m16 16-1.5-1.5"/></svg></span><span><strong>Immerse:</strong> dive into a topic. Circle one and the graph rebuilds around just those notes, and finer topics appear inside it. Watch it happen in the demo above.</span></li>
+	      <li><span class="ck ck-ic"><svg class="pic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/><circle cx="12" cy="12" r="3"/><path d="m16 16-1.5-1.5"/></svg></span><span><strong>Immerse:</strong> dive into a topic. Circle one and the graph rebuilds around just those notes, with finer topics inside. Watch it in the demo above.</span></li>
 	      {/* `sparkles` — the "Name topics with AI" button in GraphControls. */}
-	      <li><span class="ck ck-ic"><svg class="pic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/></svg></span><span><strong>Topic labels:</strong> topics that name themselves. Ask once and each gets a name from what's in it. Names are remembered, so it doesn't re-do work it has already done.</span></li>
+	      <li><span class="ck ck-ic"><svg class="pic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/></svg></span><span><strong>Topic labels:</strong> topics that name themselves. Ask once and each gets a name from what's in it. The names are remembered, not re-done.</span></li>
 	      {/* `chevrons-down-up` — the collapse-all control, as in the toolbar
 	          and on the explorer's own button beside this list. */}
-	      <li><span class="ck ck-ic"><svg class="pic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m7 20 5-5 5 5"/><path d="m7 4 5 5 5-5"/></svg></span><span><strong>Collapse:</strong> fold it down to the shape. Every topic becomes a single point when you want the whole vault at a glance, then open the one you care about.</span></li>
+	      <li><span class="ck ck-ic"><svg class="pic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m7 20 5-5 5 5"/><path d="m7 4 5 5 5-5"/></svg></span><span><strong>Collapse:</strong> fold it down to the shape. Every topic becomes a single point for the whole vault at a glance, then open the one you want.</span></li>
 	    </ul>
 	    {/* The page's only visitor-driven surface. Three controls, all mirrors
 	        of the graph's own: the Granularity slider, the wand that shows/
@@ -899,10 +899,17 @@ const structuredData = {
 	          <button class="g-seg-btn" type="button" role="radio" aria-checked="false" data-level="3" tabindex="-1">Finest</button>
 	        </div>
 	      </div>
+	      {/* One sentence, about the control the reader is most likely to
+	          touch. The wand and the chevrons used to get a clause each here,
+	          but they sit directly above this line with their own tooltips
+	          and `aria-label`s, and naming them in prose was a legend for two
+	          buttons already labelled — 5 rendered lines on a phone for the
+	          caption of a toy. What survives is the only thing the icons do
+	          NOT convey: what moving between levels actually does to the
+	          notes. */}
 	      <p class="g-cap">
 	        Pick a level: the same notes, gathered into fewer big topics or
-	        split into smaller ones. The wand hides the topics; the chevrons
-	        fold each one to a single point.
+	        split into smaller ones.
 	      </p>
 	    </div>
 
@@ -917,11 +924,19 @@ const structuredData = {
 	    <div class="sec-head">
 	      <div class="eyebrow">Search</div>
 	      <h2>Find it the way you remember it</h2>
+	      {/* Kept short: three of this blurb's four clauses were the `.plist`
+	          below it in miniature ("one press searches by" appeared verbatim
+	          in both), and on a phone the two never share a screen — so the
+	          reader met the summary, scrolled, and met it again expanded. The
+	          agent hand-off went because "Ask the agent" is a bullet. What
+	          stays is the pair the list does NOT carry: the keyword-then-
+	          meaning framing, and Create note, which has no bullet of its own
+	          — don't drop that last clause when trimming further, it is the
+	          only mention of the feature on the page. */}
 	      <p>
 	        Start with the words you'd expect. When those aren't the words you
-	        used, one press searches by meaning instead. Either way, the search
-	        can turn straight into a question for the agent, or a new note if
-	        nothing turns up at all.
+	        used, one press searches by meaning instead — or start a new note
+	        if nothing turns up at all.
 	      </p>
 	    </div>
 
@@ -971,10 +986,10 @@ const structuredData = {
 	        which already reads as "points about one thing" rather than "four
 	        separate features". */}
 	    <ul class="plist">
-	      <li><span class="ck ck-ok">✓</span><span><strong>Full-text search:</strong> it reads what's inside. Obsidian's own search only covers your notes; this one also indexes PDF content, so results turn up PDFs Obsidian can't find at all. No AI provider needed.</span></li>
-	      <li><span class="ck ck-ok">✓</span><span><strong>Semantic search:</strong> for when you forgot the words. One press and it searches by what you meant, turning up notes that never use your words. It goes back to normal on your next search.</span></li>
-	      <li><span class="ck ck-ok">✓</span><span><strong>Filters:</strong> narrow it as you type. Type # for a tag or / for a folder and it becomes a chip on the search box. Stack a few to say "in here, tagged that".</span></li>
-	      <li><span class="ck ck-ok">✓</span><span><strong>Ask the agent:</strong> turn a search into a question. Found nothing useful? Send it to the agent instead — it keeps your wording and whatever you'd narrowed it to.</span></li>
+	      <li><span class="ck ck-ok">✓</span><span><strong>Full-text search:</strong> it reads what's inside. Obsidian searches your notes; this also indexes PDF content, turning up PDFs Obsidian can't find at all. No AI provider needed.</span></li>
+	      <li><span class="ck ck-ok">✓</span><span><strong>Semantic search:</strong> for when you forgot the words. One press searches by what you meant, turning up notes that never use your words. Back to normal on the next search.</span></li>
+	      <li><span class="ck ck-ok">✓</span><span><strong>Filters:</strong> narrow it as you type. Type # for a tag or / for a folder and it becomes a chip on the box. Stack them to combine.</span></li>
+	      <li><span class="ck ck-ok">✓</span><span><strong>Ask the agent:</strong> turn a search into a question. Send it to the agent instead, keeping your wording and whatever you'd narrowed it to.</span></li>
 	    </ul>
 	    </div>
 	  </div>
@@ -991,11 +1006,20 @@ const structuredData = {
 	      {/* Factual register, not pitch: name the plugin's features by their
 	          own names (Memory, Skills, Chats, Integrations) and say what each
 	          does. The reader is choosing a tool. */}
+	      {/* Two claims, both of which the `.plist` below does NOT make: what
+	          an agent IS (the headline says where it lives, not what it is),
+	          and that its edits are staged for approval — which stays here
+	          because the demo is that feature and no bullet carries it. The
+	          middle clause went: "its instructions, memory, skills and every
+	          conversation are files in that vault" enumerated Memory, Skills
+	          and Chats immediately above the three bullets that name them,
+	          and at 6 rendered lines this was the tallest text block on the
+	          phone page. "Files in your vault" keeps the claim those bullets
+	          share without listing them twice. */}
 	      <p>
-	        Each agent is a chat with tools for reading and editing your vault.
-	        Its instructions, memory, skills and every conversation are files in
-	        that vault, and any change it makes to a note is staged for your
-	        approval.
+	        Each agent is a chat with tools for reading and editing your vault —
+	        all of it files in that vault, and any change it makes to a note is
+	        staged for your approval.
 	      </p>
 	    </div>
 	    {/* Points first, visual second: the other two pillars put the visual on
@@ -1022,21 +1046,21 @@ const structuredData = {
 	            <path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z"/>
 	            <path d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z"/>
 	            <path d="M15 13a4.5 4.5 0 0 1-3-4 4.5 4.5 0 0 1-3 4"/>
-	          </svg></span><span><strong>Memory:</strong> what it learns is written to notes in the Memories folder, shared by all agents. Edit or delete them like any other note.</span></li>
+	          </svg></span><span><strong>Memory:</strong> what it learns is written to notes in the Memories folder, shared by all agents. Edit or delete them like any note.</span></li>
 	          <li><span class="ck ck-ic"><svg class="pic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
 	            <path d="M21.42 10.922a1 1 0 0 0-.019-1.838L12.83 5.18a2 2 0 0 0-1.66 0L2.6 9.08a1 1 0 0 0 0 1.832l8.57 3.908a2 2 0 0 0 1.66 0z"/>
 	            <path d="M22 10v6"/><path d="M6 12.5V16a6 3 0 0 0 12 0v-3.5"/>
-	          </svg></span><span><strong>Skills:</strong> exploring the vault, editing notes, managing skills and web search ship as core skills. Each is a folder holding one SKILL note; add your own alongside, or have the agent write one.</span></li>
+	          </svg></span><span><strong>Skills:</strong> exploring the vault, editing notes, managing skills and web search ship as core skills — each a folder holding one SKILL note. Add your own, or have the agent write one.</span></li>
 	          <li><span class="ck ck-ic"><svg class="pic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
 	            <path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z"/>
 	            <path d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z"/>
 	            <path d="M15 13a4.5 4.5 0 0 1-3-4 4.5 4.5 0 0 1-3 4"/>
-	          </svg></span><span><strong>Chats:</strong> every conversation is a file in the Chats folder — synced with the vault, indexed for search, embeddable in a note. Editing an earlier message branches the thread instead of overwriting it.</span></li>
+	          </svg></span><span><strong>Chats:</strong> every conversation is a file in the Chats folder — synced, indexed for search, embeddable in a note. Editing an earlier message branches the thread rather than overwriting it.</span></li>
 	          {/* `puzzle` — the plugin's own fallback glyph for a plugin
 	              (pluginIntegrations.ts getPluginIcon). Facts: CURATED_PLUGIN_INTEGRATIONS
 	              is Dataview, Tasks, TaskNotes; canvas and bases are seeded core-plugin
 	              skills; any enabled plugin exposing `api` is auto-discovered. */}
-	          <li><span class="ck ck-ic"><svg class="pic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15.39 4.39a1 1 0 0 0 1.68-.474 2.5 2.5 0 1 1 3.014 3.015 1 1 0 0 0-.474 1.68l1.683 1.682a2.414 2.414 0 0 1 0 3.414L19.61 15.39a1 1 0 0 1-1.68-.474 2.5 2.5 0 1 0-3.014 3.015 1 1 0 0 1 .474 1.68l-1.683 1.682a2.414 2.414 0 0 1-3.414 0L8.61 19.61a1 1 0 0 0-1.68.474 2.5 2.5 0 1 1-3.014-3.015 1 1 0 0 0 .474-1.68l-1.683-1.682a2.414 2.414 0 0 1 0-3.414L4.39 8.61a1 1 0 0 1 1.68.474 2.5 2.5 0 1 0 3.014-3.015 1 1 0 0 1-.474-1.68l1.683-1.682a2.414 2.414 0 0 1 3.414 0z"/></svg></span><span><strong>Integrations:</strong> enable another plugin for an agent and it can call that plugin's API directly. Dataview, Tasks and TaskNotes come with ready skills, Canvas and Bases files are read and written with the normal tools, and any plugin exposing an API is picked up automatically.</span></li>
+	          <li><span class="ck ck-ic"><svg class="pic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15.39 4.39a1 1 0 0 0 1.68-.474 2.5 2.5 0 1 1 3.014 3.015 1 1 0 0 0-.474 1.68l1.683 1.682a2.414 2.414 0 0 1 0 3.414L19.61 15.39a1 1 0 0 1-1.68-.474 2.5 2.5 0 1 0-3.014 3.015 1 1 0 0 1 .474 1.68l-1.683 1.682a2.414 2.414 0 0 1-3.414 0L8.61 19.61a1 1 0 0 0-1.68.474 2.5 2.5 0 1 1-3.014-3.015 1 1 0 0 0 .474-1.68l-1.683-1.682a2.414 2.414 0 0 1 0-3.414L4.39 8.61a1 1 0 0 1 1.68.474 2.5 2.5 0 1 0 3.014-3.015 1 1 0 0 1-.474-1.68l1.683-1.682a2.414 2.414 0 0 1 3.414 0z"/></svg></span><span><strong>Integrations:</strong> enable another plugin for an agent and it can call that plugin's API. Dataview, Tasks and TaskNotes come with ready skills, Canvas and Bases files with the normal tools, and any plugin exposing an API is found automatically.</span></li>
 	        </ul>
 	        <p class="fmore fmore-left">
 	          Also: MCP servers, image and PDF attachments, subagents with their
