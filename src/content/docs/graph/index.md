@@ -29,6 +29,13 @@ them:
 
 The threshold matters more than k for keeping topics clean.
 
+Inferred edges are drawn dashed so they read as distinct from authored links up
+close, but at overview zoom the dashes sit only a few pixels apart and the two
+kinds blur together. **Highlight inferred links** (under Display, off by
+default) draws them in the accent colour instead, so the inferred layer stands
+out at any zoom. It only changes colour — width and dashing are unchanged, and
+it needs Inferred links turned on to have anything to colour.
+
 ## Topics
 
 The graph partitions itself into topics using Leiden community detection, and
