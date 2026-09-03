@@ -1675,19 +1675,29 @@
     .v-chat > .v-pending { width: auto; }
     .v-chat-body { padding: 12px 14px 8px; }
     /* The pending bar's summary row does not fit on one line at phone width:
-       "1 update pending" needs 150px and the Accept All / Reject All group is
-       a further 180 (`flex-shrink: 0`), against ~294px of content box — 44px
-       short. Measure the LEFT group DETACHED when re-deriving this; in place
-       it reports its widest wrapped line (106px), not the 150 it needs, which
-       is the same trap documented at `--chat-w` above.
+       "1 update pending" wants 94px on one line and the Accept All / Reject
+       All group is a further 180 (`flex-shrink: 0`), against ~279px of
+       content box with an 8px gap — 3px short.
        Nothing here can give: both button labels and the count are the
        plugin's own strings, and the real bar has no narrow-width variant to
-       mirror (in Obsidian the chat pane never gets this narrow). So the row
-       breaks as a ROW — buttons drop to their own line under the label —
-       rather than letting the count wrap mid-phrase or ellipsize to
-       "1 update pe…". Every string stays whole and stays true. */
-    .pcb-sum { flex-wrap: wrap; row-gap: 6px; }
-    .pcb-sum-l { flex: 1 0 100%; }
+       mirror (in Obsidian the chat pane never gets this narrow). So the
+       COUNT wraps ("1 update / pending") and the buttons stay beside it on
+       the same row. Every string stays whole and stays true.
+       It used to break as a row instead — `flex-wrap: wrap` with the label
+       at `flex: 1 0 100%`, dropping the buttons to their own line under it.
+       That reads as a blank line's worth of dead space at a glance (it is
+       not — 6px pad, 19px label, 6px row-gap, 22px buttons, 6px pad — but
+       the row's centred 19px label in a 59px box looks like one), and it is
+       9px taller than wrapping the label.
+
+       Below 360px the buttons stack again, because there is genuinely no
+       room: the group is a rigid 180px and the label needs a 72px floor to
+       hold two lines, which with the 8px gap and 20px padding wants 280px
+       of bar — reached at about a 354px viewport (the bar is inset 74px).
+       Forced through at 320 the phrase shatters to three lines and
+       "pending" collides with the green check, so `min-width` buys the two
+       lines and the wrap only applies where they fit. */
+    .pcb-sum-l { flex: 1 1 auto; min-width: 72px; }
     .pcb-sum-r { margin-left: auto; }
     /* ── Mobile selection sheet ─────────────────────────────────────────
        The floating bar is ~610px — nearly twice a phone's width — so on
@@ -1939,6 +1949,15 @@
       content: '✕'; margin-left: auto; flex-shrink: 0;
       color: var(--ob-text-3); font-size: 13px; line-height: 1;
     }
+  }
+  /* Narrowest phones: the pending bar's buttons stack again. See the
+     `.pcb-sum-l` note in the 720px block — the label's 72px two-line floor
+     plus the rigid 180px button group needs ~280px of bar, which a 320px
+     viewport does not have. Without this the phrase breaks to three lines
+     and "pending" runs into the Accept All check. */
+  @media (max-width: 359px) {
+    .pcb-sum { flex-wrap: wrap; row-gap: 6px; }
+    .pcb-sum-l { flex: 1 0 100%; min-width: 0; }
   }
   /* Below this the three capped stops no longer fit beside the two icon
      buttons and the label, so the group wraps. Once wrapped it should own
