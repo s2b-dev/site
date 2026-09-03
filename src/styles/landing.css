@@ -1188,20 +1188,41 @@
     font-size: 11.5px; font-weight: 600;
     background: var(--surface-2); color: var(--text-2); border: 1px solid var(--border-2);
     transition: background .4s ease, color .4s ease, border-color .4s ease;
+    /* The rail now runs dot-centre to dot-centre, i.e. UNDER the dots, and
+       `::after` paints after `::before` by default — so without this the
+       line draws straight through every numbered circle. The dot is opaque,
+       so lifting it above the rail is all that's needed to hide the joins. */
+    z-index: 1;
   }
-  /* Rail segment from this dot toward the next: from just right of this
-     dot (centre + radius + 6px breathing room) to just left of the next
-     dot's centre — the columns are equal 1fr tracks with a 12px gap, so
-     that lands at calc(5px - 50%) from this entry's right edge. Last
-     phase has nowhere to lead. The purple fill is a hard-stop gradient at
-     `--p`, registered above so the sweep can transition; where @property is
-     unsupported the fill lands instantly, which is fine. Under reduced
-     motion `--p` is pinned to 1 below. */
+  /* Rail segment running from THIS dot's centre to the NEXT dot's centre —
+     dot centre to dot centre, with no inset at either end, so consecutive
+     segments meet exactly under each dot and the five entries share one
+     unbroken line. The columns are equal 1fr tracks with a 12px GAP, and the
+     next dot's centre is half a column plus that whole gap beyond this
+     entry's right edge — hence calc(-12px - 50%). Getting the gap term wrong
+     leaves a hairline of background at each junction, which is the very
+     thing this rule exists to remove.
+
+     The segment ends used to be inset 6px past the dot's edge for breathing
+     room (`left: calc(50% + 17px)`, `right: calc(5px - 50%)`). With a 22px
+     dot between 34px-apart segment ends that left 12px of bare background at
+     every junction, so the rail read as four separate dashes — and no
+     amount of sequencing the drain could make four dashes look like one
+     progress bar. The dot is opaque and paints over the line (it is the
+     later pseudo in paint order and carries its own background), so running
+     the rail underneath costs nothing visually and is what joins the
+     segments up. The segments also lost their `border-radius: 1px`: rounded
+     caps suited free-standing dashes, but where two segments now butt
+     together they pinch the join.
+
+     The purple fill is a hard-stop gradient at `--p`, registered above so
+     the sweep can transition; where @property is unsupported the fill lands
+     instantly, which is fine. Under reduced motion `--p` is pinned to 1
+     below. */
   .steps li:not(:last-child)::after {
     content: "";
     position: absolute; top: 10px; height: 2px;
-    left: calc(50% + 17px); right: calc(5px - 50%);
-    border-radius: 1px;
+    left: 50%; right: calc(-12px - 50%);
     background: linear-gradient(var(--rail-dir, to right),
       var(--accent) calc(var(--p, 0) * 100%), var(--border) 0);
     transition: --p .6s ease;
@@ -1551,13 +1572,19 @@
   @media (max-width: 1000px) {
     /* Vertical timeline: a 2-column grid would break the rail, and five unboxed
        entries stack shorter than the old cards did. Dot moves left of the
-       text; the rail segment turns vertical and bridges the row gap,
-       stopping short of the next dot as it does horizontally. */
+       text; the rail segment turns vertical and bridges the row gap.
+       Centre to centre, exactly as the horizontal rail: from this dot's
+       middle (11px, its radius) to the next dot's middle, which is the row
+       gap (18px) plus that radius below this entry's bottom edge — so
+       `bottom: -29px`. It used to start 6px below the dot and stop 6px short
+       of the next one, leaving 34px of bare background per junction against
+       a 22px dot, which is what made the five entries read as separate
+       dashes rather than one bar. */
     .steps { grid-template-columns: 1fr; gap: 18px; }
     .steps li button { padding: 0 0 0 38px; text-align: left; }
     .steps li::before { left: 0; }
     .steps li:not(:last-child)::after {
-      top: 28px; bottom: -12px; left: 10px; right: auto;
+      top: 11px; bottom: -29px; left: 10px; right: auto;
       width: 2px; height: auto;
       --rail-dir: to bottom;
     }
