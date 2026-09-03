@@ -33,8 +33,12 @@ current.
 `utils/fileFiltering.ts` → `readIndexableContent()`
 
 Every vault file outside the agent folder is indexable. `.chat` files are
-gunzipped and deduped by LangChain message id. Binary files (images, PDFs)
-return an empty body and are indexed by title alone.
+gunzipped and deduped by LangChain message id. PDFs are extracted via pdfjs
+(`utils/pdfExtractor.ts` → `extractTextFromPdf()`) and indexed by that text.
+Images return an empty body and are indexed by title alone. On mobile, a PDF
+above `MOBILE_MAX_READ_BYTES` (10MB) falls back to title-only indexing too,
+since above that size a PDF is predominantly scanned pages with no text to
+extract.
 
 **Why the dedupe matters.** Conversation history is a tree of checkpoints, and
 each checkpoint re-contains every prior message. Concatenating them repeated

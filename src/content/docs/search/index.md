@@ -81,8 +81,12 @@ system prompts) is excluded from indexing, search, and the graph. It is plugin
 machinery that happens to be stored as notes, and it would otherwise dominate
 results about the plugin itself.
 
-Binary files such as images and PDFs are indexed by **title only**. Their
-content is not embedded.
+PDFs are indexed by their extracted text, not just their title — both for
+lexical search and, when an embedding model is configured, semantic search.
+Images are indexed by title only; there is no OCR or image-content extraction.
+On mobile, an oversized or scanned PDF falls back to title-only indexing, since
+above a certain size a PDF is predominantly scanned pages with no text to
+extract.
 
 ## Chat files
 
