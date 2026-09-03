@@ -45,7 +45,7 @@ Four ship with the plugin and are seeded into your vault on first run:
 | `manage-skills` | `manage_skills` | Authoring and revising skills |
 
 Older vaults had `manage-notes` under the name `edit-notes` and `manage-skills`
-under `update-skills`; the plugin renames the folders on update and keeps your
+under `update-skills`. The plugin renames the folders on update and keeps your
 on/off setting for each.
 
 They are ordinary notes once seeded, so edit them freely. If a plugin update
@@ -121,17 +121,17 @@ names.
 
 `name` and `description` are the two fields the format requires: `name` must be
 lowercase letters, numbers and hyphens (up to 64 characters) and must match the
-folder it sits in; `description` is capped at 1024 characters. The optional
+folder it sits in, and `description` is capped at 1024 characters. The optional
 `license`, `compatibility` and `metadata` fields are read and preserved, so a
 skill written elsewhere keeps them.
 
 `allowed-tools` is how this plugin grants tools, and it is the one field whose
 effect is specific to Smart Second Brain — the format marks it experimental, and
 what a tool name means is up to each agent. Skills carrying an `allowed-tools`
-line from another tool are still valid here; the names simply won't match
+line from another tool are still valid here, and the names simply won't match
 anything, so they attach nothing.
 
-A user skill with no `allowed-tools` line attaches no tools; it is pure
+A user skill with no `allowed-tools` line attaches no tools. It is pure
 guidance, which is often exactly what you want. Keep skills narrow and the
 instructions concrete, and write down only what you'd actually want the agent
 to remember doing again.

@@ -107,7 +107,7 @@ the risk here.**
 
 1. Open the Agent editor and find the **Integrations** section.
 2. Plugins you have installed appear with their name and description.
-   Auto-discovered ones are marked **API scripting**; ones you don't have
+   Auto-discovered ones are marked **API scripting**, and ones you don't have
    installed are marked **Not enabled**.
 3. Toggle it on and confirm the privacy prompt.
 4. The skill appears in `Agents/Skills/` as an ordinary note you can edit.
@@ -115,7 +115,7 @@ the risk here.**
 ## If an integration doesn't work
 
 **"not enabled or installed".** The plugin is off. The agent re-resolves the
-plugin at call time, so enabling it in Obsidian is enough; no restart needed.
+plugin at call time, so enabling it in Obsidian is enough, with no restart needed.
 
 **"does not expose an api object".** The plugin has no scriptable surface, or
 exposes it under a name other than `api`/`apiV1`. Nothing to do but ask the

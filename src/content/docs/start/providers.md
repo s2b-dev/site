@@ -47,7 +47,7 @@ machine.
 LM Studio, a llama.cpp server, or anything else that speaks the OpenAI API
 works through the **Custom** provider (the OpenAI-compatible template). For
 LM Studio, start its local server and set the base URL to
-`http://localhost:1234`; the API key can be left empty.
+`http://localhost:1234`. The API key can be left empty.
 
 A Custom provider starts **untrusted**, because the plugin cannot tell a
 local endpoint from a remote one. If you want it to see private notes, mark it
@@ -57,7 +57,7 @@ trusted in the provider's settings. See
 ## Cloud setup
 
 Add the provider, paste your API key, and select a model. Keys are held in
-Obsidian's secret storage; the plugin's config file stores only a reference,
+Obsidian's secret storage. The plugin's config file stores only a reference,
 never the raw key.
 
 Cloud providers are **untrusted by default**, which means they are blocked from
@@ -80,7 +80,7 @@ that calls them unreliably is the worse choice here.
 
 For **embedding**, `qwen3-embedding` is a good default. It is multilingual, and
 it is available on Ollama, oMLX and OpenRouter, so the same choice follows you
-between a local and a hosted setup. Sizes go 0.6b / 4b / 8b; `0.6b` is the
+between a local and a hosted setup. Sizes go 0.6b / 4b / 8b. `0.6b` is the
 laptop-friendly one.
 
 To compare alternatives, the [MTEB leaderboard](https://huggingface.co/spaces/mteb/leaderboard)

@@ -27,7 +27,7 @@ An embedding model unlocks concept-level retrieval: search matches meaning
 rather than exact words, and the graph gains semantic similarity edges between
 notes that aren't explicitly linked.
 
-This can run fully locally through [Ollama](https://ollama.com/); a strong
+This can run fully locally through [Ollama](https://ollama.com/), and a strong
 starting point is `qwen3-embedding:0.6b` — multilingual, and small enough to be
 comfortable on a laptop. No note content leaves your machine.
 

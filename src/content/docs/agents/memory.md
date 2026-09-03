@@ -10,7 +10,7 @@ short answers, that your work is tracked under `#work`, that a project you keep
 asking about lives in a particular folder.
 
 It's on by default. Each agent's system prompt note, `AGENT.md`, ships with a
-`# Memory` section; delete that section and the agent stops using memory. There
+`# Memory` section. Delete that section and the agent stops using memory. There
 is no separate toggle. See
 [The system prompt is a note](/agents/#the-system-prompt-is-a-note).
 
@@ -57,7 +57,7 @@ notes, the agent is told to store a **pointer** (the tag, the wikilink, the
 folder, the search to run) rather than a copy.
 
 At answer time it follows the pointer and re-reads the live note. A copy would
-be a snapshot that silently goes stale; a pointer stays correct as you edit.
+be a snapshot that silently goes stale. A pointer stays correct as you edit.
 
 Full content is reserved for facts with no home in the vault: a preference you
 stated in conversation and never wrote down.
@@ -70,7 +70,7 @@ doesn't know, rather than asking permission to look in its own folder.
 The `# Memory` section is part of a note. If the agent records too much, tell
 it to record less. If you want it to keep a specific kind of note, say so
 there. The folder path at the top of the section is a `{{memoryFolder}}`
-placeholder filled in from the Agents folder setting; leave it as it is.
+placeholder filled in from the Agents folder setting. Leave it as it is.
 
 The shipped default remains available as a diff (**Diff with default** in the
 Agent editor, shown once your note differs), so you can see what you've changed

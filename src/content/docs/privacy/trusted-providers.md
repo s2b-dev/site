@@ -16,7 +16,7 @@ covers what trust does with that.
 
 | Provider | Default | Why |
 | --- | --- | --- |
-| **Ollama** | Trusted | Runs locally; nothing leaves the machine |
+| **Ollama** | Trusted | Runs locally, nothing leaves the machine |
 | **oMLX** | Trusted | Runs locally on your Mac |
 | **OpenAI** | Untrusted | Remote |
 | **Anthropic** | Untrusted | Remote |
@@ -41,13 +41,13 @@ it could otherwise reach the model:
 - **`list_directory`:** the entry reads as `private` rather than listing.
 - **`get_properties`:** frontmatter is withheld.
 - **`get_all_tags`:** tags used only by private notes don't appear.
-- **`manage_notes`:** an operation on a private note is refused with an error;
+- **`manage_notes`:** an operation on a private note is refused with an error,
   the other operations in the same call still go through.
 - **Embedding:** private notes are not indexed against an untrusted embedding
   provider. They are skipped with a `privacy` reason, not silently dropped.
 
 The check is the same in each case: the file is private **and** the provider is
-not trusted. The model is never asked to respect the boundary; it simply never
+not trusted. The model is never asked to respect the boundary. It simply never
 receives the content.
 
 ## Trust is per provider, not per agent

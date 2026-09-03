@@ -19,7 +19,7 @@ can carry a web-heavy server set while your everyday note agent carries none.
 
 ## Adding a server
 
-Two transports are supported; the **Transport** dropdown calls them **Remote
+Two transports are supported. The **Transport** dropdown calls them **Remote
 Server (HTTP)** and **Local Command (stdio)**. On mobile only the first is
 offered.
 
@@ -58,7 +58,7 @@ opening their own.
 
 If the handshake fails, the failure is **not** cached. The plugin retries on
 the next run rather than leaving the agent toolless for the whole session. The
-error is logged; check the developer console if a server's tools never appear.
+error is logged. Check the developer console if a server's tools never appear.
 
 Editing an agent's server list clears its cache, so changes take effect on the
 next run without a restart.

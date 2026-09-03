@@ -6,7 +6,7 @@ sidebar:
 ---
 
 Smart Second Brain runs on Obsidian `1.11.4` or newer, on **desktop and
-mobile** alike. Search, the Smart Graph and agents all work on both; the one
+mobile** alike. Search, the Smart Graph and agents all work on both. The one
 thing to expect on a phone or tablet is that indexing a large vault is
 noticeably slower.
 

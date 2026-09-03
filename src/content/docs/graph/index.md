@@ -24,7 +24,7 @@ them:
   The default is 5. The union is denser than it sounds, because an edge
   survives if *either* endpoint ranks the other.
 - **Similarity threshold:** the minimum cosine similarity for an inferred
-  edge. The default is 0.55; below roughly that, pairs are noise rather than
+  edge. The default is 0.55. Below roughly that, pairs are noise rather than
   genuine topical overlap.
 
 The threshold matters more than k for keeping topics clean.
@@ -59,7 +59,7 @@ Related controls:
   topics, so a layout you liked is reproducible.
 
 A group needs at least two notes to count as a topic. A single note is not a
-topic; it stays on the graph without a region.
+topic. It stays on the graph without a region.
 
 ### Topic labels
 
@@ -68,7 +68,7 @@ Topics are named after their best-connected note's filename by default. With a
 AI** button in the Topics panel sends each topic's note titles to that model
 and names the topic from them. Names are cached by topic membership, so an
 unchanged topic is never named twice. Naming runs in the background and can be
-cancelled; if the graph changes underneath it, the in-flight pass is aborted.
+cancelled, and if the graph changes underneath it, the in-flight pass is aborted.
 **Name topics automatically** (off by default) runs it whenever the topics
 change instead of only on request.
 
@@ -111,7 +111,7 @@ the agent folder is always excluded.
 
 Clicking a note opens it. Click a topic's label to collapse just that group,
 and shift/⌘-click to select more than one segment. Right-click a note for
-**Open file**, **Reveal in file explorer** and **Focus on this cluster**; on
+**Open file**, **Reveal in file explorer** and **Focus on this cluster**. On
 mobile, long-press for the same menu, since touch has no right-click. A tap
 highlights the note and its neighbours the way hovering does on desktop.
 
@@ -119,7 +119,7 @@ highlights the note and its neighbours the way hovering does on desktop.
 
 The **lasso** in the toolbar draws a freehand loop around whatever you want. On
 desktop you can also hold **Shift** and drag to do the same without switching
-the mode on; on a phone the toolbar button is the way in. Clicking a topic's
+the mode on. On a phone the toolbar button is the way in. Clicking a topic's
 pill selects that whole topic.
 
 Whatever is selected, a bar appears with what you can do to it: **Zoom to
@@ -139,7 +139,7 @@ detection over just that subset — so the topics you get are the divisions
 topic that was one region becomes several. You can immerse again from there.
 
 Granularity is remembered per graph, so dialling the topics finer inside an
-immersion describes that subset only; leaving restores the setting the full
+immersion describes that subset only. Leaving restores the setting the full
 graph had. The bar names what you're in ("Immersed into Sleep & memory") and
 carries an **Exit** back to the whole vault. `Esc` leaves too, once nothing is
 selected.

@@ -97,7 +97,7 @@ and won't change mid-conversation. Configure an embedding model under
 
 ### The index is incomplete
 
-The first build runs in the background with progress in the status bar; large
+The first build runs in the background with progress in the status bar. Large
 vaults take a few minutes. After that it is incremental.
 
 The **indexing report** tells you what was skipped and why:
@@ -124,7 +124,7 @@ the graph. So are binary files' contents: images and PDFs are indexed by
 Long notes covering several topics retrieve badly, because an embedding
 averages everything it's given. A note covering four subjects scores roughly
 half as well on any one of them as a focused note would. Splitting on headings
-helps; the plugin chunks by heading for exactly this reason.
+helps. The plugin chunks by heading for exactly this reason.
 
 ## The agent can't do something
 
@@ -143,7 +143,7 @@ Open the Agent editor → General → Tools and check the switch.
 ### Memory isn't working
 
 Memory has no toggle. An agent uses it as long as the `# Memory` section is
-still in its `AGENT.md`; if it never reads memory, open that note from the Agent
+still in its `AGENT.md`. If it never reads memory, open that note from the Agent
 editor's **System prompt** row and check the section is there.
 
 If it reads memories but never records any, it lacks `manage_notes`: enable the

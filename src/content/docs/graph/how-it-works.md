@@ -105,7 +105,7 @@ return to.
 ### The ladder is derived per vault
 
 How many meaningfully different groupings exist depends entirely on a vault's
-size and structure. A small uniform vault may support three; a large varied one
+size and structure. A small uniform vault may support three, a large varied one
 reaches the cap of **six**. So the plugin **probes** 14 γ values from 0.1 to
 8.0, then picks the rungs.
 
@@ -118,7 +118,7 @@ Three rules thin the candidates:
 | --- | --- | --- |
 | readability cap | 30 topics | Past a few dozen the view stops being readable at any vault size: the colour palette has 24 slots, label pills crowd out, hulls tile the canvas. The finest rungs were "more topics", not "more insight". Waived if it would leave fewer than two rungs. |
 | distinctness | 1.3× | Each rung must have at least 1.3× the previous rung's topic count. 22 vs 24 topics is not a different way of seeing the vault, but it cost a slider stop and a Leiden run. |
-| fragmentation | 50% singletons | A single note isn't a topic; it's a note that failed to join one. Once most groups are single notes the partition has stopped describing structure. |
+| fragmentation | 50% singletons | A single note isn't a topic, it's a note that failed to join one. Once most groups are single notes the partition has stopped describing structure. |
 
 Fewer than two usable levels and the derivation returns nothing, falling back to
 a static ladder rather than showing a slider that cannot move.
@@ -149,7 +149,7 @@ once at your γ, once at 0.35× that (floored at 0.05 so an already-low γ doesn
 collapse to a single blob).
 
 Each fine topic is then assigned to the coarse topic holding the **plurality**
-of its notes; ties break on the lower parent id, so the result is deterministic.
+of its notes, and ties break on the lower parent id, so the result is deterministic.
 Nodes the coarse run left unassigned don't vote, and a child whose members are
 entirely unassigned at the coarse level is dropped, having nothing to roll up
 into.
@@ -173,7 +173,7 @@ before they reach the simulation.
 ### Centering is a spring, not a recentring
 
 The graph uses `forceX` + `forceY` toward the origin, **not** `forceCenter`.
-`forceCenter` shifts the centroid; a spring toward origin actually pulls. This
+`forceCenter` shifts the centroid, while a spring toward origin actually pulls. This
 matches Obsidian's own graph.
 
 Unlinked nodes get **exactly twice** the centering of clustered ones. Centering
@@ -189,7 +189,7 @@ dragged satellites inside the topic ring.
 Cohesion pull is proportional to a node's distance from its cluster centroid,
 and that distance grows with √members, so at one shared strength a 900-member
 cluster compresses its rim about five times harder than a 40-member one.
-√-damping cancels the geometric growth. The floor keeps huge clusters coherent;
+√-damping cancels the geometric growth. The floor keeps huge clusters coherent,
 at 0.4 the biggest ones swelled until neighbouring topics interpenetrated.
 
 Unclustered nodes feel no cohesion at all. An earlier `?? 0` fallback silently
@@ -214,8 +214,8 @@ produced tight solid blobs floating far apart. So each force scales differently:
 | --- | --- | --- |
 | spacing | `spread` | The raw density signal. |
 | charge | `√spread` sparse, `spread^0.35` dense | Charge acts on both scales at once, so full scaling squeezed cluster interiors on big graphs and flung satellites to the horizon on small ones. |
-| center | `(1/spread)^2.5`, capped 2.2× | Must *outpace* compaction; a linear response barely engaged before the spread floor bound it. Negligible against local forces inside a cluster, so it closes inter-cluster gaps without compressing anything. |
-| cohesion | `spread^1.8`, floored 0.4, never above 1 | The intra-cluster crush; letting clusters expand fills the gaps centering is closing. |
+| center | `(1/spread)^2.5`, capped 2.2× | Must *outpace* compaction, since a linear response barely engaged before the spread floor bound it. Negligible against local forces inside a cluster, so it closes inter-cluster gaps without compressing anything. |
+| cohesion | `spread^1.8`, floored 0.4, never above 1 | The intra-cluster crush. Letting clusters expand fills the gaps centering is closing. |
 
 All four are exactly 1 at the 400-node reference density, so the tuned defaults
 are the behaviour at normal vault size.
@@ -227,7 +227,7 @@ link count*, a few to several thousand, where a note's degree is a handful.
 Three things adapt:
 
 **Radius.** A collapsed topic's size encodes its **member count**, not its
-connectivity; the rolled-up edge widths already carry that, and encoding it
+connectivity. The rolled-up edge widths already carry that, and encoding it
 twice left member count encoded nowhere. Following the bubble-chart
 convention, area is proportional to members, so the radius grows with
 √members, normalized **per vault**: the largest topic in the current
@@ -257,13 +257,13 @@ the discs to overlap.
 
 ### Nodes counter-zoom partially
 
-Edges and labels counter-scale fully with the camera; nodes were the only
+Edges and labels counter-scale fully with the camera. Nodes were the only
 element shrinking 1:1 with zoom-out, which is why a fitted large vault read as
 "edges with no nodes". Node radii are multiplied by `zoom^-0.28`, so on screen
 they scale with `zoom^0.72`.
 
 Partial rather than full, so zoom still conveys depth. This is render and
-hit-test only; the physics must never see a camera-dependent radius.
+hit-test only. The physics must never see a camera-dependent radius.
 
 ## Source
 

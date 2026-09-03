@@ -12,7 +12,7 @@ no API key, no index build to wait through. Open the command palette and run
 ## Two retrieval paths
 
 Search has a **lexical** path and, when an embedding model is configured, a
-**semantic** path. The search window runs one of them at a time; only the
+**semantic** path. The search window runs one of them at a time. Only the
 agent can ask for both fused into a single ranking.
 
 **Lexical** matches the words you typed. It is BM25-style scoring over a
@@ -34,7 +34,7 @@ The search window always opens in **lexical** mode. Press **Tab** (or the
 semantic button in the tap bar on mobile) to run the current query
 **semantically** instead. That switch is a one-shot: the semantic results stay
 on screen, but as soon as you change the query text the next search runs
-lexically again. Switching requires a search embedding index; without one the
+lexically again. Switching requires a search embedding index. Without one the
 plugin shows a notice pointing at the setting.
 
 Reach for lexical when you know the vocabulary: a project code name, a person,
@@ -83,7 +83,7 @@ results about the plugin itself.
 
 PDFs are indexed by their extracted text, not just their title — both for
 lexical search and, when an embedding model is configured, semantic search.
-Images are indexed by title only; there is no OCR or image-content extraction.
+Images are indexed by title only. There is no OCR or image-content extraction.
 On mobile, an oversized or scanned PDF falls back to title-only indexing, since
 above a certain size a PDF is predominantly scanned pages with no text to
 extract.

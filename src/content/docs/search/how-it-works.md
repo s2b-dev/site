@@ -118,7 +118,7 @@ right answer at rank 9. With the instruction, the same stored vectors ranked it
 first.
 
 **This is query-side only, so no reindex.** Documents are stored exactly as
-chunked; switching to a model in one of these families changes only how your
+chunked. Switching to a model in one of these families changes only how your
 query is encoded.
 
 :::caution[Known gap]
@@ -192,7 +192,7 @@ bands (0.40–0.55) into a useless cluster near 1.0.
 Normalized score carries the relevance signal. RRF (`k = 60`) is retained only
 as a stability term for when one source's magnitudes are degenerate, for
 example every BM25 hit tied. Semantic leads because it is the only source that
-can bridge a vocabulary gap; lexical remains the sole signal for exact terms,
+can bridge a vocabulary gap, while lexical remains the sole signal for exact terms,
 and reaches the ranking through RRF and the identity boosts as well as through
 its 0.06 share.
 
@@ -215,7 +215,7 @@ all and forced an oversized recency bonus to compensate.
 
 A note counts as recent for **seven days** after you last opened it. Its raw
 boost holds at `4.5` for the first day, then decays linearly to `0.5` at the
-end of the window; opening it again resets the clock. The boost then passes
+end of the window, and opening it again resets the clock. The boost then passes
 three independent guards. Each exists because a specific measured case failed
 without it.
 
@@ -248,12 +248,12 @@ change. The signal stays visible without distorting the ranking.
 
 | Dimension | Status | Evidence |
 | --- | --- | --- |
-| set size | stable | Identical relative structure at n = 5, 25, 100, 500, 2000 keeps the target at rank 1; top-to-second margin drifts only 4.88% → 4.25% across a 400× range. |
+| set size | stable | Identical relative structure at n = 5, 25, 100, 500, 2000 keeps the target at rank 1, and the top-to-second margin drifts only 4.88% → 4.25% across a 400× range. |
 | cosine band | stable | Ordering preserved from wide (0.9 / 0.5 / 0.3) to very narrow (0.42 / 0.418 / 0.416). |
-| note length | bounded | A 0.75-scoring long note can never beat a 0.90-scoring short one; it asymptotes at 0.8625 regardless of chunk count. |
-| embedding model | stable | qwen3-8b 0.9966, harrier-oss-0.6b 0.9934. A fixed lift cap fitted to qwen's separation scored only 0.9729 on harrier; making the cap adapt to result-set spread recovered it. |
-| query instruction | improves hard queries | Semantic-only on the hard tier, 0.7008 → 0.7983 nDCG@10, the one measurement whose confidence interval cleared zero. Measured on harrier-oss-v1-0.6b only; Qwen3 itself is unmeasured (same family and format, so expected to match), and the BGE entry comes from the model card rather than a measurement here. |
-| latency | local-bound | About 97% of query time is the embedding call. Local MLX ~28 ms versus remote ~1626 ms; ANN search ~47 ms and lexical ~6 ms are effectively free. |
+| note length | bounded | A 0.75-scoring long note can never beat a 0.90-scoring short one. It asymptotes at 0.8625 regardless of chunk count. |
+| embedding model | stable | qwen3-8b 0.9966, harrier-oss-0.6b 0.9934. A fixed lift cap fitted to qwen's separation scored only 0.9729 on harrier. Making the cap adapt to result-set spread recovered it. |
+| query instruction | improves hard queries | Semantic-only on the hard tier, 0.7008 → 0.7983 nDCG@10, the one measurement whose confidence interval cleared zero. Measured on harrier-oss-v1-0.6b only. Qwen3 itself is unmeasured (same family and format, so expected to match), and the BGE entry comes from the model card rather than a measurement here. |
+| latency | local-bound | About 97% of query time is the embedding call. Local MLX ~28 ms versus remote ~1626 ms. ANN search ~47 ms and lexical ~6 ms are effectively free. |
 
 ### Benchmark
 

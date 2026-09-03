@@ -20,7 +20,7 @@ What an agent *has* is covered on its own page: the
 ## Conversations are notes
 
 Chats are stored as `.chat` files in your vault (the **Chats folder** under
-**Settings → Agents**). A new chat opens as a tab in the main area by default;
+**Settings → Agents**). A new chat opens as a tab in the main area by default.
 **Open new chat in** under the same settings moves it to the left or right
 sidebar so it sits beside the note you're reading. Chats sync with everything
 else, and they are indexed, so you can search for a conversation by what was
@@ -168,11 +168,11 @@ want the file itself in the conversation.
 
 Accepted: `txt`, `md`, `csv`, `json`, `pdf`, and images (`png`, `jpg`, `jpeg`,
 `gif`, `webp`). Anything else is flagged during the drag rather than failing
-after it. Folders are skipped; drag the files inside them.
+after it. Folders are skipped. Drag the files inside them.
 
 Vision and PDF support is resolved **per model at runtime**, not assumed from
 the provider. A model that accepts images will accept them without extra
-configuration; one that doesn't won't be offered the option. If you drag an
+configuration, and one that doesn't won't be offered the option. If you drag an
 image onto a model that has no vision support, the drop is refused up front and
 tells you to switch models, rather than being sent and rejected.
 
@@ -185,14 +185,14 @@ prompt are all real, visible notes under one folder in your vault:
 
 ```
 Agents/
-├── Memories/                    shared memory notes; writes auto-apply
+├── Memories/                    shared memory notes, writes auto-apply
 ├── Skills/
 │   └── <name>/SKILL.md          every skill, including the bundled ones
 └── <Agent Name>/
     └── AGENT.md                 the agent's system prompt, memory instructions included
 ```
 
-The root is configurable (**Agents folder** under **Settings → Agents**);
+The root is configurable (**Agents folder** under **Settings → Agents**).
 `Agents/` is only the default. `Memories/` and `Skills/` are fixed names.
 Every other folder directly under the root is one agent, holding a single
 `AGENT.md`.
@@ -211,7 +211,7 @@ Each agent's system prompt is the body of its `AGENT.md`. It is an ordinary
 note, editable in Obsidian like anything else, and it ships in three sections:
 the base instructions, a `# Current Date` section, and a `# Memory` section
 holding the memory instructions. **Deleting a section is how you opt out of
-it.** Remove `# Memory` and that agent stops using memory; there is no separate
+it.** Remove `# Memory` and that agent stops using memory. There is no separate
 toggle.
 
 Values that must stay live are written into the note as placeholders and filled
@@ -225,7 +225,7 @@ which is how the plugin tells an untouched copy from one you edited.
 
 The shipped default remains available for comparison. When your note differs
 from it, the Agent editor's **System prompt** row shows a **Diff with default**
-button; the diff view shows what you changed and lets you reset. When a plugin
+button. The diff view shows what you changed and lets you reset. When a plugin
 update moves the default, an untouched note is updated silently, and a
 customized one is left alone with a notice rather than a silent overwrite.
 
