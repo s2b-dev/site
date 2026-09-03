@@ -1736,71 +1736,95 @@ function roundRectPath(ctx, x, y, w, h, r) {
     timers.push(setTimeout(function () { pcb.classList.remove('pulse'); }, 1200));
   }
 
-  function setStep(n) {
+  /* One hop per rail segment whenever the active step TRAVELS — a jump to
+     another phase, or the drain to empty at the end of the loop. Handed to
+     the stylesheet as `--hop-ms` (`.steps.travelling` in landing.css) so the
+     CSS transition and this schedule can't disagree. A normal phase change
+     is a single step and keeps the default eased sweep. */
+  var HOP_MS = 250;
+  var travel = { target: null, timer: null };
+
+  /** Where the fill currently ends: the lit step, or 0 for an empty rail. */
+  function currentStep() {
+    var n = 0;
+    stepEls.forEach(function (li, i) { if (li.classList.contains('on')) n = i + 1; });
+    return n;
+  }
+  function placeStep(n) {
     stepEls.forEach(function (li) {
       li.classList.toggle('on', n === 'all' || li.dataset.step === String(n));
     });
   }
-
-  /* How long ONE rail segment takes to empty. Handed to the stylesheet as
-     `--drain-ms` (see `.steps.draining` in landing.css), so the CSS transition
-     and this schedule can't disagree. Segments drain strictly one after
-     another, each starting the moment the previous one has finished — a
-     progress bar has one edge, and a stagger shorter than the drain (tried:
-     170ms against 600ms) had three or four segments shrinking at once, which
-     is "all at once with a wobble" rather than one fill receding. */
-  var DRAIN_MS = 350;
+  /* Stops a travel where it is, leaving `.on` on whichever entry the edge had
+     reached — the next setStep continues from there. */
+  function cancelTravel() {
+    clearTimeout(travel.timer);
+    travel.timer = null; travel.target = null;
+    stepsEl.classList.remove('travelling');
+    stepEls.forEach(function (li) { li.classList.remove('transit', 'incoming'); });
+  }
 
   /**
-   * Empty the timeline back to nothing, as one edge travelling from the last
-   * dot back to the first.
+   * Move the active step to `n` (0 = nothing lit, 'all' = the finished still).
    *
-   * The CSS derives done/active/upcoming from `:has(~ .on)` alone, so simply
-   * clearing the active step drops every completed segment in the same frame.
-   * Two hold classes pin the current picture and are then released on a
-   * schedule — separately, because a segment and its own dot let go at
-   * DIFFERENT moments:
+   * Every timeline state is derived in CSS from where `.on` sits, so placing
+   * it straight on a distant entry changes every segment in between in the
+   * same frame — which is what a jump between phases used to do, twice over
+   * (reset() emptied the rail, then the target's beat refilled it), and what
+   * the loop's restart did. One neighbour away is the normal case: a phase
+   * completing, one segment sweeping. Further than that, `.on` HOPS one
+   * entry at a time, a hop per segment, so the fill has a single edge that
+   * advances or recedes along the rail and the dots hand off as it passes:
    *
-   *   - `hold-rail` on entry k keeps segment k (dot k → dot k+1) full. It is
-   *     released when the edge arrives at dot k+1, i.e. when segment k+1 has
-   *     finished draining; that starts segment k emptying toward dot k.
-   *   - `hold-dot` on entry k keeps dot k in its "done" look. It is released
-   *     when the edge REACHES dot k — the end of segment k's drain — not when
-   *     that drain starts. Releasing dot and rail together (the first version)
-   *     un-highlighted every dot a whole segment ahead of the fill, and with a
-   *     gap kept between dot and rail the dot is the bridge between two
-   *     dashes, so its timing is what makes the handoff read as continuous.
+   *   - an entry the edge is only passing through gets `transit` while it
+   *     holds `.on`, keeping the "done" look — no intermediate phase is
+   *     playing, so none should light as active;
+   *   - on a forward hop the destination also gets `incoming`, staying plain
+   *     until the fill reaches it (a dot lighting before the line arrives is
+   *     the same disconnect as a dot going out before the line has left it,
+   *     mirrored). Both come off on arrival; the real target is then plain
+   *     `.on`, i.e. active.
    *
-   * Returns the time at which the rail is empty, so the caller can turn the
-   * loop over exactly then.
+   * A beat re-requesting the phase a travel is already heading to is a
+   * no-op, which is how a jump's own setStep beat coexists with the travel.
    */
-  function drainSteps() {
-    var n = stepEls.length;
-    /* Pin the current state, THEN clear the active step. Order matters: the
-       hold classes have to be carrying the fill before `:has(~ .on)` stops
-       matching, or the rail empties in the frame between the two. */
-    stepsEl.classList.add('draining');
-    stepsEl.style.setProperty('--drain-ms', DRAIN_MS + 'ms');
-    stepEls.forEach(function (li, k) {
-      li.classList.add('hold-dot');
-      /* The last entry has no rail after it — nothing to hold. */
-      if (k < n - 1) li.classList.add('hold-rail');
-    });
-    setStep(0);
-    /* Back to front. With n entries there are n-1 segments; segment k starts
-       at (n-2-k) drains in and its dot k lets go one drain later, when the
-       edge gets there. The last entry has no segment, only a dot, and it is
-       the first thing to let go: that is where the edge starts. */
-    stepEls.forEach(function (li, k) {
-      if (k < n - 1) {
-        timers.push(setTimeout(function () { li.classList.remove('hold-rail'); },
-          (n - 2 - k) * DRAIN_MS));
+  function setStep(n) {
+    if (n === 'all') { cancelTravel(); placeStep('all'); return; }
+    var cur = currentStep();
+    if (travel.target === n || (travel.target === null && n === cur)) return;
+    cancelTravel();
+    if (Math.abs(n - cur) <= 1) { placeStep(n); return; }
+    travel.target = n;
+    stepsEl.classList.add('travelling');
+    stepsEl.style.setProperty('--hop-ms', HOP_MS + 'ms');
+    var dir = n > cur ? 1 : -1;
+    (function hop(from) {
+      var to = from + dir;
+      var li = stepEls[to - 1];
+      placeStep(to);
+      if (li) {
+        li.classList.add('transit');
+        if (dir > 0) li.classList.add('incoming');
       }
-      timers.push(setTimeout(function () { li.classList.remove('hold-dot'); },
-        (n - 1 - k) * DRAIN_MS));
-    });
-    return (n - 1) * DRAIN_MS;
+      /* A hop between dots k and k+1 crosses segment k; the hops in and out
+         of 0 cross nothing — the first dot simply lights or goes out. */
+      var wait = Math.min(from, to) >= 1 ? HOP_MS : 0;
+      travel.timer = setTimeout(function () {
+        if (li) li.classList.remove('incoming');
+        if (to === n) {
+          if (li) li.classList.remove('transit');
+          travel.target = null; travel.timer = null;
+          stepsEl.classList.remove('travelling');
+          return;
+        }
+        /* Departure: `.on` moves on in the same frame, so `transit` is
+           stripped here rather than left behind to bite a later placeStep. */
+        if (li) li.classList.remove('transit');
+        hop(to);
+      }, wait);
+    })(cur);
   }
+
 
   /* --- storyline --- */
   var timers = [];
@@ -1915,9 +1939,11 @@ function roundRectPath(ctx, x, y, w, h, r) {
     graph.reset();
     /* Cleared unconditionally: a phase jump during the end-of-loop drain would
        otherwise leave a segment pinned full behind the new active step. */
-    stepsEl.classList.remove('draining');
-    stepEls.forEach(function (li) { li.classList.remove('hold-rail', 'hold-dot'); });
-    setStep(0);
+    /* The timeline is deliberately NOT emptied here. A jump travels from
+       wherever the fill is to the target phase (see setStep); clearing it
+       first made every jump drain the whole rail in one frame and refill it
+       in the next. On the loop's restart the drain has already run. */
+    cancelTravel();
   }
 
   /* The graph-notes context chip + question posting to the transcript. */
@@ -2331,12 +2357,13 @@ function roundRectPath(ctx, x, y, w, h, r) {
     /* Drain the timeline before the restart rather than at it. `run(1)` resets
        every step in one frame, so letting it do the clearing empties all four
        rail segments simultaneously — the timeline blinks off instead of the
-       progress receding. Started 1400ms early (4 segments × DRAIN_MS — what
-       `drainSteps` returns) so the rail is empty exactly as the loop turns
-       over; the loop's total length is unchanged. The cost is that phase 5's
-       caption loses its highlight 1.4s before the finale ends, which is why
-       the drain is as brisk as it is. */
-    at(45700, function () { drainSteps(); });
+       progress receding. It is setStep(0), i.e. a travel from 5 to nothing:
+       four segments at HOP_MS, 1000ms, started that early (plus 50ms of
+       slack so the last hop lands before reset() cancels it) so the rail is
+       empty as the loop turns over; the loop's total length is unchanged.
+       The cost is that phase 5's caption loses its highlight ~1s before the
+       finale ends, which is why the hop is as brisk as it is. */
+    at(46050, function () { setStep(0); });
     at(47100, function () { track('demo-completed', demoOnScreen); run(1); });
   }
 

@@ -491,8 +491,23 @@
     /* The chat is the denser pane — eight stacked messages including
        attachments — while the graph stays legible when smaller.
        The column animates from 0 so the chat slides in when the storyline
-       opens it, rather than sitting empty from the start. */
-    display: grid; grid-template-columns: minmax(0, 1fr) 320px;
+       opens it, rather than sitting empty from the start.
+
+       348px, not 320: the pending-changes bar's summary row needs 300px
+       (icon + "1 update pending" at 86, then Accept All / Reject All /
+       chevron at 180, which is `flex-shrink: 0`), and the bar is inset
+       24px from the pane, so a 320px pane left it 296 and the count wrapped
+       to two lines at EVERY viewport — the pinning below means page width
+       never reaches it. The right group can't give, so the label was the
+       only thing left to break. Trimming the buttons' padding or the font
+       would have fit too, but both are the plugin's own values and this
+       mock is checked against them.
+
+       Declared here rather than on `.v-chat` because this grid track is the
+       pane's actual width: the track and the pinned children have to be one
+       number or the contents don't match the column they sit in. */
+    --chat-w: 348px;
+    display: grid; grid-template-columns: minmax(0, 1fr) var(--chat-w);
     height: 600px;
     transition: grid-template-columns .55s cubic-bezier(.4,.1,.25,1);
   }
@@ -509,12 +524,12 @@
      rigidly, the way a real pane does. Same reasoning as the context tray's
      `nowrap` below — both are this transition squeezing live text.
 
-     The width is a variable, not a literal, because the composer and the
-     pending-changes bar carry `margin: 0 12px`: margins sit OUTSIDE a
+     The width is a variable (`--chat-w`, set on `.vault-body` above, where
+     it also drives the grid track), not a literal, because the composer and
+     the pending-changes bar carry `margin: 0 12px`: margins sit OUTSIDE a
      border-box width, so pinning those children to the full pane width
      pushed them 13px past the right edge and the send button lost its
      rim. Children with side margins subtract them below. */
-  .v-chat { --chat-w: 320px; }
   .v-chat > * { width: var(--chat-w); flex-shrink: 0; }
   /* The two inset children: same pinned width, minus their own margins. */
   .v-chat > .v-composer,
@@ -1212,29 +1227,35 @@
     background: var(--accent-soft); border-color: var(--accent); color: var(--accent);
   }
   .steps li:has(~ .on)::after { --p: 1; }
-  /* End of loop: the rail drains as ONE edge travelling from the last dot
-     back to the first, rather than all at once. Every state here is derived
-     from `:has(~ .on)`, so when the active step jumps from 5 back to 1 all
-     four matches break in the same frame and the whole timeline empties
-     simultaneously — four bars going grey together, which reads as the widget
-     resetting rather than as one progress bar retreating.
-     Two hold classes pin the picture, and `drainSteps()` in landing.js
-     releases them on a schedule: `hold-rail` keeps a segment full until the
-     edge arrives at its far dot; `hold-dot` keeps a dot lit until the edge
-     reaches IT, a whole segment later. They are separate classes because
-     those are different moments — and the dot's is the one that matters,
-     since the rail deliberately stops short of each dot: the dot is the
-     bridge between two dashes, so if it lets go early the retreat breaks into
-     pieces there.
-     While draining, segments empty on a LINEAR curve at `--drain-ms` (set by
-     landing.js from the same constant that spaces the schedule). The
-     default sweep is eased, which suits a single segment filling; a chain of
-     eased segments makes the edge slow down and speed up at every dot. */
-  .steps li.hold-rail::after { --p: 1; }
-  .steps li.hold-dot::before {
+  /* Travelling. Every state here is derived from where `.on` sits, so moving
+     it to a distant entry changes every segment in between in the same frame
+     — the whole rail emptying or filling at once, which reads as the widget
+     resetting rather than as one progress bar moving. So for anything further
+     than one neighbour (a jump between phases, or the drain to empty at the
+     end of the loop) landing.js HOPS `.on` one entry at a time, one segment
+     per hop: a single edge that advances or recedes, the dots handing off as
+     it passes. The rail deliberately stops short of each dot, so the dot is
+     the bridge between two dashes and its timing is what joins them:
+       `transit`  — an entry the edge is only passing through keeps the "done"
+                    look while it briefly holds `.on`; no intermediate phase
+                    is playing, so none should light as active.
+       `incoming` — on a forward hop the destination stays plain until the
+                    fill has reached it. A dot lighting before the line gets
+                    there is the same disconnect as a dot going out before the
+                    line has left it, mirrored.
+     Both come off on arrival; the real target is then plain `.on` — active.
+     Hops run on a LINEAR curve at `--hop-ms`, set by landing.js from the same
+     constant that spaces them. The default sweep is eased, which suits a
+     single segment filling; a chain of eased segments makes the edge slow
+     into and out of every dot. `.incoming` is declared after `.transit` so
+     it wins while both apply. */
+  .steps li.on.transit::before {
     background: var(--accent-soft); border-color: var(--accent); color: var(--accent);
   }
-  .steps.draining li:not(:last-child)::after { transition: --p var(--drain-ms, .35s) linear; }
+  .steps li.on.incoming::before {
+    background: var(--surface-2); border-color: var(--border-2); color: var(--text-2);
+  }
+  .steps.travelling li:not(:last-child)::after { transition: --p var(--hop-ms, .25s) linear; }
   /* active */
   .steps li.on::before { background: var(--accent-2); border-color: var(--accent-2); color: #fff; }
   /* upcoming: dimmed heading, so the eye lands on where the story is */
@@ -1336,7 +1357,7 @@
      use it, search does not, so the three pillars go right, left, right.
      The visual column matches the plain split's 560px — the graph explorer
      needs ≥520px or it caps the slider's range. `.narrow` is the agents
-     chat still: the demo's chat pane is 320px, and a 560px transcript would
+     chat still: the demo's chat pane is ~350px, and a 560px transcript would
      read as a document, not a chat. */
   .split.rev { grid-template-columns: minmax(0, 1fr) minmax(0, 560px); }
   .split.rev.narrow { grid-template-columns: minmax(0, 1fr) minmax(0, 400px); }
@@ -1523,9 +1544,10 @@
   .foot-note { flex-basis: 100%; margin: 0; }
   .foot p.foot-note { font-size: 12.5px; color: var(--text-3); }
 
-  /* No 980px chat-column override any more: the base rule is already 320px
-     (it used to be 380px, narrowed here), so repeating it only risked the two
-     drifting apart. The pinned-content width tracks `--chat-w` in one place. */
+  /* No 980px chat-column override any more: the base rule already sets the
+     column (it used to be 380px, narrowed here), so repeating it only risked
+     the two drifting apart. Both the grid track and the pinned contents read
+     `--chat-w`, set in one place on `.vault-body`. */
   @media (max-width: 820px) {
     .nav-links { display: none; }
     section { padding: 66px 0; }
@@ -1593,8 +1615,9 @@
        there is no squeeze to guard against — drop the pinned width and let
        the chat fill the phone. The composer and pending bar need naming
        explicitly: their desktop rule is a more specific selector than
-       `.v-chat > *`, so this reset alone left them pinned at 296px in a
-       650px pane — full-width body, two stranded boxes on the left. Their
+       `.v-chat > *`, so this reset alone left them pinned at the inset
+       desktop width in a 650px pane — full-width body, two stranded boxes
+       hugging the left edge. Their
        side margins do the insetting here. */
     .v-chat > *,
     .v-chat > .v-composer,
