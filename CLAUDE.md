@@ -387,13 +387,27 @@ was ported from a hand-written mockup, so:
   full-page height. Two things follow, and the gate handles both:
   - `100dvh` inside that frame is the frame height, so the hero would swallow
     the whole frame and clip every later section (umami#4373, unfixed). The
-    gate sets `framed` when `self !== top`; `landing.css` gives the hero a
-    fixed pre-JS `min-height`, and the last IIFE in `landing.js` then solves
-    for the hero height that makes the page exactly the frame's height —
-    the frame *is* the recorded page height and the hero is the only
-    viewport-sized element, so that reproduces the recorded layout and the
-    click markers align. Add another `vh`-sized element and that arithmetic
-    breaks. Nothing legitimately embeds this site.
+    gate sets `framed` when `self !== top`, and `landing.css` then gives the
+    hero a **constant `min-height` per width breakpoint** — an estimate of
+    the recorded viewport height, which is what the hero had when the clicks
+    were recorded. It is keyed on width because Umami normalises every
+    recording into one of seven width buckets
+    (`SCREEN_WIDTH_BUCKETS = [320, 375, 425, 768, 1024, 1440, 1920]`) and
+    renders the frame at the bucket width, so `innerWidth` inside the frame
+    names the bucket; the recorded *height* is never exposed to the framed
+    page (`src={snapshot.url}` verbatim, no query param), so an estimate is
+    the best available.
+    **Do not replace this with a measured fit.** There was one: it solved
+    for the hero height making the page total exactly `window.innerHeight`.
+    The frame height is the recorded **page** height (~6700px), not the
+    viewport — `getSnapshotFrameHeight` returns `pageH` for anything over
+    1.25× the viewport — so the equation described nothing about the layout,
+    and it dumped every difference between the recording's content height
+    and the current render's into one element at the top, shifting every
+    section below the hero down. The markers are placed at `pageY / pageH`
+    on a canvas that is a **sibling** of the iframe, both anchored top-left,
+    so what has to match is the recorded *layout*, not the total height.
+    Nothing legitimately embeds this site.
   - The framed copy would load the trackers and write a pageview plus
     scroll rows with `viewport_h ≈ 6700` into the very dataset on display,
     so when framed the gate loads nothing.
