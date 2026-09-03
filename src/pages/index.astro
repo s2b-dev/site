@@ -741,19 +741,34 @@ const structuredData = {
 	        the slider's range (eight labelled topics are unreadable narrower),
 	        and desktop would silently lose the Finest level. */}
 	    <div class="split rev">
-	    {/* Four captions, one per graph verb, stacked beside the explorer.
-	        Immerse deliberately POINTS AT the demo rather than re-explaining
-	        it — the demo's second beat is the feature in motion, and this
-	        caption is the index entry for readers who reached this section
-	        without watching it. (Same principle that dropped the agents grid's
+	    {/* Four points, one per graph verb, beside the explorer — the same
+	        `.plist` the search and agents pillars use, so all three read as
+	        one family. It used to be `.fnotes` (eyebrow + heading +
+	        paragraph), which made the graph pillar the odd one out in a run
+	        of three. Marks carry Lucide glyphs like the agents list rather
+	        than the search list's checks: these are four different things the
+	        graph does, not four assurances.
+	        Dive deliberately POINTS AT the demo rather than re-explaining it —
+	        the demo's second beat is the feature in motion, and this point is
+	        the index entry for readers who reached this section without
+	        watching it. (Same principle that dropped the agents grid's
 	        Approval card, applied the other way: Approval was told three
-	        times, immersion was told once.) */}
-	    <div class="fnotes">
-	      <div class="fnote"><span class="k">Topics</span><h4>It works them out for you</h4><p>Related notes are grouped and colour-coded, with an outline drawn around each topic. Nothing to set up: it reads the links and the writing itself.</p></div>
-	      <div class="fnote"><span class="k">Immerse</span><h4>Step inside a topic</h4><p>Circle a topic and the graph rebuilds around just those notes, and finer topics appear inside it. Watch it happen in the demo above.</p></div>
-	      <div class="fnote"><span class="k">Names</span><h4>Topics that name themselves</h4><p>Ask once and each topic gets a name from what's in it. Names are remembered, so it doesn't re-do work it has already done.</p></div>
-	      <div class="fnote"><span class="k">Overview</span><h4>Fold it down to the shape</h4><p>Collapse every topic to a single point when you want the whole vault at a glance, then open the one you care about.</p></div>
-	    </div>
+	        times, immersion was told once.) Its wording matches the demo's own
+	        caption — "Dive into a topic" in both — since a reader who watched
+	        the demo should meet the same phrase here. */}
+	    <ul class="plist">
+	      {/* `git-fork` — the graph view's own icon in the plugin's settings
+	          tabs (Settings.svelte, `{ id: "graph", icon: "git-fork" }`). */}
+	      <li><span class="ck ck-ic"><svg class="pic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><circle cx="18" cy="6" r="3"/><path d="M18 9v2c0 .6-.4 1-1 1H7c-.6 0-1-.4-1-1V9"/><path d="M12 12v3"/></svg></span><span><strong>It works them out for you.</strong> Related notes are grouped and colour-coded, with an outline drawn around each topic. Nothing to set up: it reads the links and the writing itself.</span></li>
+	      {/* `scan-search` — the Immerse button's own glyph in the graph's
+	          selection bar (SmartGraphView), and the same one the demo draws. */}
+	      <li><span class="ck ck-ic"><svg class="pic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/><circle cx="12" cy="12" r="3"/><path d="m16 16-1.5-1.5"/></svg></span><span><strong>Dive into a topic.</strong> Circle a topic and the graph rebuilds around just those notes, and finer topics appear inside it. Watch it happen in the demo above.</span></li>
+	      {/* `sparkles` — the "Name topics with AI" button in GraphControls. */}
+	      <li><span class="ck ck-ic"><svg class="pic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/></svg></span><span><strong>Topics that name themselves.</strong> Ask once and each topic gets a name from what's in it. Names are remembered, so it doesn't re-do work it has already done.</span></li>
+	      {/* `chevrons-down-up` — the collapse-all control, as in the toolbar
+	          and on the explorer's own button beside this list. */}
+	      <li><span class="ck ck-ic"><svg class="pic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m7 20 5-5 5 5"/><path d="m7 4 5 5 5-5"/></svg></span><span><strong>Fold it down to the shape.</strong> Collapse every topic to a single point when you want the whole vault at a glance, then open the one you care about.</span></li>
+	    </ul>
 	    {/* The page's only visitor-driven surface. Three controls, all mirrors
 	        of the graph's own: the Granularity slider, the wand that shows/
 	        hides the detected topics (physical in the plugin: hiding them
@@ -1156,7 +1171,7 @@ const structuredData = {
 	        (Session replay is off; only heatmaps are enabled.) */}
 	    <p class="foot-note">
 	      This site uses cookieless analytics, including anonymous click and
-	      scroll data. The plugin has none.
+	      scroll data. The plugin has none.{' '}
 	      <a href="/legal/datenschutz/">Details</a>
 	    </p>
 	  </div>

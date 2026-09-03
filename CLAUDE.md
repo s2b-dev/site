@@ -447,9 +447,19 @@ section after the demo was "centred heading → visual → grid of cards", and
 the eye starts skimming by the second one. Now all three pillars use the
 **side-by-side** `.split` shape (the camera's zoom cap means a full-width
 canvas mostly holds dead space), differentiated by content and direction:
-graph = unboxed captions (`.fnotes`) + interactive framed canvas on the
-right; search = static modal left + marked list (`.plist`); agents = marked
-list + static chat still on the right (`.split.rev.narrow`, 400px column).
+graph = marked list (`.plist`) + interactive framed canvas on the right;
+search = static modal left + `.plist`; agents = `.plist` + static chat still
+on the right (`.split.rev.narrow`, 400px column).
+**All three text columns are the same `.plist`**, so the run reads as one
+family; they differ by visual, not by list shape. Graph used to be `.fnotes`
+(uppercase eyebrow + `h4` + paragraph), which made it the odd one out in a
+run of three, and `.fnotes` is now gone from the stylesheet — don't
+reintroduce a second list shape for a pillar. The marks differentiate
+instead: search carries green checks (`.ck-ok`, four assurances), graph and
+agents carry accent Lucide glyphs (`.ck-ic`, four different things the
+feature does). Graph's glyphs are the plugin's own — `git-fork` (the graph
+settings tab), `scan-search` (the Immerse button), `sparkles` (Name topics
+with AI), `chevrons-down-up` (collapse all).
 Visuals go right, left, right: `.split.rev` puts the visual second (text
 first in the markup) and keeps the 560px column the graph explorer needs.
 Two visual-left splits followed by one visual-right was tried and read as a
