@@ -493,20 +493,27 @@
        The column animates from 0 so the chat slides in when the storyline
        opens it, rather than sitting empty from the start.
 
-       348px, not 320: the pending-changes bar's summary row needs 300px
-       (icon + "1 update pending" at 86, then Accept All / Reject All /
-       chevron at 180, which is `flex-shrink: 0`), and the bar is inset
-       24px from the pane, so a 320px pane left it 296 and the count wrapped
-       to two lines at EVERY viewport — the pinning below means page width
-       never reaches it. The right group can't give, so the label was the
-       only thing left to break. Trimming the buttons' padding or the font
-       would have fit too, but both are the plugin's own values and this
-       mock is checked against them.
+       364px, not 320: the pending-changes bar's summary row needs 307px of
+       content box (icon + "1 update pending" at 113, then Accept All /
+       Reject All / chevron at 186, which is `flex-shrink: 0`, plus the 8px
+       gap). The bar is inset 24px from the pane and pads 20, so a 320px
+       pane left it 276 and the count wrapped to two lines at EVERY viewport
+       — the pinning below means page width never reaches it. The right
+       group can't give, so the label was the only thing left to break.
+       Trimming the buttons' padding or the font would have fit too, but
+       both are the plugin's own values and this mock is checked against
+       them.
+
+       Measure the LEFT group unwrapped when re-deriving this. Measured while
+       it was wrapping, `.pcb-sum-l` reports its widest LINE (86px), not its
+       single-line width (113) — which is how 348 first looked sufficient. It
+       is not: the row re-wraps at 347, i.e. 348 shipped with 1px of margin.
+       364 carries 17px, enough for font-metric and rounding variation.
 
        Declared here rather than on `.v-chat` because this grid track is the
        pane's actual width: the track and the pinned children have to be one
        number or the contents don't match the column they sit in. */
-    --chat-w: 348px;
+    --chat-w: 364px;
     display: grid; grid-template-columns: minmax(0, 1fr) var(--chat-w);
     height: 600px;
     transition: grid-template-columns .55s cubic-bezier(.4,.1,.25,1);
@@ -1244,18 +1251,25 @@
                     there is the same disconnect as a dot going out before the
                     line has left it, mirrored.
      Both come off on arrival; the real target is then plain `.on` — active.
-     Hops run on a LINEAR curve at `--hop-ms`, set by landing.js from the same
-     constant that spaces them. The default sweep is eased, which suits a
-     single segment filling; a chain of eased segments makes the edge slow
-     into and out of every dot. `.incoming` is declared after `.transit` so
-     it wins while both apply. */
+     Each hop's duration and curve come from landing.js as `--hop-ms` /
+     `--hop-ease`: slices of ONE ease-in-out over the whole travel, with
+     tangents matched at the joins, so the edge accelerates out of rest,
+     runs, and settles — rather than the default `ease` per segment, which
+     slows into and out of every dot, or equal linear hops, which read as a
+     metronome. The dots' own colour fades are shortened meanwhile: a hop in
+     the middle of a travel can be ~60ms, and a .4s fade would still be
+     changing two dots behind the edge. `.incoming` is declared after
+     `.transit` so it wins while both apply. */
   .steps li.on.transit::before {
     background: var(--accent-soft); border-color: var(--accent); color: var(--accent);
   }
   .steps li.on.incoming::before {
     background: var(--surface-2); border-color: var(--border-2); color: var(--text-2);
   }
-  .steps.travelling li:not(:last-child)::after { transition: --p var(--hop-ms, .25s) linear; }
+  .steps.travelling li:not(:last-child)::after {
+    transition: --p var(--hop-ms, .25s) var(--hop-ease, ease-in-out);
+  }
+  .steps.travelling li::before { transition-duration: .12s; }
   /* active */
   .steps li.on::before { background: var(--accent-2); border-color: var(--accent-2); color: #fff; }
   /* upcoming: dimmed heading, so the eye lands on where the story is */

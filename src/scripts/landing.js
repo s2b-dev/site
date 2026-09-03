@@ -1736,12 +1736,26 @@ function roundRectPath(ctx, x, y, w, h, r) {
     timers.push(setTimeout(function () { pcb.classList.remove('pulse'); }, 1200));
   }
 
-  /* One hop per rail segment whenever the active step TRAVELS — a jump to
-     another phase, or the drain to empty at the end of the loop. Handed to
-     the stylesheet as `--hop-ms` (`.steps.travelling` in landing.css) so the
-     CSS transition and this schedule can't disagree. A normal phase change
-     is a single step and keeps the default eased sweep. */
-  var HOP_MS = 250;
+  /* Timing for a TRAVEL — the active step moving further than one neighbour
+     (a jump to another phase, or the drain to empty at the end of the loop).
+     The whole journey is ONE ease-in-out motion: the edge leaves rest, runs,
+     and settles into its destination. Equal linear hops were tried first and
+     read as a metronome — constant speed, and the same speed whether the
+     edge had one segment to cross or four. The curve is cut into one slice
+     per segment; each hop gets its slice's duration and a bezier whose end
+     tangents match the curve's, so the speed is continuous through the dots
+     (a per-hop `ease` would slow into and out of every one). Duration grows
+     with distance, but sublinearly, so a long jump is brisk rather than
+     proportionally long: 480ms for two segments, 720ms for all four. Handed
+     to the stylesheet as `--hop-ms` / `--hop-ease` (`.steps.travelling` in
+     landing.css), so the CSS transition and this schedule can't disagree. */
+  var TRAVEL_BASE_MS = 240;
+  var TRAVEL_PER_SEG_MS = 120;
+  /* Cubic ease-in-out, p = 4t³ below the midpoint and mirrored above it. The
+     schedule needs its slope (for the hop beziers' tangents) and its inverse
+     (to turn segment boundaries into times), never the curve itself. */
+  function travelSlope(t) { return t < 0.5 ? 12 * t * t : 12 * (1 - t) * (1 - t); }
+  function travelInv(p) { return p < 0.5 ? Math.cbrt(p / 4) : 1 - Math.cbrt((1 - p) / 4); }
   var travel = { target: null, timer: null };
 
   /** Where the fill currently ends: the lit step, or 0 for an empty rail. */
@@ -1796,19 +1810,42 @@ function roundRectPath(ctx, x, y, w, h, r) {
     if (Math.abs(n - cur) <= 1) { placeStep(n); return; }
     travel.target = n;
     stepsEl.classList.add('travelling');
-    stepsEl.style.setProperty('--hop-ms', HOP_MS + 'ms');
     var dir = n > cur ? 1 : -1;
+    /* A hop between dots k and k+1 crosses segment k; the hops in and out of
+       0 cross nothing — the first dot simply lights or goes out, for free.
+       Only crossing hops get a share of the curve. */
+    var crossing = 0;
+    for (var f = cur; f !== n; f += dir) if (Math.min(f, f + dir) >= 1) crossing++;
+    var total = TRAVEL_BASE_MS + TRAVEL_PER_SEG_MS * crossing;
+    var crossed = 0;
     (function hop(from) {
       var to = from + dir;
       var li = stepEls[to - 1];
+      var wait = 0;
+      if (Math.min(from, to) >= 1) {
+        /* This hop is slice `crossed` of the curve: the distance fractions it
+           spans, the times the inverse maps them to, and the slopes there
+           rescaled into the hop's own unit square — which is what the bezier's
+           end tangents have to be for the joins to be smooth. */
+        var p0 = crossed / crossing, p1 = (crossed + 1) / crossing;
+        var t0 = travelInv(p0), t1 = travelInv(p1);
+        var k = (t1 - t0) / (p1 - p0);
+        var s0 = travelSlope(t0) * k, s1 = travelSlope(t1) * k;
+        wait = Math.round((t1 - t0) * total);
+        stepsEl.style.setProperty('--hop-ms', wait + 'ms');
+        /* Control points a third of the way along each tangent. Rounded via
+           Math.round rather than toFixed, which prints 1 - 1.0000000002 as
+           "-0.000" — valid, but reads as a bug in the inspector. */
+        var r3 = function (v) { return String(Math.round(v * 1000) / 1000); };
+        stepsEl.style.setProperty('--hop-ease',
+          'cubic-bezier(0.333, ' + r3(s0 / 3) + ', 0.667, ' + r3(1 - s1 / 3) + ')');
+        crossed++;
+      }
       placeStep(to);
       if (li) {
         li.classList.add('transit');
         if (dir > 0) li.classList.add('incoming');
       }
-      /* A hop between dots k and k+1 crosses segment k; the hops in and out
-         of 0 cross nothing — the first dot simply lights or goes out. */
-      var wait = Math.min(from, to) >= 1 ? HOP_MS : 0;
       travel.timer = setTimeout(function () {
         if (li) li.classList.remove('incoming');
         if (to === n) {
@@ -2358,12 +2395,12 @@ function roundRectPath(ctx, x, y, w, h, r) {
        every step in one frame, so letting it do the clearing empties all four
        rail segments simultaneously — the timeline blinks off instead of the
        progress receding. It is setStep(0), i.e. a travel from 5 to nothing:
-       four segments at HOP_MS, 1000ms, started that early (plus 50ms of
-       slack so the last hop lands before reset() cancels it) so the rail is
-       empty as the loop turns over; the loop's total length is unchanged.
-       The cost is that phase 5's caption loses its highlight ~1s before the
-       finale ends, which is why the hop is as brisk as it is. */
-    at(46050, function () { setStep(0); });
+       four segments, TRAVEL_BASE_MS + 4 × TRAVEL_PER_SEG_MS = 720ms, started
+       that early (plus 50ms of slack so the last hop lands before reset()
+       cancels it) so the rail is empty as the loop turns over; the loop's
+       total length is unchanged. The cost is that phase 5's caption loses
+       its highlight ~0.7s before the finale ends. */
+    at(46330, function () { setStep(0); });
     at(47100, function () { track('demo-completed', demoOnScreen); run(1); });
   }
 
