@@ -17,9 +17,9 @@ noticeably slower.
 3. Choose **Browse**, search for *Smart Second Brain*, and select **Install**.
 4. Select **Enable**.
 
-That's it. Smarter search and the Smart Graph work immediately, with no
-configuration and no AI provider. See
-[What works without a model](/start/first-run/) for what to try first.
+Search and the Smart Graph work immediately, with no configuration and no AI
+provider. See [What works without a provider](/start/first-run/) for what to
+try first.
 
 ## Beta releases via BRAT
 

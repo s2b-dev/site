@@ -178,7 +178,7 @@ tells you to switch models, rather than being sent and rejected.
 
 PDF text is extracted locally before anything is sent.
 
-## Everything an agent is made of is a note
+## Where an agent is stored
 
 An agent has no hidden configuration. Its memory, its skills, and its system
 prompt are all real, visible notes under one folder in your vault:

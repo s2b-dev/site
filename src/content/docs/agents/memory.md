@@ -14,11 +14,11 @@ It's on by default. Each agent's system prompt note, `AGENT.md`, ships with a
 is no separate toggle. See
 [The system prompt is a note](/agents/#the-system-prompt-is-a-note).
 
-## It's just a folder
+## Where memories are stored
 
-Memories are notes in `Agents/Memories/`. Open the folder and read them. Edit
-them. Delete the ones you disagree with. There is no opaque store and nothing
-to export. It's your vault.
+Memories are notes in `Agents/Memories/`. Open the folder and read them, edit
+them, or delete the ones you disagree with. There is no opaque store and
+nothing to export.
 
 The folder is **global**: remembered facts belong to you, not to one agent, so
 every agent with a memory section shares it. What's per-agent is the

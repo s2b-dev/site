@@ -6,23 +6,21 @@ sidebar:
 ---
 
 A skill is a folder in your vault containing a `SKILL.md`: some frontmatter, and
-a body of instructions. That's the whole format — and it isn't ours. It's
-[Agent Skills](https://agentskills.io/specification), an open format originally
-from Anthropic and now read by a range of agent tools. A skill you wrote for one
-of those works here by copying its folder in, and one you write here travels the
-other way.
+a body of instructions. That is the whole format, and it is not specific to this
+plugin — it is [Agent Skills](https://agentskills.io/specification), an open
+format originally from Anthropic and now read by a range of agent tools. A skill
+you wrote for one of those works here by copying its folder in, and one you write
+here travels the other way.
 
 Skills live under `Agents/Skills/<name>/SKILL.md`. They are ordinary notes, so
 you can write one in Obsidian without leaving the app.
 
-## Everything is a skill
+## Skills bind the agent's tools
 
-Skills are not an add-on layered over the agent's built-in abilities. They
-*are* how the agent gets its abilities. A skill's frontmatter can carry an
+Skills are not an add-on layered over the agent's built-in abilities — they are
+how the agent gets those abilities. A skill's frontmatter can carry an
 `allowed-tools` line, and a built-in tool is bound only when some **enabled**
-skill attaches it.
-
-Turn off the skill, and the agent loses the tool.
+skill attaches it. Turn off the skill, and the agent loses the tool.
 
 ```markdown
 ---

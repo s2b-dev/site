@@ -9,10 +9,9 @@ Smart Second Brain is built in three layers, and each one is useful on its own.
 Nothing below requires an account, an API key, or an internet connection until
 you reach the agent.
 
-## Works immediately, no provider needed
+## What works without a provider
 
-**Smarter search.** Full-text, fuzzy, and tag/frontmatter-aware. Already more
-capable than Obsidian's built-in search, with no setup.
+**Search.** Full-text, fuzzy, and tag/frontmatter-aware, with no setup.
 
 **Smart Graph.** An interactive graph view with clustering, layout, and
 filtering. Out of the box it renders your wikilinks.
