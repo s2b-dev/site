@@ -1738,24 +1738,30 @@ function roundRectPath(ctx, x, y, w, h, r) {
 
   /* Timing for a TRAVEL — the active step moving further than one neighbour
      (a jump to another phase, or the drain to empty at the end of the loop).
-     The whole journey is ONE ease-in-out motion: the edge leaves rest, runs,
-     and settles into its destination. Equal linear hops were tried first and
-     read as a metronome — constant speed, and the same speed whether the
-     edge had one segment to cross or four. The curve is cut into one slice
-     per segment; each hop gets its slice's duration and a bezier whose end
-     tangents match the curve's, so the speed is continuous through the dots
-     (a per-hop `ease` would slow into and out of every one). Duration grows
-     with distance, but sublinearly, so a long jump is brisk rather than
+     The whole journey is ONE ease-out motion: the edge leaves at speed and
+     settles into its destination — and it does so along the PATH, so a
+     backward travel also starts fast at the dot it leaves and slows into
+     the one it lands on (the slices below are taken in travel order). A
+     symmetric ease-in-out was tried and read as sluggish on departure, most
+     noticeably going back. Equal linear hops before that read as a
+     metronome — constant speed, and the same speed whether the edge had one
+     segment to cross or four. The curve is cut into one slice per segment;
+     each hop gets its slice's duration and a bezier whose end tangents match
+     the curve's, so the speed is continuous through the dots (a per-hop
+     `ease` would slow into and out of every one). Duration grows with
+     distance, but sublinearly, so a long jump is brisk rather than
      proportionally long: 480ms for two segments, 720ms for all four. Handed
      to the stylesheet as `--hop-ms` / `--hop-ease` (`.steps.travelling` in
      landing.css), so the CSS transition and this schedule can't disagree. */
   var TRAVEL_BASE_MS = 240;
   var TRAVEL_PER_SEG_MS = 120;
-  /* Cubic ease-in-out, p = 4t³ below the midpoint and mirrored above it. The
-     schedule needs its slope (for the hop beziers' tangents) and its inverse
-     (to turn segment boundaries into times), never the curve itself. */
-  function travelSlope(t) { return t < 0.5 ? 12 * t * t : 12 * (1 - t) * (1 - t); }
-  function travelInv(p) { return p < 0.5 ? Math.cbrt(p / 4) : 1 - Math.cbrt((1 - p) / 4); }
+  /* Quadratic ease-out, p = 1 - (1-t)². Quadratic rather than cubic: the
+     cubic parks 63% of the travel's time in its last segment, which brought
+     the slowness back at the end. The schedule needs the curve's slope (for
+     the hop beziers' tangents) and its inverse (to turn segment boundaries
+     into times), never the curve itself. */
+  function travelSlope(t) { return 2 * (1 - t); }
+  function travelInv(p) { return 1 - Math.sqrt(1 - p); }
   var travel = { target: null, timer: null };
 
   /** Where the fill currently ends: the lit step, or 0 for an empty rail. */

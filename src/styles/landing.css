@@ -1252,14 +1252,15 @@
                     line has left it, mirrored.
      Both come off on arrival; the real target is then plain `.on` — active.
      Each hop's duration and curve come from landing.js as `--hop-ms` /
-     `--hop-ease`: slices of ONE ease-in-out over the whole travel, with
-     tangents matched at the joins, so the edge accelerates out of rest,
-     runs, and settles — rather than the default `ease` per segment, which
-     slows into and out of every dot, or equal linear hops, which read as a
-     metronome. The dots' own colour fades are shortened meanwhile: a hop in
-     the middle of a travel can be ~60ms, and a .4s fade would still be
-     changing two dots behind the edge. `.incoming` is declared after
-     `.transit` so it wins while both apply. */
+     `--hop-ease`: slices of ONE ease-out over the whole travel, taken in
+     travel order and with tangents matched at the joins, so the edge leaves
+     fast and settles into its destination whichever way it is going —
+     rather than the default `ease` per segment, which slows into and out of
+     every dot, or equal linear hops, which read as a metronome. The dots'
+     own colour fades are shortened meanwhile: a hop early in a travel can
+     be under 100ms, and a .4s fade would still be changing two dots behind
+     the edge. `.incoming` is declared after `.transit` so it wins while
+     both apply. */
   .steps li.on.transit::before {
     background: var(--accent-soft); border-color: var(--accent); color: var(--accent);
   }
@@ -1267,7 +1268,7 @@
     background: var(--surface-2); border-color: var(--border-2); color: var(--text-2);
   }
   .steps.travelling li:not(:last-child)::after {
-    transition: --p var(--hop-ms, .25s) var(--hop-ease, ease-in-out);
+    transition: --p var(--hop-ms, .25s) var(--hop-ease, ease-out);
   }
   .steps.travelling li::before { transition-duration: .12s; }
   /* active */
