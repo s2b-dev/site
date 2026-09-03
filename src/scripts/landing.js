@@ -665,6 +665,14 @@ function roundRectPath(ctx, x, y, w, h, r) {
   var ph = document.getElementById('vsPh');
   var resultsEl = document.getElementById('vsResults');
   var vsEmpty = document.getElementById('vsEmpty');
+  /* The two texts `onNoSuggestion()` puts in `.s2b-search-empty`, in the order
+     it puts them there: the debounced pass is still out while the query is
+     being typed, and only when it returns empty does the miss appear. The
+     demo keeps its own wording for the miss — more explicit than the real
+     "No notes found" for a reader who has never seen the modal — but the
+     sequence is the app's. */
+  var EMPTY_SEARCHING = 'Searching…';
+  var EMPTY_MISS = 'No notes contain those words.';
   /* Mobile-only dismiss layer behind the selection sheet. It tracks the two
      selection bars, since on mobile those render as a bottom sheet and a sheet
      needs something to catch the tap that closes it. */
@@ -694,6 +702,12 @@ function roundRectPath(ctx, x, y, w, h, r) {
     if (key) vsSem.insertBefore(key, vsSem.firstChild);
   }
   var vsAtt = document.getElementById('vsAtt');
+  /* The phone's stand-in for the semantic hint — the plugin's own
+     `.s2b-search-followup` row, which replaces the instructions row Obsidian
+     hides on mobile. It carries the same classes as `.vs-sem` and is driven
+     from the same beats, so the two can't fall out of step; CSS decides which
+     one is visible at a given width. */
+  var vsFollow = document.getElementById('vsFollow');
   var vAttach = document.getElementById('vAttach');
   var vcTyped = document.getElementById('vcTyped');
   var vcPh = document.getElementById('vcPh');
@@ -1815,8 +1829,10 @@ function roundRectPath(ctx, x, y, w, h, r) {
     search.classList.remove('on');
     vsBox.classList.remove('glow');
     vsEmpty.classList.remove('on');
+    vsEmpty.textContent = EMPTY_SEARCHING;
     setSemLabel('off');
     vsSem.classList.remove('pulse', 'on');
+    vsFollow.classList.remove('pulse', 'on', 'shown');
     vsAtt.classList.remove('pulse', 'on');
     vAttach.classList.remove('on');
     vGchip.hidden = true;
@@ -2081,19 +2097,40 @@ function roundRectPath(ctx, x, y, w, h, r) {
       }
     });
     /* The causal order here is load-bearing and must not be reshuffled: the
-       query is typed → keyword search MISSES ("No notes contain those
-       words") → that miss is what motivates reaching for the semantic
-       toggle → semantic on, the box glows while the pass runs → the miss
-       clears and the results it found arrive. Reordering these (or letting
-       the clear land before the add) leaves the empty-state message sitting
-       above a full result list, which is exactly the claim the beat is
-       supposed to disprove. */
-    at(25800, function () { typeInto(typed, QUERY_SEARCH, 38, ph); });
-    at(26900, function () { vsEmpty.classList.add('on'); });
-    at(27600, function () { vsSem.classList.add('pulse'); });
+       query is typed and the pass is out ("Searching…") → the keyword pass
+       comes back empty ("No notes contain those words") → THAT is what puts
+       the semantic offer on screen, and what motivates reaching for it →
+       semantic on, the box glows while the pass runs → the miss clears and
+       the results it found arrive. Reordering these (or letting the clear
+       land before the add) leaves the empty-state message sitting above a
+       full result list, which is exactly the claim the beat is supposed to
+       disprove. The three empty-state stages mirror `onNoSuggestion()`: it
+       prints "Searching..." while `isSearching || searchTimeout !== null`,
+       and only its miss branch calls `appendSemanticHint()` — so the
+       follow-up row must not exist before this point. */
+    at(25800, function () {
+      vsEmpty.textContent = EMPTY_SEARCHING;
+      vsEmpty.classList.add('on');
+      typeInto(typed, QUERY_SEARCH, 38, ph);
+    });
+    at(26900, function () {
+      vsEmpty.textContent = EMPTY_MISS;
+      /* The miss is what appends the row, so it arrives here — not with the
+         sheet, and not before there is a result set to be disappointed by. */
+      vsFollow.classList.add('shown');
+    });
+    /* Desktop's hint and mobile's follow-up pill are the same beat wearing
+       two skins — the app shows one or the other by platform, so both are
+       driven here and CSS picks. */
+    at(27600, function () {
+      vsSem.classList.add('pulse');
+      vsFollow.classList.add('pulse');
+    });
     at(28300, function () {
       vsSem.classList.remove('pulse');
       vsSem.classList.add('on');
+      vsFollow.classList.remove('pulse');
+      vsFollow.classList.add('on');
       setSemLabel('on');
       vsBox.classList.add('glow');
     });
@@ -2254,6 +2291,9 @@ function roundRectPath(ctx, x, y, w, h, r) {
     ph.classList.add('off');
     setSemLabel('on');
     vsSem.classList.add('on');
+    /* The still is the finished frame: the pass has run and missed, so the
+       row the miss appended is present and its offer already taken. */
+    vsFollow.classList.add('shown', 'on');
     resEls.forEach(function (r) { r.classList.add('on'); });
     graph.linkedNotes().concat('checklist').forEach(function (id) { graph.glow(id, 1); });
     graph.label(true);

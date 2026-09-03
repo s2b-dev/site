@@ -641,22 +641,54 @@ const structuredData = {
 	              <span id="vsTyped"></span><span class="vs-caret"></span>
 	              <span class="vs-ph" id="vsPh">Search notes with #tag or /folder…</span>
 	            </div>
-	            <div class="vs-empty" id="vsEmpty">No notes contain those words.</div>
+	            {/* `.s2b-search-empty` — one div whose TEXT is rewritten, as
+	                `onNoSuggestion()` does: "Searching…" while the debounced
+	                pass is out, then the miss when it returns empty. landing.js
+	                owns both strings (EMPTY_SEARCHING / EMPTY_MISS); this is
+	                the first of them, so a JS-less render shows the earlier
+	                stage rather than a conclusion nothing reached. */}
+	            <div class="vs-empty" id="vsEmpty">Searching…</div>
 	            {/* No selection-summary pill here. The real modal has one
 	                (button.s2b-search-selection-summary, "n selected"), but the
 	                demo picks exactly one note and the picked row is already
 	                highlighted — a badge counting to 1 restates what the
 	                highlight shows, and it landed on top of the hints row. */}
 	            <div class="vs-results" id="vsResults"></div>
-	            {/* The real modal's instructions row. Obsidian doesn't render it
-	                on mobile — there's no keyboard to hint at — so at ≤720px the
-	                purely-keyboard rows are dropped. The two the storyline drives
-	                (semantic, attach) stay at every width: on a phone they're the
-	                toggle and the action you tap, so they remain real affordances
-	                rather than shortcuts. Their key glyphs are hidden by CSS
-	                throughout — the demo presses no keys, so advertising ⌥A/⇥
-	                describes an interaction the viewer never sees. The glyphs
-	                stay in the markup because the real row prints them. */}
+	            {/* Mobile's replacement for the instructions row, and a real
+	                one. Obsidian hard-hides `.prompt-instructions` on a phone
+	                (app.css: `.is-phone .prompt-instructions { display: none }`),
+	                and SearchModal's `appendSemanticHint()` renders this row
+	                instead when `isMobileUI()`: a `.s2b-search-followup` inside
+	                the results container holding "Not what you meant?" and a
+	                tappable `s2b-pill` reading "Search by meaning". It offers
+	                semantic search at the moment the keyword pass has just
+	                missed — exactly this beat, which is why the storyline can
+	                drive it from the same times as `.vs-sem`. It is NOT gated
+	                on picker mode (only `appendAskAgentAction` is), so it
+	                belongs here even though the demo opens the sheet from the
+	                composer's + button, i.e. as the vault picker. Hidden above
+	                720px, where the instructions row is what the app shows. */}
+	            <div class="vs-followup" id="vsFollow" aria-hidden="true">
+	              <span class="vs-follow-label">Not what you meant?</span>
+	              <span class="vs-follow-action">
+	                <svg class="vs-follow-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+	                  <path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"/>
+	                  <path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/>
+	                </svg>
+	                Search by meaning
+	              </span>
+	            </div>
+	            {/* The real modal's instructions row — DESKTOP ONLY, verified
+	                live against the running modal (↑↓ Navigate · ↵ Open note ·
+	                ⇧↑↓/↵ Select · ⌘↵ Open in new tab · ⌥↵ Ask agent · ⌥A
+	                Attach to chat · ⇥ semantic · esc Close). At ≤720px the
+	                whole row goes, as Obsidian's own `.is-phone` rule does, and
+	                the follow-up row above stands in for it. Here the
+	                purely-keyboard rows are dropped and the two the storyline
+	                drives stay. Their key glyphs are hidden by CSS throughout —
+	                the demo presses no keys, so advertising ⌥A/⇥ describes an
+	                interaction the viewer never sees. The glyphs stay in the
+	                markup because the real row prints them. */}
 	            <div class="vs-hints">
 	              <span class="vs-hint-key">↵ Open note</span>
 	              <span id="vsAtt" class="vs-att"><i>⌥A</i> Attach to chat</span>

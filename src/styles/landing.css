@@ -1040,7 +1040,12 @@
     display: flex; align-items: center; gap: 9px; padding: 15px 20px;
     font-size: 15px; line-height: 1.5;
   }
-  /* The keyword miss — the setup for the semantic reveal. */
+  /* The results container's empty state, and it has two texts, as
+     `onNoSuggestion()` does: while the query is still being typed and the
+     debounced pass hasn't returned it reads "Searching…", and only when that
+     pass comes back empty does it become the miss that motivates the semantic
+     reveal. Same element, same slot — landing.js swaps the text — because the
+     real one is a single `.s2b-search-empty` div whose text is rewritten. */
   .vs-empty {
     max-height: 0; opacity: 0; overflow: hidden;
     padding: 0 20px; font-size: 13px; color: var(--ob-text-3);
@@ -1116,6 +1121,11 @@
      labels ("Attach to chat", "semantic: on") carry the meaning on their own.
      The purely-informational rows keep theirs; they're set dressing. */
   .vs-att i, .vs-sem i { display: none; }
+  /* Phone-only, and the search still never shows it at any width: on desktop
+     the app prints the instructions row instead, and the still is a picture
+     of the desktop modal. The mobile block below turns it on for `.v-search`
+     alone. */
+  .vs-followup { display: none; }
   /* The semantic toggle and attach hint: pulse to draw the eye, then latch. */
   .vs-sem, .vs-att { transition: color .3s ease; }
   .vs-sem.pulse, .vs-att.pulse { color: var(--ob-accent); font-weight: 600; animation: askPulse 0.9s ease infinite; }
@@ -1651,9 +1661,19 @@
        Obsidian mobile renders prompts as a near-full-height sheet rising
        from the bottom, INVERTED from desktop: results fill from the top and
        the input sits at the bottom in a fully-rounded pill — thumb
-       territory — with a circular clear button at its right (verified
-       against the live vault in mobile emulation). The story reaches it
-       through the composer's + button, so it opens as the vault picker. */
+       territory — with a clear button at its right. The story reaches it
+       through the composer's + button, so it opens as the vault picker.
+
+       The plugin ships NO mobile CSS for this modal, so the phone geometry
+       is Obsidian core's: `.is-phone .prompt` (full-bleed, top-rounded,
+       running to the bottom edge), `.is-phone .prompt-input-container`
+       (`order: 3`, `width: calc(100% - 16px)`, `margin: auto auto 8px`,
+       radius `--touch-size-m` = 44px), `.is-mobile .suggestion-item`
+       (`padding: 8px 12px`, radius `--touch-radius-xxs` = 24px) and
+       `.is-phone .prompt-instructions { display: none }`. These values are
+       APPROXIMATED here rather than matched — the mock is lo-fi and its
+       sheet sits inside a 480px window, not a phone screen — but the shapes
+       (rounder corners, tighter rows, a bottom-pinned pill) are the app's. */
     /* Everything below is scoped to `.v-search` — the DEMO's overlay. The
        search still in the search pillar reuses the same .vs-* classes but is
        a picture on a marketing page, not a phone's search sheet: it should
@@ -1662,31 +1682,113 @@
        results and hints above the search box. */
     .v-search { padding: 0; align-items: flex-end; }
     .v-search .vs-box {
-      width: 100%; max-width: none; height: 86%;
+      /* Content-sized BETWEEN a floor and a cap, rather than a flat 86%.
+         The real `.is-phone .prompt` IS full height — but it fills a whole
+         phone screen, so the slack under a short result list reads as the
+         sheet having room. Here the sheet lives in a 480px mock window,
+         where a full-height version left ~140px of blank between the
+         follow-up row and the input and read as a layout fault.
+         The floor matters as much as the cap: a sheet sized purely to two
+         results is a small card floating at the bottom edge, which reads as
+         a popover rather than the half-screen surface a phone prompt is.
+         50% keeps it unmistakably a sheet at any result count, and the
+         input's `margin-top: auto` absorbs the difference — so the shape
+         the app has (results from the top, input pinned at the bottom)
+         holds whether the floor, the content or the cap is deciding. */
+      width: 100%; max-width: none; height: auto;
+      min-height: 50%; max-height: 86%;
       display: flex; flex-direction: column;
+      /* Opaque, unlike the real `.is-mobile .prompt` (90% + blur): that
+         sheet covers a whole phone screen, while this one covers a small
+         mock canvas whose graph would show through and read as a glitch. */
       background: var(--ob-bg); backdrop-filter: none;
-      border-radius: 16px 16px 0 0; border-bottom: none;
+      border-radius: 24px 24px 0 0; border-bottom: none;
       transform: translateY(100%); transition: transform .2s ease-out;
     }
     .v-search.on .vs-box { transform: translateY(0); }
     /* Source order is desktop's (input first); `order` re-stacks it. The
-       results take the slack, so the rows sit at the top and the input
-       stays pinned to the bottom whatever the count. */
+       results and the follow-up row sit together under the top edge and are
+       sized by their content — the INPUT takes the slack via `margin-top:
+       auto`, which is what the real sheet's `margin: auto auto 8px` does.
+       Letting the results be the filler instead left ~250px of dead space
+       between the last row and the bottom of the sheet. */
+    /* Both of these are the FIRST thing in the sheet here, where desktop has
+       the input above them to do the spacing. Their desktop padding is
+       bottom-weighted for exactly that reason (`.vs-results` is `0 12px 6px`,
+       `.vs-empty.on` is `4px 20px 14px`), so re-stacked they sat flush
+       against the top border — tight at the top, generous at the bottom,
+       which reads as a clipped panel rather than a sheet. Obsidian's own
+       `.prompt-results` is symmetric (`padding: var(--size-4-3)`), so even
+       the top edge gets the same 12px the sides do. */
     .v-search .vs-empty { order: 1; }
-    .v-search .vs-results { order: 3; flex: 1 1 auto; min-height: 0; overflow: hidden; }
-    .v-search .vs-hints { order: 4; }
+    /* The extra top padding pushes the content past the shared 40px cap
+       (14 + line + 14 ≈ 49), which would clip the text — so the cap grows
+       with it. */
+    .v-search .vs-empty.on { padding-top: 14px; max-height: 56px; }
+    .v-search .vs-results {
+      order: 3; flex: 0 1 auto; min-height: 0; overflow: hidden;
+      padding-top: 6px;
+    }
+    .v-search .vs-results:has(.vs-res.on) { padding-top: 12px; }
+    /* Rounder and tighter than the desktop rows, after
+       `.is-mobile .suggestion-item`. */
+    .v-search .vs-res.on { padding: 9px 12px; }
+    .v-search .vs-res { border-radius: 14px; }
+    /* The instructions row does not exist on a phone — Obsidian hides it
+       outright. The follow-up row below is what the plugin renders in its
+       place, so this is a swap, not a deletion. */
+    .v-search .vs-hints { display: none; }
+    /* `.s2b-search-followup`: label first, action pushed to the end.
+       It appears only ONCE THE PASS HAS MISSED, which is when
+       `appendSemanticHint()` runs — the real row is appended by
+       `onNoSuggestion()`'s "No notes found" branch, so it cannot exist while
+       the modal reads "Searching…" or before a query is typed. Collapsed the
+       same way `.vs-empty` is, so it grows into place rather than popping. */
+    .v-search .vs-followup {
+      order: 4; display: flex; align-items: center; gap: 8px;
+      max-height: 0; opacity: 0; overflow: hidden;
+      padding: 0 14px; border-top: 1px solid transparent;
+      font-size: 12px; color: var(--ob-text-2);
+      transition: max-height .3s ease, opacity .3s ease, padding .3s ease,
+                  border-color .3s ease;
+    }
+    .v-search .vs-followup.shown {
+      max-height: 60px; opacity: 1; padding: 10px 14px;
+      border-top-color: var(--ob-border);
+    }
+    /* `.s2b-pill` — 999px, hairline border, muted fill and label. */
+    .v-search .vs-follow-action {
+      display: inline-flex; align-items: center; gap: 4px;
+      margin-left: auto; flex-shrink: 0;
+      padding: 5px 10px; border-radius: 999px;
+      border: 1px solid var(--ob-border); background: var(--ob-surface);
+      color: var(--ob-text-2); font-size: 11.5px; line-height: 1.15;
+      white-space: nowrap; transition: color .3s ease, border-color .3s ease;
+    }
+    .v-search .vs-follow-ic { width: 14px; height: 14px; flex-shrink: 0; }
+    /* Driven by the storyline's semantic beats, with `.vs-sem`'s own classes
+       and keyframes — the pill pulses while the miss is on screen, then
+       latches when semantic turns on. */
+    .v-search .vs-followup.pulse .vs-follow-action {
+      color: var(--ob-accent); border-color: var(--ob-accent);
+      animation: askPulse 0.9s ease infinite;
+    }
+    .v-search .vs-followup.on .vs-follow-action {
+      color: var(--ob-accent); border-color: var(--ob-accent);
+      background: var(--ob-accent-soft);
+    }
     .v-search .vs-input {
-      order: 5; margin: 0 12px 12px; padding: 11px 16px;
+      order: 5; margin: auto 8px 8px; padding: 11px 14px;
       border-radius: 999px; font-size: 14px;
       background: var(--ob-bg); border: 1px solid var(--ob-border);
       box-shadow: var(--modal-shadow);
     }
-    /* The pill's circular clear button. */
+    /* The pill's clear button. Obsidian's `search-input-clear-button` is a
+       17px glyph, not a filled disc — a disc reads as a primary action
+       sitting where the app puts a dismissal. */
     .v-search .vs-input::after {
       content: '✕'; margin-left: auto; flex-shrink: 0;
-      width: 22px; height: 22px; border-radius: 50%;
-      display: flex; align-items: center; justify-content: center;
-      background: var(--ob-text-2); color: var(--ob-bg); font-size: 11px;
+      color: var(--ob-text-3); font-size: 13px; line-height: 1;
     }
   }
   /* Below this the three capped stops no longer fit beside the two icon
@@ -1710,7 +1812,8 @@
     .vs-res, .msg { opacity: 1 !important; transform: none !important; }
     .privacy-list li { animation: none !important; }
     .shield-mark .shield-check { transition: none !important; }
-    .vs-caret, .vs-ask.pulse { animation: none !important; }
+    .vs-caret, .vs-ask.pulse,
+    .vs-followup.pulse .vs-follow-action { animation: none !important; }
     .v-search, .vs-res, .msg, .steps li, .steps li::before, .steps li::after, .steps strong { transition: none !important; }
     /* No rail sweep: the demo is a finished still, so the rail is full. */
     .steps li:not(:last-child)::after { --p: 1; }
