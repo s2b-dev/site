@@ -12,7 +12,8 @@ provider.
 
 ## Two vault modes
 
-Set this under **Settings → Smart Second Brain → Privacy**.
+Set this under **Settings → Smart Second Brain → General → Privacy → Note
+access policy → Manage**.
 
 **Private by default.** Nothing is exposed unless you explicitly allow it. Only
 notes you mark as allowed can be read, embedded, or sent to an untrusted

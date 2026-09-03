@@ -19,7 +19,9 @@ can carry a web-heavy server set while your everyday note agent carries none.
 
 ## Adding a server
 
-Two transports are supported.
+Two transports are supported; the **Transport** dropdown calls them **Remote
+Server (HTTP)** and **Local Command (stdio)**. On mobile only the first is
+offered.
 
 ### HTTP
 
@@ -39,7 +41,7 @@ Launches a local process and talks to it over stdin/stdout.
 | Field | Example |
 | --- | --- |
 | **Command** | `npx` |
-| **Arguments** | `-y @anthropic/mcp-server-filesystem /path/to/dir` |
+| **Arguments** | `-y @modelcontextprotocol/server-filesystem /path/to/dir` |
 | **Environment variables** | `API_KEY=your-key`, one per line in `KEY=VALUE` format |
 
 :::caution[Desktop only]

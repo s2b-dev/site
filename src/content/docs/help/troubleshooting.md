@@ -17,7 +17,7 @@ knowing about:
 - **Developer Console logging.** Turn this on to get verbose `[S2B]` output in
   the developer console (`Ctrl`/`Cmd` + `Shift` + `I`). Almost every diagnosis
   below starts here.
-- **Cleanup Plugin Data.** Deletes plugin settings and generated index data.
+- **Clean up plugin data.** Deletes plugin settings and generated index data.
   Your secrets, skill files, and chat files inside the vault are **kept**. This
   is the "start clean without losing my work" button.
 
@@ -72,9 +72,10 @@ account. Re-select it from the model list rather than typing it.
 ### Streaming problems
 
 Some endpoints, proxies especially, accept a streaming request and then fail
-before responding. The plugin detects this and downgrades that provider to
-buffered mode, so replies arrive all at once instead of token by token. If
-responses appear complete but never stream, this is usually why.
+before responding. The plugin detects this and re-runs that turn buffered, so
+the reply arrives all at once instead of token by token. The fallback is per
+run, not remembered: the next message tries streaming again. If responses
+appear complete but never stream, this is usually why.
 
 ## Search returns nothing useful
 
@@ -85,7 +86,7 @@ runs, which is fine, but it matches words rather than meaning.
 
 If the agent reports that semantic search is unavailable, that is authoritative
 and won't change mid-conversation. Configure an embedding model under
-**Settings → Smart Second Brain → Embedding model**.
+**Settings → Smart Second Brain → Search → Embedding indexes**.
 
 ### The index is incomplete
 

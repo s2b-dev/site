@@ -46,18 +46,24 @@ rolls up somewhere.
 
 Related controls:
 
-- **Min cluster size:** groups smaller than this aren't treated as topics.
 - **Link-only topics:** detect topics from authored links alone, ignoring
   inferred edges.
 - **Seed:** the PRNG seed. The same seed on the same graph gives the same
   topics, so a layout you liked is reproducible.
 
+A group needs at least two notes to count as a topic. A single note is not a
+topic; it stays on the graph without a region.
+
 ### Topic labels
 
-Topics are named after their hub note's filename by default. If you have a chat
-model configured, you can have the agent read each topic and generate a real
-name for it instead. Labelling runs in the background and can be cancelled; if
-the graph changes underneath it, the in-flight pass is aborted.
+Topics are named after their best-connected note's filename by default. With a
+**Topic naming model** set under **Settings → Graph**, the **Name topics with
+AI** button in the Topics panel sends each topic's note titles to that model
+and names the topic from them. Names are cached by topic membership, so an
+unchanged topic is never named twice. Naming runs in the background and can be
+cancelled; if the graph changes underneath it, the in-flight pass is aborted.
+**Name topics automatically** (off by default) runs it whenever the topics
+change instead of only on request.
 
 ## Highlighting
 

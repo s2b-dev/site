@@ -5,6 +5,20 @@ import svelte from '@astrojs/svelte';
 
 export default defineConfig({
 	site: 'https://smartsecondbrain.dev',
+	// Old slugs. The plugin's README (and anything that copied it) still links
+	// /features/search/ and /internals/architecture/; the docs were regrouped by
+	// feature in the Search/Graph/Agents restructure. Keep these until the README
+	// is updated and search engines have followed the moves.
+	redirects: {
+		'/features/search/': '/search/',
+		'/features/graph/': '/graph/',
+		'/features/agent/': '/agents/',
+		'/features/skills/': '/agents/skills/',
+		'/features/memory/': '/agents/memory/',
+		'/features/mcp/': '/agents/mcp/',
+		'/internals/search-algorithm/': '/search/how-it-works/',
+		'/internals/architecture/': '/search/how-it-works/',
+	},
 	integrations: [
 		svelte(),
 		starlight({

@@ -32,7 +32,10 @@ This can run fully locally through [Ollama](https://ollama.com/); a strong
 starting point is `qwen3-embedding:0.6b` — multilingual, and small enough to be
 comfortable on a laptop. No note content leaves your machine.
 
-Configure it under **Settings → Smart Second Brain → Embedding model**.
+Configure it under **Settings → Smart Second Brain → Search → Embedding
+indexes**: add an index, pick the embedding model, and it becomes the search
+index. The graph picks its own index under the **Graph** tab, so one index can
+serve both or each can use a different model.
 
 ## Add an AI provider for the agent
 

@@ -215,9 +215,11 @@ all and forced an oversized recency bonus to compensate.
 
 ## 4 · Recency
 
-A note's recency boost decays by open order (`4.5` down to a floor of `0.5`,
-decay `0.75`) over the last 20 opened notes. It then passes three independent
-guards. Each exists because a specific measured case failed without it.
+A note counts as recent for **seven days** after you last opened it. Its raw
+boost holds at `4.5` for the first day, then decays linearly to `0.5` at the
+end of the window; opening it again resets the clock. The boost then passes
+three independent guards. Each exists because a specific measured case failed
+without it.
 
 | Guard | Value | Rationale |
 | --- | --- | --- |

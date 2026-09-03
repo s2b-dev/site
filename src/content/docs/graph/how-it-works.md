@@ -111,9 +111,9 @@ return to.
 ### The ladder is derived per vault
 
 How many meaningfully different groupings exist depends entirely on a vault's
-size and structure. A small uniform vault may support four; a large varied one a
-dozen. So the plugin **probes** 14 γ values from 0.1 to 8.0, then picks the
-rungs.
+size and structure. A small uniform vault may support three; a large varied one
+reaches the cap of **six**. So the plugin **probes** 14 γ values from 0.1 to
+8.0, then picks the rungs.
 
 Probing is cheap relative to its payoff: each result also warms the Leiden
 cache, so every granularity step afterwards is instant.
@@ -232,9 +232,18 @@ When topics are collapsed, each becomes one node whose degree is a *crossing
 link count*, a few to several thousand, where a note's degree is a handful.
 Three things adapt:
 
-**Radius.** The note formula saturated past ~55 links, rendering a 180-note and
-a 2000-note topic identically. Collapsed topics use a saturating curve over
-√degree instead, so every doubling stays visible.
+**Radius.** A collapsed topic's size encodes its **member count**, not its
+connectivity; the rolled-up edge widths already carry that, and encoding it
+twice left member count encoded nowhere. Following the bubble-chart
+convention, area is proportional to members, so the radius grows with
+√members, normalized **per vault**: the largest topic in the current
+segmentation sits at the ceiling (26 world px over the base size) and every
+other topic at its true share of that, down to a floor of 6. The normalizer
+comes from all topics, not only the collapsed ones, so a bubble never changes
+size because a *different* topic was expanded. A fixed saturating curve was
+tried first and was already flat at real vault sizes: an 8-note topic drew at
+a third the size of a 1000-note one, and 1000 versus 2000 were
+indistinguishable.
 
 **Spring length.** Stiffness only changes how *fast* a pair converges, not where
 it settles, so with one fixed distance, two topics joined by 200 links come to

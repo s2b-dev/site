@@ -9,7 +9,8 @@ A provider supplies the models the agent runs on. Smart Second Brain is
 provider-agnostic: you bring your own, and you can configure several at once
 and switch between them per chat.
 
-Add one under **Settings → Smart Second Brain → Providers → Add provider**.
+Add one under **Settings → Smart Second Brain → General → Providers → Add
+provider**.
 
 ## Supported providers
 
@@ -17,10 +18,10 @@ Add one under **Settings → Smart Second Brain → Providers → Add provider**
 | --- | --- | --- |
 | **Ollama** | Yes | Fully local. Nothing leaves your machine. |
 | **oMLX** | Yes | Local inference on Apple Silicon. |
-| **OpenAI** | No | Also covers OpenAI Codex sign-in. |
+| **OpenAI** | No | API key, or ChatGPT sign-in. |
 | **Anthropic** | No | Claude models. |
 | **OpenRouter** | No | Routes to many vendors behind one key. |
-| **OpenAI-compatible** | Depends | Any endpoint speaking the OpenAI API. |
+| **Custom** (OpenAI-compatible) | Depends | Any endpoint speaking the OpenAI API. |
 
 You can create **multiple instances of the same provider type** with distinct
 display names and endpoints, useful for separating a work key from a personal

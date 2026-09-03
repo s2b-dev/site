@@ -21,7 +21,7 @@ covers what trust does with that.
 | **OpenAI** | Untrusted | Remote |
 | **Anthropic** | Untrusted | Remote |
 | **OpenRouter** | Untrusted | Remote |
-| **OpenAI-compatible** | Untrusted | The endpoint is arbitrary |
+| **Custom** (OpenAI-compatible) | Untrusted | The endpoint is arbitrary |
 
 The rule is mechanical: the two local templates default to trusted, and
 **everything else defaults to untrusted**, including a custom endpoint pointed
@@ -41,7 +41,8 @@ it could otherwise reach the model:
 - **`list_directory`:** the entry reads as `private` rather than listing.
 - **`get_properties`:** frontmatter is withheld.
 - **`get_all_tags`:** tags used only by private notes don't appear.
-- **`manage_notes`:** private notes are skipped.
+- **`manage_notes`:** an operation on a private note is refused with an error;
+  the other operations in the same call still go through.
 - **Embedding:** private notes are not indexed against an untrusted embedding
   provider. They are skipped with a `privacy` reason, not silently dropped.
 

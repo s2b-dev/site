@@ -46,8 +46,9 @@ Four ship with the plugin and are seeded into your vault on first run:
 | `web` | `fetch_url`, `web_search` | Reaching the public internet, vault-first |
 | `manage-skills` | `manage_skills` | Authoring and revising skills |
 
-Older vaults had `manage-notes` under the name `edit-notes`; the plugin
-renames the folder on update and keeps your on/off setting for it.
+Older vaults had `manage-notes` under the name `edit-notes` and `manage-skills`
+under `update-skills`; the plugin renames the folders on update and keeps your
+on/off setting for each.
 
 They are ordinary notes once seeded, so edit them freely. If a plugin update
 changes a default you had customized, you get a notice rather than a silent

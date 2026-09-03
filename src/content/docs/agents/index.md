@@ -19,10 +19,12 @@ What an agent *has* is covered on its own page: the
 
 ## Conversations are notes
 
-Chats are stored as `.chat` files in your vault. They open in a sidebar split
-rather than replacing the note you're reading, they sync with everything else,
-and they are indexed, so you can search for a conversation by what was said in
-it.
+Chats are stored as `.chat` files in your vault (the **Chats folder** under
+**Settings → Agents**). A new chat opens as a tab in the main area by default;
+**Open new chat in** under the same settings moves it to the left or right
+sidebar so it sits beside the note you're reading. Chats sync with everything
+else, and they are indexed, so you can search for a conversation by what was
+said in it.
 
 **History is a tree, not a list.** Editing an earlier message or regenerating a
 reply creates a *branch* rather than destroying what was there. You can explore
