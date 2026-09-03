@@ -152,6 +152,15 @@
     /* Demo-window depth. Both themes must define these. */
     --window-shadow: 0 24px 70px -30px rgba(0, 0, 0, 0.6);
     --modal-shadow: 0 18px 50px rgba(0, 0, 0, 0.5);
+    /* Obsidian's `--shadow-l` verbatim (its dark value — the third layer is
+       deeper than light's). The bottom sheet uses this rather than
+       `--modal-shadow`: a sheet resting on the bottom edge lifts off the
+       canvas with a soft three-layer spread, where the modal's single deep
+       drop reads as something floating far above the page. */
+    --sheet-shadow:
+      0px 1.8px 7.3px rgba(0, 0, 0, 0.071),
+      0px 6.3px 24.7px rgba(0, 0, 0, 0.112),
+      0px 30px 90px rgba(0, 0, 0, 0.2);
     /* Obsidian's real values, read from the live S2B Test Vault via the
        Obsidian CLI (getComputedStyle on document.body) — not eyeballed.
        Dark: --background-primary #1e1e1e, --background-secondary #292929,
@@ -226,6 +235,12 @@
     --gm-edge: rgba(110, 110, 110, 0.42);
     --window-shadow: 0 24px 70px -30px rgba(22, 21, 28, 0.35);
     --modal-shadow: 0 18px 50px rgba(22, 21, 28, 0.18);
+    /* Obsidian's light `--shadow-l` — same first two layers as dark, a
+       shallower third. */
+    --sheet-shadow:
+      0px 1.8px 7.3px rgba(0, 0, 0, 0.071),
+      0px 6.3px 24.7px rgba(0, 0, 0, 0.112),
+      0px 15px 30px rgba(0, 0, 0, 0.1);
     /* Light theme, same source: #fff / #f2f2f2, text #262626 / #737373 /
        #bfbfbf, accent rgb(152,115,247), borders translucent black. */
     --ob-bg: #ffffff;
@@ -1575,12 +1590,19 @@
     .v-selbar {
       left: 0; right: 0; bottom: 0; width: auto;
       display: flex; flex-direction: column; align-items: stretch; gap: 0;
-      padding: 8px 0 0;
+      /* `.s2b-sheet-scroll`'s insets, minus its navbar clearance — the mock
+         window has no floating Obsidian navbar to clear. The 12px top is what
+         `:not(:has(.s2b-sheet-handle))` adds when a sheet has no handle to
+         provide it, which is this sheet: undraggable, so no handle. */
+      padding: 12px 12px 12px;
       border: none; border-top: 1px solid var(--ob-border);
+      /* `--radius-l`, and `--shadow-l` — a soft three-layer lift, not the
+         modal's single deep drop. Both are Obsidian's own values. */
       border-radius: 12px 12px 0 0;
-      background: var(--ob-surface); box-shadow: var(--modal-shadow);
+      background: var(--ob-surface); box-shadow: var(--sheet-shadow);
       white-space: normal;
-      /* Slides up from the bottom edge, as the real BottomSheet does. */
+      /* Slides up from the bottom edge, as the real BottomSheet's
+         `s2b-sheet-in` keyframe does, at its 160ms ease-out. */
       transform: translateY(100%);
       transition: transform .16s ease-out, opacity .16s ease-out;
     }
@@ -1591,10 +1613,16 @@
       display: flex; align-items: center; justify-content: space-between;
       gap: 8px; min-height: 32px; padding: 0 16px; margin-bottom: 8px;
     }
-    /* The card holding the verbs. */
+    /* The card holding the verbs. A `.setting-group` inside the sheet's
+       12px-inset scroll region, so it is an inset rounded card on the sheet
+       rather than an edge-to-edge slab — the same figure/ground the settings
+       tab has, and the reason the sheet is the DARKER of the token pair while
+       the card is the lighter. Core's `--setting-items-radius` is
+       `--radius-l` (12px), not the smaller card radius it looks like. */
     .v-selacts {
       display: flex; flex-direction: column;
       background: var(--ob-bg); padding-block: 4px;
+      border-radius: 12px; overflow: hidden;
     }
     /* Full-width rows at the 44px touch floor, left-aligned. */
     .v-selacts .v-selact {
