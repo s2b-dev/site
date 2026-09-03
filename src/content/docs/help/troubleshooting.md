@@ -5,21 +5,28 @@ sidebar:
   order: 1
 ---
 
-Most problems fall into one of four buckets: the provider can't be reached, the
-index isn't what you think it is, the agent lacks a tool, or a note is being
-filtered for privacy. This page walks each one.
+Most problems come down to one of a few causes: the provider can't be reached,
+the index isn't what you think it is, the agent lacks a tool, or a note is being
+filtered for privacy. The sections below are organised by what you're seeing
+rather than by cause, so start from the symptom.
 
-## Start here
+## Before you start: turn on logging
 
-**Settings → Smart Second Brain → Troubleshooting** has two things worth
-knowing about:
+Almost every diagnosis below reads better with verbose output. Turn on
+**Developer Console logging** in the plugin's Troubleshooting settings,
+reproduce the problem, and open the developer console (`Ctrl`/`Cmd` + `Shift` +
+`I`) to read the `[S2B]` lines.
 
-- **Developer Console logging.** Turn this on to get verbose `[S2B]` output in
-  the developer console (`Ctrl`/`Cmd` + `Shift` + `I`). Almost every diagnosis
-  below starts here.
-- **Clean up plugin data.** Deletes plugin settings and generated index data.
+Two other things live on that same settings tab, worth knowing before you need
+them:
+
+- **Clean up plugin data** deletes plugin settings and generated index data.
   Your secrets, skill files, and chat files inside the vault are **kept**. This
   is the "start clean without losing my work" button.
+- **View existing issues** and **Open new issue** go straight to the tracker,
+  for when nothing on this page fits.
+
+Then jump to whichever section matches your symptom.
 
 ## The agent won't respond
 
@@ -190,11 +197,8 @@ phone. Consider indexing on desktop against a synced vault.
 
 ## Nothing above helped
 
-Turn on **Developer Console logging**, reproduce the problem, and check the
-console for `[S2B]` lines.
-
-Then search the
+Search the
 [existing issues](https://github.com/s2b-dev/smart-second-brain/issues) before
 opening a new one. If you do open one, include what you tried, any error
-messages, and the steps to reproduce. Both buttons are in the Troubleshooting
-settings tab.
+messages, the steps to reproduce, and the `[S2B]` console output from the
+logging you turned on at the top of this page.
