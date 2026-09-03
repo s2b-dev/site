@@ -407,7 +407,15 @@ was ported from a hand-written mockup, so:
   in `landing.js` next to the storyline's observer; they fire once per page
   load via a `track()` guard that is a no-op without the tracker. Event
   names are what the dashboard counts by — renaming one orphans its history.
-- **Privacy and providers are one section** (`#privacy`). They used to be
+- **Privacy and providers are one section** (`#privacy`). Its three claims
+  are an **unboxed `.privacy-list`**, the same shape as the pillars' `.plist`
+  (same green check, same bold lead-in, same 600 weight) — they were bordered
+  `--bg-2` cards until the pillars dropped theirs, which left three short
+  guarantees reading as three objects rather than one statement. Don't
+  re-box them: there are no cards left anywhere on the page. The list's
+  `pl-in` entry animation starts at `opacity: 0`, so a static render of this
+  section shows nothing until it runs — that is expected, not a bug.
+  They used to be
   two consecutive centred sections saying the same thing twice — the toggle
   is "On my computer" vs "Cloud AI", and the providers lede restated that
   two run locally and are trusted. Now the toggle swaps the provider line
@@ -578,8 +586,10 @@ agents tinted, privacy plain, final CTA tinted. The rule exists because the
 page once ran three plain sections, one band, two plain, one band, which
 read as arbitrary. Anything that sits on a tinted band has to lift off it:
 the granularity explorer's frame uses `--bg`, the agents chat still uses the
-Obsidian background token. Anything with `--bg-2` fills of its own — the privacy
-claim cards — belongs on a plain section. If you add or
+Obsidian background token. Anything with `--bg-2` fills of its own belongs on
+a plain section — the privacy claims used to be exactly that and are now
+unboxed, so nothing on the page relies on this any more, but the constraint
+still binds anything new. If you add or
 remove a section, re-alternate the whole run rather than tinting the new one
 to taste, and keep the final CTA on a band.
 

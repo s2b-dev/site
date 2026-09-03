@@ -1134,14 +1134,23 @@
   /* Brand marks vary a lot in optical weight, so they sit slightly muted
      rather than at full text colour. */
   .prov-mark { width: 14px; height: 14px; flex-shrink: 0; color: var(--text-3); }
-  .privacy-more { text-align: center; font-size: 13px; color: var(--text-3); margin-top: 28px; }
+  /* 38, not 28: the claims used to be padded cards, so their box edge sat
+     ~15px above their last line and this margin measured from there. Unboxed,
+     28px put the closing line nearer the list than the list is to the
+     provider line above it. */
+  .privacy-more { text-align: center; font-size: 13px; color: var(--text-3); margin-top: 38px; }
   .privacy-more a { color: var(--text-2); text-decoration: underline; text-underline-offset: 2px; }
   .privacy-more a:hover { color: var(--accent); }
-  .privacy-list { list-style: none; display: flex; flex-direction: column; gap: 11px; }
+  /* Unboxed, like the three pillar lists (`.plist`) — same marks, same bold
+     lead-in, same type. These used to be bordered `--bg-2` cards, the last
+     card-like list left on the page after the pillars dropped theirs, which
+     made three short guarantees read as three objects instead of one
+     statement. Wider gap than `.plist` (18 vs 15) because there is no box
+     edge doing the separating any more. */
+  .privacy-list { list-style: none; display: flex; flex-direction: column; gap: 18px; }
   .privacy-list li {
     display: flex; gap: 12px; font-size: 14.5px; color: var(--text-2);
-    padding: 15px 18px; border-radius: 11px;
-    background: var(--bg-2); border: 1px solid var(--border);
+    line-height: 1.55;
     animation: pl-in .32s ease both;
   }
   @keyframes pl-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
@@ -1153,7 +1162,9 @@
      caveat, kept because the row data carries a marker kind per line. */
   .privacy-list .ck-ok { background: var(--green-soft); color: var(--green); }
   .privacy-list .ck-note { background: var(--surface-2); color: var(--text-3); }
-  .privacy-list strong { color: var(--text); font-weight: 500; }
+  /* 600 to match `.plist strong` — the two lists are now the same shape,
+     so a different bold weight would be the only thing setting them apart. */
+  .privacy-list strong { color: var(--text); font-weight: 600; }
 
   /* ---------- features ---------- */
   /* No card grid any more: the agents pillar was the last one and now uses a
