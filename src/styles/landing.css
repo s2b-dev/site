@@ -497,7 +497,7 @@
      chrome, here the title bar is 40px). Slides in from the right, as the
      real one does. */
   .v-notice {
-    position: absolute; top: 52px; right: 9px; z-index: 8;
+    position: absolute; top: 52px; right: 9px; z-index: 9;
     max-width: 300px; padding: 9.75px 13px;
     border-radius: 8px;
     background: rgba(0, 0, 0, 0.9); color: #fafafa;
@@ -587,9 +587,14 @@
 
   /* Simulated cursor. Positioned in graph-pane coordinates by landing.js; the
      transition does the travelling, so moves read as a glide rather than a
-     jump. Shown only while the storyline is driving the graph. */
+     jump. Shown while the storyline is driving the graph, and again while it
+     accepts the diff hunks in the note.
+     Above the note (z7) so the approval clicks have a visible hand on them,
+     but below the notice (z9), which is the window's own toast and should
+     never be pointed at. It lives in `.v-main` rather than `.v-graph` for
+     this to be possible at all — see the markup comment in index.astro. */
   .v-cursor {
-    position: absolute; top: 0; left: 0; z-index: 6;
+    position: absolute; top: 0; left: 0; z-index: 8;
     width: 17px; height: 17px; pointer-events: none;
     opacity: 0; transition: opacity .25s ease, transform .55s cubic-bezier(.4,.1,.25,1);
     will-change: transform;
@@ -1669,6 +1674,21 @@
     .v-chat > .v-composer,
     .v-chat > .v-pending { width: auto; }
     .v-chat-body { padding: 12px 14px 8px; }
+    /* The pending bar's summary row does not fit on one line at phone width:
+       "1 update pending" needs 150px and the Accept All / Reject All group is
+       a further 180 (`flex-shrink: 0`), against ~294px of content box — 44px
+       short. Measure the LEFT group DETACHED when re-deriving this; in place
+       it reports its widest wrapped line (106px), not the 150 it needs, which
+       is the same trap documented at `--chat-w` above.
+       Nothing here can give: both button labels and the count are the
+       plugin's own strings, and the real bar has no narrow-width variant to
+       mirror (in Obsidian the chat pane never gets this narrow). So the row
+       breaks as a ROW — buttons drop to their own line under the label —
+       rather than letting the count wrap mid-phrase or ellipsize to
+       "1 update pe…". Every string stays whole and stays true. */
+    .pcb-sum { flex-wrap: wrap; row-gap: 6px; }
+    .pcb-sum-l { flex: 1 0 100%; }
+    .pcb-sum-r { margin-left: auto; }
     /* ── Mobile selection sheet ─────────────────────────────────────────
        The floating bar is ~610px — nearly twice a phone's width — so on
        mobile the plugin replaces it outright with a bottom sheet, and so

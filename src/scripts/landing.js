@@ -2339,17 +2339,29 @@ function roundRectPath(ctx, x, y, w, h, r) {
       vNote.classList.add('on');
       if (isMobileDemo()) setPane('graph');
     });
+    /* The hand comes back for the approvals. This is the trust moment — the
+       one place the viewer is meant to read the clicks as THEIRS — so the
+       buttons must not depress on their own, the way every other press in the
+       storyline is driven by the cursor. (Typing and the search modal stay
+       cursor-less on purpose; a caret already carries those.) */
+    at(37100, function () {
+      cursorToEl(vNote.querySelector('#vDiff1 .v-diff-acc'));
+      cursorShow();
+    });
     at(37700, function () {
       var b = vNote.querySelector('#vDiff1 .v-diff-acc');
       if (b) b.classList.add('pressed');
+      cursorClick();
     });
     at(38050, function () {
       var g = document.getElementById('vDiff1');
       if (g) g.classList.add('done');
     });
+    at(38200, function () { cursorToEl(vNote.querySelector('#vDiff2 .v-diff-acc')); });
     at(38800, function () {
       var b = vNote.querySelector('#vDiff2 .v-diff-acc');
       if (b) b.classList.add('pressed');
+      cursorClick();
     });
     at(39150, function () {
       var g = document.getElementById('vDiff2');
@@ -2363,10 +2375,15 @@ function roundRectPath(ctx, x, y, w, h, r) {
       pending.innerHTML = '';
       showNotice();
     });
-    at(39900, function () { vNoteClose.classList.add('pressed'); });
+    at(39400, function () { cursorToEl(vNoteClose); });
+    at(39900, function () { vNoteClose.classList.add('pressed'); cursorClick(); });
     at(40200, function () {
       vNoteClose.classList.remove('pressed');
       vNote.classList.remove('on');
+      /* Hidden here rather than left on screen: the note is going away and the
+         next beat (the Exit press at 40600) re-shows the cursor at the exit
+         button, so leaving it up would drag a stale arrow across the graph. */
+      cursorHide();
     });
 
     /* Finale: exit the immersion, back to the overview — where the approved
@@ -2645,9 +2662,19 @@ function roundRectPath(ctx, x, y, w, h, r) {
      distinguishable however many there are. */
   function hueOfGroup(g, total) { return Math.round((g * 360) / Math.max(1, total)); }
   /* Saturation rides the wand toggle's fade: at 0 every colour collapses to
-     the same grey — the raw graph, with the clustering's colour taken away. */
+     the same grey — the raw graph, with the clustering's colour taken away.
+
+     But saturation is not perceptually linear: 70% × 0.5 is 35%, which still
+     reads as washed-out grey rather than half-coloured, so a linear map spent
+     most of the toggle looking like nothing had happened yet and then dumped
+     the colour at the end. `sat` front-loads it (sqrt, so 0.5 → 71% of full
+     saturation) — the hue is legible early and the last stretch of the ramp
+     only deepens it. The FADE ITSELF still rides the layout (see step): what
+     changes here is how much colour each point of that fade is worth, not how
+     long it takes. */
+  function sat(v) { return Math.round(70 * Math.sqrt(v < 0 ? 0 : v > 1 ? 1 : v)); }
   function hsla(hue, l, a) {
-    return 'hsla(' + hue + ', ' + Math.round(70 * topicsVis) + '%, ' + l + ', ' + a + ')';
+    return 'hsla(' + hue + ', ' + sat(topicsVis) + '%, ' + l + ', ' + a + ')';
   }
 
   /* Playback rate for this canvas's transitions — slow motion (see tickSim;
