@@ -1,5 +1,5 @@
 /* VENDORED, DO NOT EDIT — verbatim copy of smart-second-brain/src/utils/graphAnimation.ts
-   (plugin commit cdcedff). The demo runs the plugin's own physics/geometry so the
+   (plugin commit 5b3a9086). The demo runs the plugin's own physics/geometry so the
    marketing graph moves exactly like the product; refresh this copy when the
    source changes (see CLAUDE.md release checklist). Only this header is added. */
 /**
@@ -239,57 +239,5 @@ export function framingTransform(
 		x: viewportCenterX - centerX * scale,
 		y: viewportCenterY - centerY * scale,
 		scale,
-	};
-}
-
-/**
- * Animate a camera transform from its current value to a target over a given
- * duration using ease-out cubic easing.
- *
- * Returns a cleanup function that cancels the in-flight animation.
- *
- * @param getCurrent  Read the current transform (snapshot taken once at start).
- * @param setCurrent  Write the new transform each frame (should trigger a re-render).
- * @param target      The desired end transform `{ x, y, scale }`.
- * @param duration    Animation length in milliseconds.
- * @param onComplete  Optional callback fired when the animation finishes.
- */
-export function animateTransform(
-	getCurrent: () => Transform,
-	setCurrent: (t: Transform) => void,
-	target: Transform,
-	duration: number,
-	onComplete?: () => void,
-): () => void {
-	const start = { ...getCurrent() };
-	const startTime = performance.now();
-	let rafId: number | null = null;
-
-	function step(now: number) {
-		const elapsed = now - startTime;
-		const t = Math.min(elapsed / duration, 1);
-		const ease = easeOutCubic(t);
-
-		setCurrent({
-			x: start.x + (target.x - start.x) * ease,
-			y: start.y + (target.y - start.y) * ease,
-			scale: start.scale + (target.scale - start.scale) * ease,
-		});
-
-		if (t < 1) {
-			rafId = requestAnimationFrame(step);
-		} else {
-			rafId = null;
-			onComplete?.();
-		}
-	}
-
-	rafId = requestAnimationFrame(step);
-
-	return () => {
-		if (rafId != null) {
-			cancelAnimationFrame(rafId);
-			rafId = null;
-		}
 	};
 }

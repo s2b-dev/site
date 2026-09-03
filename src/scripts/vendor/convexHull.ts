@@ -1,5 +1,5 @@
 /* VENDORED, DO NOT EDIT — verbatim copy of smart-second-brain/src/utils/convexHull.ts
-   (plugin commit cdcedff). The demo runs the plugin's own physics/geometry so the
+   (plugin commit 5b3a9086). The demo runs the plugin's own physics/geometry so the
    marketing graph moves exactly like the product; refresh this copy when the
    source changes (see CLAUDE.md release checklist). Only this header is added. */
 /**

@@ -1,5 +1,5 @@
 /* VENDORED, DO NOT EDIT — verbatim copy of smart-second-brain/src/utils/graphLayout.ts
-   (plugin commit cdcedff). The demo runs the plugin's own physics/geometry so the
+   (plugin commit 5b3a9086). The demo runs the plugin's own physics/geometry so the
    marketing graph moves exactly like the product; refresh this copy when the
    source changes (see CLAUDE.md release checklist). Only this header is added. */
 /**
@@ -39,6 +39,10 @@ export interface LayoutNode extends SimulationNodeDatum {
 	degree?: number;
 	kind?: string;
 	cluster?: number;
+	/** For topic nodes — drives their draw (and thus collide) radius. */
+	memberPaths?: string[];
+	/** For topic nodes — the vault's largest topic, which the radius is normalized to. */
+	largestTopicSize?: number;
 }
 
 /** The link shape the physics needs — a structural subset of the canvas's SimLink. */
@@ -109,7 +113,7 @@ const TOPIC_SURFACE_GAP = 8;
  * drifted apart. Note-level edges are left alone — their weights are cosine
  * scores and small link counts that already behave.
  */
-export function weightPull(link: LayoutLink): number {
+function weightPull(link: LayoutLink): number {
 	const source = link.source as LayoutNode;
 	const target = link.target as LayoutNode;
 	if (source?.kind !== "topic" && target?.kind !== "topic") return 1;
@@ -139,7 +143,7 @@ export function weightPull(link: LayoutLink): number {
  * resolved to node objects (with their `kind`) once the link force
  * initializes — before that, callers may hold string ids.
  */
-export function makeWeightedLinkDistance(
+function makeWeightedLinkDistance(
 	effectiveLinkDistance: number,
 	nodeSize: number,
 	links: readonly LayoutLink[],

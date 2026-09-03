@@ -1272,57 +1272,47 @@
     font-size: 12.5px; font-weight: 600; color: var(--text);
     flex-shrink: 0;
   }
-  /* Fixed width so the row doesn't reflow as the level name changes length
-     ("Fine" → "Broadest"), which would jiggle the slider under the cursor. */
-  .g-ctl-value {
-    font-size: 12.5px; color: var(--accent); font-weight: 600;
-    flex-shrink: 0; width: 62px; text-align: right;
-  }
   .g-cap {
     padding: 0 18px 15px; font-size: 12.5px; color: var(--text-3);
   }
 
-  /* Range input, themed by hand — the native control ignores the palette and
-     would be the one Windows-blue thing on the page. Both tracks and the
-     thumb come from tokens, so light mode follows for free. */
-  /* Capped, not full-flex: four stops don't need a metre of track, and at
-     full row width the thumb travel dwarfed the change it causes. The row's
-     remaining slack is absorbed by the spacer after the value. */
-  .g-range {
-    -webkit-appearance: none; appearance: none;
-    flex: 0 1 300px; min-width: 120px; height: 22px;
-    background: transparent; cursor: pointer;
+  /* Segmented control — four named levels, one chosen. Replaced a themed
+     range input: with four fixed, *named* stops the names are the content,
+     and a thumb hid them behind a separate readout. It also had to be capped
+     at 300px (and still went full width on a phone) because the travel
+     dwarfed the change it caused. Buttons show all four states at once, so
+     the ladder itself is the affordance. The plugin keeps its slider for a
+     reason that doesn't apply here — see the note in index.astro. */
+  .g-seg {
+    display: flex; align-items: stretch;
+    border: 1px solid var(--border); border-radius: 9px;
+    background: var(--surface-2); padding: 2px; gap: 2px;
   }
-  .g-range:disabled { opacity: 0.4; cursor: default; }
-  /* Dim the slider's caption pair with it, so the whole control reads off. */
+  .g-seg-btn {
+    padding: 5px 11px; border: 0; border-radius: 7px;
+    background: transparent; color: var(--text-2);
+    font-family: inherit; font-size: 12.5px; font-weight: 500;
+    cursor: pointer; white-space: nowrap;
+    transition: color .18s ease, background .18s ease;
+  }
+  .g-seg-btn:hover { color: var(--text); }
+  /* The selected level carries the accent the value readout used to. */
+  .g-seg-btn.on {
+    background: var(--bg); color: var(--accent); font-weight: 600;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.18);
+  }
+  .g-seg-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: -1px; }
+  /* A level the current canvas is too narrow to draw legibly (the 8-topic
+     Finest on a phone) is hidden outright rather than disabled: a dead stop
+     on a range was invisible, but a dead *button* invites a click. The cap
+     is applied from landing.js, which is what knows the canvas width. */
+  .g-seg-btn[hidden] { display: none; }
+  .g-seg-btn:disabled { opacity: 0.4; cursor: default; }
+  .g-seg-btn:disabled:hover { color: var(--text-2); }
+  /* Dim the whole control with its label when topics are off — the level
+     means nothing without them, and the buttons are disabled to match. */
   .g-ctl.topics-off .g-ctl-label,
-  .g-ctl.topics-off .g-ctl-value { opacity: 0.4; }
-  .g-range::-webkit-slider-runnable-track {
-    height: 4px; border-radius: 2px; background: var(--surface-2);
-  }
-  .g-range::-moz-range-track {
-    height: 4px; border-radius: 2px; background: var(--surface-2);
-  }
-  .g-range::-webkit-slider-thumb {
-    -webkit-appearance: none; appearance: none;
-    width: 16px; height: 16px; margin-top: -6px;
-    border-radius: 50%; background: var(--accent);
-    border: 2px solid var(--bg-2);
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
-    transition: transform .15s ease;
-  }
-  .g-range::-moz-range-thumb {
-    width: 16px; height: 16px; border-radius: 50%;
-    background: var(--accent); border: 2px solid var(--bg-2);
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
-    transition: transform .15s ease;
-  }
-  .g-range:hover::-webkit-slider-thumb { transform: scale(1.12); }
-  .g-range:hover::-moz-range-thumb { transform: scale(1.12); }
-  /* Keyboard users get the same control: arrows step the level. */
-  .g-range:focus-visible { outline: none; }
-  .g-range:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 4px var(--accent-soft); }
-  .g-range:focus-visible::-moz-range-thumb { box-shadow: 0 0 0 4px var(--accent-soft); }
+  .g-ctl.topics-off .g-seg { opacity: 0.4; }
 
   /* ---------- search still ----------
      A settled screenshot of the search modal, in markup. Reuses the demo's
@@ -1370,6 +1360,11 @@
      12.5px) — it is a disclosure, not navigation. */
   .foot-note { flex-basis: 100%; margin: 0; }
   .foot p.foot-note { font-size: 12.5px; color: var(--text-3); }
+  /* The disclosure's own link, pointing at the Datenschutz page. `.foot a` is
+     13px, so without this it sits half a pixel larger than the sentence it
+     ends. Underlined because it is inline in prose — the footer's other links
+     are a nav row, where position already reads as "link". */
+  .foot p.foot-note a { font-size: inherit; text-decoration: underline; }
 
   /* No 980px chat-column override any more: the base rule is already 320px
      (it used to be 380px, narrowed here), so repeating it only risked the two
@@ -1396,10 +1391,14 @@
        than scaling the whole scene down past legibility. */
     .g-explore canvas { height: 290px; }
     .g-ctl { flex-wrap: wrap; gap: 10px 12px; padding: 13px 15px 4px; }
-    /* The slider takes its own row: at phone width, sharing with the label
-       and value left it too short to drag with any precision. */
-    .g-range { flex: 1 0 100%; order: 3; }
-    .g-ctl-value { margin-left: auto; text-align: right; }
+    /* Stay on the row while it fits. The slider this replaced always took a
+       row of its own (`flex: 1 0 100%`) because a short track is hard to
+       drag; a segmented control has no such minimum, so it wraps only when
+       it genuinely runs out of room — which, with the narrow canvas already
+       capping the stops at three, is now ~470px rather than the whole
+       breakpoint. `order: 3` keeps it last either way. */
+    .g-seg { flex: 0 1 auto; order: 3; }
+    .g-seg-btn { padding: 6px 9px; }
     .g-cap { padding: 0 15px 14px; }
     /* Wider than the viewport and near-opaque at the centre: the headline
        wraps to three lines here, so the graph has to clear more of the box. */
@@ -1584,6 +1583,14 @@
       display: flex; align-items: center; justify-content: center;
       background: var(--ob-text-2); color: var(--ob-bg); font-size: 11px;
     }
+  }
+  /* Below this the three capped stops no longer fit beside the two icon
+     buttons and the label, so the group wraps. Once wrapped it should own
+     the row and split it evenly — left-packed, a short group under a
+     centred row reads as something that fell off rather than a scale. */
+  @media (max-width: 470px) {
+    .g-seg { flex: 1 0 100%; }
+    .g-seg-btn { flex: 1; padding: 6px 4px; }
   }
   @media (max-width: 480px) {
     /* Keep the nav on one line: the wordmark carries the brand, so the

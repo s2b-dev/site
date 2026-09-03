@@ -95,7 +95,7 @@ was ported from a hand-written mockup, so:
   settle for the opening web (run to rest **off-screen**, never watched), and
   the `RECLUSTER_*` transition (slow decay, high drag, 3× cohesion boost
   eased out by smoothstep — from `GraphCanvas.svelte`) for the wand press,
-  immerse, exit and slider moves. **Do not tune motion constants here** — if
+  immerse, exit and granularity changes. **Do not tune motion constants here** — if
   the demo moves wrong, either the vendored copies are stale or the harness
   misuses them.
   Two things sit between the physics and the pixels, both in `tickSim`:
@@ -457,20 +457,30 @@ slip rather than a rhythm.
 There are no card grids left on the page. Before adding a card anywhere,
 check whether the section it lands in already has a form.
 **The graph split's visual column must stay ≥520px** (it is 560): below that
-the explorer caps the granularity slider's range — the phone rule — and
-desktop silently loses the Finest level.
+the explorer caps its granularity stops — the phone rule — and desktop
+silently loses the Finest level.
 
 One visual per pillar at most, and only one of them moves:
 
-- Graph gets the **granularity explorer** (`#granGraph` + `#granRange`), the
+- Graph gets the **granularity explorer** (`#granGraph` + `#granSeg`), the
   page's only visitor-driven surface. It mirrors the plugin's own Granularity
-  slider: the same notes regrouped coarser or finer. The levels are a fixed
+  control: the same notes regrouped coarser or finer. The levels are a fixed
   hierarchy rather than a live Leiden run, but they **merge** — a group at one
   level is always a subset of one group at the level below. Break that and the
-  slider reads as a shuffle instead of a zoom, which misrepresents the
-  feature. On a narrow canvas the slider's range is capped (`maxLevel`),
+  control reads as a shuffle instead of a zoom, which misrepresents the
+  feature. On a narrow canvas the last stops are hidden (`maxLevel`),
   because eight labelled topics cannot be read on a phone.
-  Two more controls flank the slider, both mirrors of `GraphControls.svelte`:
+  **It is a segmented control, not a range input**, though the plugin ships a
+  real slider. The plugin's ladder is *derived per vault* (three to six rungs,
+  unknown until Leiden has run), so only a number can address a stop; here the
+  four levels are fixed and **named**, and the name is the thing being chosen.
+  As a range the names hid behind a thumb and needed a separate readout, and
+  four stops stretched over a track that had to be capped at 300px — full
+  width on a phone — so the travel dwarfed the change it caused. It carries
+  radio semantics (`role="radiogroup"`, roving tabstop, arrow/Home/End keys),
+  which is also how the plugin's graph answers ↑/↓. It wraps to its own row
+  only below 470px, where it genuinely stops fitting.
+  Two more controls flank it, both mirrors of `GraphControls.svelte`:
   the **wand** (`wand-sparkles`) shows/hides the detected topics — and it is
   **physical**, not cosmetic: topics off resolves segments to `"none"`, which
   strips every node's `cluster`, and the cohesion force skips unclustered
@@ -478,7 +488,9 @@ One visual per pillar at most, and only one of them moves:
   "display-only" comment refers to Leiden staying cached, not the layout —
   trust `resolveAndApplySegments`, not that comment) — and the **chevrons**
   collapse every topic into a single `kind:'topic'` node sized by its
-  crossing-link count,
+  member count (`memberPaths.length`, normalised to `largestTopicSize`
+  across every group at the level — both fields must be set or every disc
+  draws at the floor radius, silently),
   with merged edges whose thickness is the crossing count
   (`buildCollapsedGraph`'s semantics). Collapse requires topics on, as in the
   real toolbar; the demo additionally auto-expands if the wand is switched
@@ -591,7 +603,7 @@ above it, which buried both under "Getting started".
 Each feature group ends with a **How it works** page — `search/how-it-works`,
 `graph/how-it-works` — holding the constants and the reasoning behind them.
 These are deliberately *not* a separate "internals" section: a reader who wants
-to know why recency can't hijack a ranking, or why the granularity slider has
+to know why recency can't hijack a ranking, or why granularity has
 the stops it does, is already reading that feature's page. Both are written
 against plugin source and carry a "verified against version X" note.
 

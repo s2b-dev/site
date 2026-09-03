@@ -802,24 +802,31 @@ const structuredData = {
 	          </svg>
 	        </button>
 	        <span class="g-ctl-div" aria-hidden="true"></span>
-	        <label class="g-ctl-label" for="granRange">Granularity</label>
-	        {/* Four steps, matching LEVELS in landing.js. Starts at 1 (Broad),
-	            so the first thing seen is a middling grouping that can visibly
-	            go both ways. */}
-	        <input
-	          id="granRange"
-	          class="g-range"
-	          type="range"
-	          min="0"
-	          max="3"
-	          step="1"
-	          value="1"
-	          aria-label="Granularity: how many topics your notes are grouped into"
-	        />
-	        <span class="g-ctl-value" id="granLevelName">Broad</span>
+	        <span class="g-ctl-label" id="granLabel">Granularity</span>
+	        {/* Four named steps, matching LEVELS in landing.js — a segmented
+	            control, not a range input. The plugin ships a real slider
+	            because its ladder is DERIVED per vault (three to six rungs,
+	            unknown until Leiden has run), so only a number can address a
+	            stop. Here the four levels are fixed and each one has a name,
+	            and the name is the content — "Broad" vs "Finest" is the thing
+	            being chosen. A range hid those names behind a thumb, needed a
+	            separate readout to say where it was, and stretched a metre of
+	            track over four stops (full width on a phone) so the travel
+	            dwarfed the change it caused.
+	            Radio semantics, not buttons: this is one choice among four,
+	            and a radiogroup gives arrow-key traversal for free — the same
+	            keys the slider answered, and the same the plugin's graph uses
+	            (↑/↓). Starts at Broad, a middling grouping that can visibly go
+	            both ways. `data-level` is the index into LEVELS. */}
+	        <div class="g-seg" id="granSeg" role="radiogroup" aria-labelledby="granLabel">
+	          <button class="g-seg-btn" type="button" role="radio" aria-checked="false" data-level="0" tabindex="-1">Broadest</button>
+	          <button class="g-seg-btn on" type="button" role="radio" aria-checked="true" data-level="1" tabindex="0">Broad</button>
+	          <button class="g-seg-btn" type="button" role="radio" aria-checked="false" data-level="2" tabindex="-1">Fine</button>
+	          <button class="g-seg-btn" type="button" role="radio" aria-checked="false" data-level="3" tabindex="-1">Finest</button>
+	        </div>
 	      </div>
 	      <p class="g-cap">
-	        Drag the slider: the same notes, gathered into fewer big topics or
+	        Pick a level: the same notes, gathered into fewer big topics or
 	        split into smaller ones. The wand hides the topics; the chevrons
 	        fold each one to a single point.
 	      </p>
@@ -1127,6 +1134,12 @@ const structuredData = {
 	      <a href={`https://github.com/${REPO}/issues`}>Issues</a>
 	      <a href={COMMUNITY_URL} data-umami-event="community-footer">Community plugin</a>
 	      <a href="https://obsidian.md">Obsidian</a>
+	      {/* § 5 DDG requires the Impressum to be reachable in at most two
+	          clicks from every page and labelled recognisably — "Impressum",
+	          not "Legal" or "About" (BGH I ZR 228/03). German on both surfaces
+	          for the same reason, on an otherwise English site. */}
+	      <a href="/legal/impressum/">Impressum</a>
+	      <a href="/legal/datenschutz/">Datenschutz</a>
 	    </div>
 	    {/* The site's analytics, disclosed because this audience checks: an
 	        undisclosed request to an analytics host reads worse than a
@@ -1144,6 +1157,7 @@ const structuredData = {
 	    <p class="foot-note">
 	      This site uses cookieless analytics, including anonymous click and
 	      scroll data. The plugin has none.
+	      <a href="/legal/datenschutz/">Details</a>
 	    </p>
 	  </div>
 	</footer>

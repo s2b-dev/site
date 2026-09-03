@@ -2332,8 +2332,8 @@ function roundRectPath(ctx, x, y, w, h, r) {
 (function () {
   var cv = document.getElementById('granGraph');
   if (!cv) return;
-  var slider = document.getElementById('granRange');
-  var nameEl = document.getElementById('granLevelName');
+  var seg = document.getElementById('granSeg');
+  var segBtns = seg ? Array.prototype.slice.call(seg.querySelectorAll('.g-seg-btn')) : [];
   /* The wand (show/hide topics) and chevrons (collapse/expand) — the same
      two controls the plugin's toolbar carries next to its lasso. */
   var btnTopics = document.getElementById('granTopics');
@@ -2385,24 +2385,34 @@ function roundRectPath(ctx, x, y, w, h, r) {
     }
   ];
 
-  var level = 1;                 /* index into LEVELS; matches the slider */
+  var level = 1;                 /* index into LEVELS; matches the segments */
 
   /* Eight labelled topics need room the phone layout doesn't have — at 290px
      tall the pills overlap each other and the point of the control is lost. So
-     a narrow canvas stops at the 6-topic level and the slider's range shrinks
-     to match: fewer stops, all of them legible, rather than a stop that draws
-     a mess. The levels themselves are unchanged; this only limits how far the
+     a narrow canvas stops at the 6-topic level and the control's last stop
+     is hidden to match: fewer stops, all of them legible, rather than a stop
+     that draws a mess. The levels themselves are unchanged; this only limits how far the
      control goes. */
   function maxLevel() {
     return W && W < 520 ? LEVELS.length - 2 : LEVELS.length - 1;
   }
-  function syncSliderRange() {
-    if (!slider) return;
+  /* Hide the stops this canvas is too narrow for, and pull the selection
+     back if it was standing on one. Hidden rather than disabled: a dead stop
+     on a range was invisible, but a dead button invites a click. */
+  function syncSegRange() {
+    if (!segBtns.length) return;
     var max = maxLevel();
-    slider.max = String(max);
-    if (Number(slider.value) > max) {
-      slider.value = String(max);
-      setLevel(max);
+    for (var i = 0; i < segBtns.length; i++) segBtns[i].hidden = i > max;
+    if (level > max) setLevel(max);
+  }
+  /* The pressed state and the roving tabstop: only the selected radio is
+     tabbable, so Tab enters the group once and the arrows move within it. */
+  function syncSegState() {
+    for (var i = 0; i < segBtns.length; i++) {
+      var on = i === level;
+      segBtns[i].classList.toggle('on', on);
+      segBtns[i].setAttribute('aria-checked', on ? 'true' : 'false');
+      segBtns[i].tabIndex = on ? 0 : -1;
     }
   }
   var PALETTE = {}, ACCENT = '#7f6df2', TEXT = '#ddd', FOG = '30, 30, 30';
@@ -2451,8 +2461,8 @@ function roundRectPath(ctx, x, y, w, h, r) {
      settle: enough slowing to watch groups migrate, not so much that a
      control you are dragging feels laggy. */
   var PLAY = 0.5;
-  /* Slightly quicker for slider moves: that transition answers a control the
-     visitor is actively dragging, so it has to keep up with them. */
+  /* Slightly quicker for level changes: that transition answers a control
+     the visitor just pressed, so it has to keep up with them. */
   var DRAG_PLAY = 0.65;
 
   var nodes = [], edges = [];
@@ -2541,6 +2551,15 @@ function roundRectPath(ctx, x, y, w, h, r) {
    * note-links cross its boundary, and one merged edge per topic pair whose
    * weight sums the crossings. Each is seeded at the mean position of
    * whatever currently represents its leaves, so folding reads as gathering.
+   *
+   * Size is NOT degree: nodeDrawRadius sizes a topic by member count,
+   * normalised to the largest topic in the segmentation — `memberPaths`
+   * (only its length is read; the plugin fills it with note paths) and
+   * `largestTopicSize`, which mergeNodes stamps from ALL topics, not just
+   * the folded ones, so a disc never resizes because a different topic was
+   * expanded. Every group at a level is folded together here, so the max
+   * over `made` is that same normaliser. Leave either field out and every
+   * disc silently draws at the floor radius — no error, just no gradient.
    */
   function buildTopicNodes() {
     var map = LEVELS[level].of;
@@ -2565,8 +2584,13 @@ function roundRectPath(ctx, x, y, w, h, r) {
         x: c ? sx / c : 0, y: c ? sy / c : 0, vx: 0, vy: 0
       };
     });
+    var largestTopicSize = made.reduce(function (m, t) { return Math.max(m, t.members); }, 0);
     var byGroup = {};
-    made.forEach(function (t) { byGroup[t.g] = t; });
+    made.forEach(function (t) {
+      t.memberPaths = new Array(t.members);
+      t.largestTopicSize = largestTopicSize;
+      byGroup[t.g] = t;
+    });
 
     var links = {};
     for (var e = 0; e < edges.length; e++) {
@@ -2653,15 +2677,15 @@ function roundRectPath(ctx, x, y, w, h, r) {
         : 'Collapse all topics into single nodes';
     }
     /* Granularity decides which topics exist — with topics off it has
-       nothing to act on. (The plugin leaves its slider enabled but inert:
-       segment resolution stays "none", so dragging changes only the cached
-       communities. Inert-looking controls read as broken on a demo, so here
-       the dependency is shown instead.) */
-    if (slider) {
-      slider.disabled = !on;
-      slider.title = on ? '' : 'Turn topics on to change their granularity';
+       nothing to act on. (The plugin leaves its control enabled but inert:
+       segment resolution stays "none", so changing it touches only the
+       cached communities. Inert-looking controls read as broken on a demo,
+       so here the dependency is shown instead.) */
+    for (var si = 0; si < segBtns.length; si++) {
+      segBtns[si].disabled = !on;
+      segBtns[si].title = on ? '' : 'Turn topics on to change their granularity';
     }
-    var row = slider && slider.closest('.g-ctl');
+    var row = seg && seg.closest('.g-ctl');
     if (row) row.classList.toggle('topics-off', !on);
     if (REDUCED) {
       topicsVis = on ? 1 : 0;
@@ -2742,11 +2766,11 @@ function roundRectPath(ctx, x, y, w, h, r) {
     var nodeScale = cam.scale * zoomNodeScale(cam.scale);
 
     if (collapsed) {
-      /* The folded view: one disc per topic, sized by how many links cross
-         its boundary (the topic radius curve in nodeDrawRadius), joined by
-         merged edges whose thickness carries the crossing count — "these two
-         areas are tightly related" as geometry. No hulls: the disc IS the
-         region. */
+      /* The folded view: one disc per topic, sized by how many notes it
+         stands for (nodeDrawRadius's topic branch: area ∝ members, scaled to
+         the largest topic), joined by merged edges whose thickness carries
+         the crossing count — "these two areas are tightly related" as
+         geometry. No hulls: the disc IS the region. */
       ctx.strokeStyle = PALETTE.edge;
       for (var te = 0; te < topicLinks.length; te++) {
         var tl = topicLinks[te];
@@ -2855,8 +2879,8 @@ function roundRectPath(ctx, x, y, w, h, r) {
     cv.width = W * DPR; cv.height = H * DPR;
     ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
     /* W is now known, so the level cap for this width can be applied — a
-       rotation from landscape to portrait has to pull the slider back in. */
-    syncSliderRange();
+       rotation from landscape to portrait has to pull the selection back in. */
+    syncSegRange();
     /* The layout is world-space; a resize only re-fits the camera. Repaint
        synchronously — assigning cv.width wiped the canvas. */
     cameraFollow(cam, cameraTarget(activeNodes(), W, H, null, { worldPad: HULL_PAD }), true);
@@ -2865,12 +2889,12 @@ function roundRectPath(ctx, x, y, w, h, r) {
 
   function setLevel(next) {
     level = Math.max(0, Math.min(maxLevel(), next));
-    if (nameEl) nameEl.textContent = LEVELS[level].label;
+    syncSegState();
     if (!nodes.length) return;
     /* No topics, nothing to regroup — without this, a level change would
        write cluster ids back onto the nodes and silently re-arm the
        cohesion force while everything still looks grey. The disabled
-       slider makes this unreachable from the UI; the guard makes it
+       segments make this unreachable from the UI; the guard makes it
        unreachable, full stop. */
     if (!topicsOn) return;
     if (collapsed) {
@@ -2893,9 +2917,23 @@ function roundRectPath(ctx, x, y, w, h, r) {
     }
   }
 
-  if (slider) {
-    slider.addEventListener('input', function () {
-      setLevel(Number(slider.value));
+  segBtns.forEach(function (btn, i) {
+    btn.addEventListener('click', function () { setLevel(i); btn.focus(); });
+  });
+  /* Arrow keys walk the group, as a radiogroup should and as the slider's
+     arrows used to — Home/End jump to the ends. Hidden stops (a level this
+     canvas is too narrow for) are skipped by clamping to maxLevel. */
+  if (seg) {
+    seg.addEventListener('keydown', function (e) {
+      var d = e.key === 'ArrowRight' || e.key === 'ArrowDown' ? 1
+        : e.key === 'ArrowLeft' || e.key === 'ArrowUp' ? -1 : 0;
+      var next = d ? level + d
+        : e.key === 'Home' ? 0
+        : e.key === 'End' ? maxLevel() : null;
+      if (next === null) return;
+      e.preventDefault();
+      setLevel(next);
+      if (segBtns[level]) segBtns[level].focus();
     });
   }
   if (btnTopics) {
@@ -2905,11 +2943,10 @@ function roundRectPath(ctx, x, y, w, h, r) {
     btnCollapse.addEventListener('click', function () { setCollapsed(!collapsed); });
   }
 
-  /* Adopt the slider's own value before the first build, so the opening frame
-     matches the control rather than this file's default — a browser restoring
-     a previous value on reload would otherwise draw one level and label
-     another. (Runs before build: it only records the level and label.) */
-  if (slider) setLevel(Number(slider.value));
+  /* Paint the control from `level` before the first build, so the markup's
+     pressed state and this file's default can never disagree. (Runs before
+     build: with no nodes yet it only records the level.) */
+  setLevel(level);
   build();
   resize();
   window.addEventListener('resize', resize);
