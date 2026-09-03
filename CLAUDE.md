@@ -351,10 +351,20 @@ was ported from a hand-written mockup, so:
   researchers): no mono-font "dev" styling, no jargon in demo content or copy.
   Inter throughout — clean and minimal is the brief; display faces have been
   tried and rejected.
-- **Facts over pitch, and the plugin's own feature names.** The pillar
-  points name the feature as the plugin does (Memory, Skills, Chats,
-  Integrations) and state what it does, in the register of a tool
-  description. Earlier leads like "Teach it by writing a note" and "It
+- **Facts over pitch, and the plugin's own feature names.** Every pillar
+  point opens with the feature's own name, then a colon, then a short
+  description of what it does — `**Topics:** it works them out for you.` —
+  in the register of a tool description. All twelve follow that shape, so
+  the three lists scan alike. The names are the plugin's, verified against
+  its UI: Topics / Immerse / Topic labels / Collapse (`GraphControls.svelte`
+  and the graph's selection bar), Filters / Semantic search / Ask the agent /
+  Create note (`SearchModal.ts`), Memory / Skills / Chats / Integrations.
+  The colon is doing work a period wouldn't: these are term-and-meaning
+  pairs. It also means the description itself must not contain a colon, or
+  the sentence carries two — several did, and were rewritten to a full stop.
+  Graph and search once led with the description and never named the
+  feature at all, which left the agents list the only one a reader could
+  shop from. Earlier leads like "Teach it by writing a note" and "It
   remembers in notes" were pulled for reading as marketing and for hiding
   the feature's real name — a reader deciding whether to install wants to
   know there is a thing called Skills and what it consists of. Plain words
