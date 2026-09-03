@@ -387,26 +387,36 @@ was ported from a hand-written mockup, so:
   full-page height. Two things follow, and the gate handles both:
   - `100dvh` inside that frame is the frame height, so the hero would swallow
     the whole frame and clip every later section (umami#4373, unfixed). The
-    gate sets `framed` when `self !== top`, and `landing.css` then gives the
-    hero a **constant `min-height` per width breakpoint** — an estimate of
-    the recorded viewport height, which is what the hero had when the clicks
-    were recorded. It is keyed on width because Umami normalises every
-    recording into one of seven width buckets
-    (`SCREEN_WIDTH_BUCKETS = [320, 375, 425, 768, 1024, 1440, 1920]`) and
-    renders the frame at the bucket width, so `innerWidth` inside the frame
-    names the bucket; the recorded *height* is never exposed to the framed
-    page (`src={snapshot.url}` verbatim, no query param), so an estimate is
-    the best available.
-    **Do not replace this with a measured fit.** There was one: it solved
-    for the hero height making the page total exactly `window.innerHeight`.
-    The frame height is the recorded **page** height (~6700px), not the
-    viewport — `getSnapshotFrameHeight` returns `pageH` for anything over
-    1.25× the viewport — so the equation described nothing about the layout,
-    and it dumped every difference between the recording's content height
-    and the current render's into one element at the top, shifting every
-    section below the hero down. The markers are placed at `pageY / pageH`
-    on a canvas that is a **sibling** of the iframe, both anchored top-left,
-    so what has to match is the recorded *layout*, not the total height.
+    gate sets `framed` when `self !== top`, and `landing.css` gives the hero
+    a fixed pre-JS `min-height`; the last IIFE in `landing.js` then recovers
+    the **recorded** hero height at runtime.
+    What must be reproduced is the recorded **document layout**, not the page
+    total. The recorder stores each click as `event.pageY` — an absolute
+    document offset — and the viewer draws the dot at
+    `top: pageY * (bucket.width / viewportW)`. That factor is a *width*
+    ratio; viewport height never enters the marker math. So a marker lands
+    correctly iff its element sits at the same document offset it had when
+    recorded. The hero is the only box whose height depends on the viewport
+    and it is above every section, so its height is the single unknown that
+    can shift the page — each 10px of error moves every later section 10px.
+    It is recoverable because `getSnapshotFrameHeight` returns the recorded
+    `pageH` for this page (always > 1.25× the viewport), so `innerHeight`
+    inside the frame *is* that `pageH`, and `pageH = hero + rest` where
+    `rest` is width-driven and so measures the same now as at record time:
+    `hero = innerHeight - rest`. Verified by round-trip — record at a real
+    viewport, re-render framed at the resulting `pageH`, diff section
+    offsets: exact hero recovery and ≤1px drift at 1440×{700,790,900,1100},
+    1920×1080, 1024×650, 768×1024 and 375×812.
+    **Do not replace this with a per-bucket table of guessed viewport
+    heights.** That was tried: viewport height is not a function of viewport
+    width (a 1440-wide window is 700px tall on a laptop, 1300px on a desktop
+    panel), so it left a residual drift — visible as clicks landing a little
+    below what they hit. Equally, do not apply the solve *without* a sane
+    starting `min-height`: the first version of this code ran it against a
+    hero that was still `100dvh` of the ~6700px frame, so `rest` was measured
+    on an already-displaced document and the equation described nothing. The
+    CSS constant exists to make the measured `rest` trustworthy, and the two
+    passes exist because the first fixes the hero that the second measures.
     Nothing legitimately embeds this site.
   - The framed copy would load the trackers and write a pageview plus
     scroll rows with `viewport_h ≈ 6700` into the very dataset on display,

@@ -354,36 +354,24 @@
      clip every later section (umami#4373). `framed` is set pre-paint by
      index.astro when self !== top.
 
-     The hero must therefore be given the recorded VIEWPORT height, which is
-     what it had when the clicks were recorded. Umami never exposes that to
-     the framed page (`src={snapshot.url}` verbatim — no query param to read),
-     but it does normalise every recording into one of seven width buckets
-     and renders the frame at that bucket width, so `innerWidth` inside the
-     frame names the bucket and a typical viewport height per bucket is the
-     best available estimate. Phones are portrait heights minus browser
-     chrome; desktop buckets are the common window heights minus the nav.
+     The markers are absolute document offsets, NOT fractions: the recorder
+     stores `event.pageY` and the viewer places each dot at `top: pageY`
+     (scaled by `bucket.width / viewportW` — a WIDTH ratio; viewport height
+     never enters the marker math). So the framed render must put every
+     section at the same document offset it had while recording, and the
+     hero is the only element that can move them: it is the page's one
+     viewport-sized box, and it sits above everything else.
 
-     Do NOT solve for a hero that makes the page total the frame height. The
-     markers are placed at `pageY / pageH` of a canvas that is a SIBLING of
-     the iframe, both anchored top-left — so the marker math depends on the
-     recorded layout, not on our total matching. Solving for the total puts
-     every pixel of difference between the recording's `rest` and this
-     render's `rest` into the hero, which shifts every section below it down
-     by that amount. That is the bug this replaced.
-
-     Each value is the estimated viewport height for that bucket MINUS the
-     58px nav, mirroring the unframed `calc(100dvh - 58px)` — the hero is the
-     viewport below the nav, not the whole viewport. Getting this wrong
-     offsets every section below the hero by exactly 58px, which is
-     measurable: render the page in a real viewport of the same size and
-     diff the section offsets (they should all be 0). */
-  :root.framed .hero { min-height: 642px; }  /* 320 bucket:  700 - 58 */
-  @media (min-width: 360px)  { :root.framed .hero { min-height: 682px; } }  /*  375:  740 */
-  @media (min-width: 400px)  { :root.framed .hero { min-height: 722px; } }  /*  425:  780 */
-  @media (min-width: 700px)  { :root.framed .hero { min-height: 902px; } }  /*  768:  960 */
-  @media (min-width: 1000px) { :root.framed .hero { min-height: 652px; } }  /* 1024:  710 */
-  @media (min-width: 1400px) { :root.framed .hero { min-height: 732px; } }  /* 1440:  790 */
-  @media (min-width: 1900px) { :root.framed .hero { min-height: 882px; } }  /* 1920:  940 */
+     That makes the hero height the single unknown, and `landing.js` solves
+     for it at runtime from the frame height itself — see `fitFramedHero`
+     there. This constant is only the pre-JS value, and the fallback if the
+     recovery cannot run. Do NOT replace the runtime solve with a guessed
+     per-bucket table: viewport height is not a function of viewport width
+     (a 1440-wide window is 700px tall on a laptop and 1300px on a desktop
+     panel), and each 10px of error moves every section below the hero by
+     10px — which is what a "nearly aligned but still drifting" heatmap
+     looks like. */
+  :root.framed .hero { min-height: 732px; }
   #graph {
     position: absolute; inset: 0; width: 100%; height: 100%;
     z-index: 0; display: block;
