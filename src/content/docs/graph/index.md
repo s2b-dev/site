@@ -102,8 +102,45 @@ the agent folder is always excluded.
 
 ## Interacting
 
-Click a topic's label to collapse just that group. Select segments with
-shift/⌘ to multi-select. Clicking a note opens it.
+Clicking a note opens it. Click a topic's label to collapse just that group,
+and shift/⌘-click to select more than one segment. Right-click a note for
+**Open file**, **Reveal in file explorer** and **Focus on this cluster**; on
+mobile, long-press for the same menu, since touch has no right-click. A tap
+highlights the note and its neighbours the way hovering does on desktop.
+
+### Selecting
+
+The **lasso** in the toolbar draws a freehand loop around whatever you want. On
+desktop you can also hold **Shift** and drag to do the same without switching
+the mode on; on a phone the toolbar button is the way in. Clicking a topic's
+pill selects that whole topic.
+
+Whatever is selected, a bar appears with what you can do to it: **Zoom to
+selection** (`F`), **Collapse** or **Expand** if the selection is whole topics
+(`C`), **Immerse** (`I`), **Open in chat** (`A`, which reveals the chat with
+those notes attached), and **Open all** in new tabs (`O`). `Esc` clears the
+selection. The shortcuts are single keys, and work while the graph has focus.
+
+On mobile the same actions arrive as a bottom sheet instead of a bar, with each
+verb as a full-width row.
+
+### Immerse
+
+**Immerse** rebuilds the graph from the selected notes alone, and re-runs topic
+detection over just that subset — so the topics you get are the divisions
+*inside* what you selected, which the full graph was too coarse to show. A
+topic that was one region becomes several. You can immerse again from there.
+
+Granularity is remembered per graph, so dialling the topics finer inside an
+immersion describes that subset only; leaving restores the setting the full
+graph had. The bar names what you're in ("Immersed into Sleep & memory") and
+carries an **Exit** back to the whole vault. `Esc` leaves too, once nothing is
+selected.
+
+On mobile the selection sheet closes as soon as you immerse, so it never covers
+the graph you just moved into — the name of what you're in moves to a banner
+top-left, and the exit becomes a highlighted button on the toolbar. Both stay
+put while you pan, select and immerse further.
 
 :::note
 Inferred links, semantic topics, and generated topic labels all depend on
