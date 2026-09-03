@@ -1741,6 +1741,40 @@ function roundRectPath(ctx, x, y, w, h, r) {
     });
   }
 
+  /* How long one rail segment takes to empty — the `--p` transition in
+     landing.css. The stagger is deliberately shorter than the drain, so the
+     segments overlap and the fill reads as one edge sliding back along the
+     rail rather than four bars emptying in turn. */
+  var DRAIN_MS = 600;
+  var DRAIN_STAGGER = 170;
+
+  /**
+   * Empty the timeline back to nothing, last segment first.
+   *
+   * The CSS derives done/active/upcoming from `:has(~ .on)` alone, so simply
+   * clearing the active step drops every completed segment in the same frame.
+   * Pinning each one with `.draining` and releasing them in reverse gives the
+   * retreat a direction. Returns the time the last release lands, so the
+   * caller can restart the storyline only once the rail is actually empty.
+   */
+  function drainSteps() {
+    var n = stepEls.length;
+    /* Pin the current state, THEN clear the active step. Order matters: the
+       `.draining` class has to be holding the fill before `:has(~ .on)` stops
+       matching, or the rail empties in the frame between the two. */
+    stepEls.forEach(function (li) { li.classList.add('draining'); });
+    setStep(0);
+    /* Released back to front: the rightmost entry goes first (delay 0) and the
+       leftmost last, so the filled rail recedes toward the start rather than
+       every segment fading where it stands. */
+    stepEls.forEach(function (li, i) {
+      var delay = (n - 1 - i) * DRAIN_STAGGER;
+      timers.push(setTimeout(function () { li.classList.remove('draining'); }, delay));
+    });
+    /* Rail empty once the last-released segment has finished its transition. */
+    return (n - 1) * DRAIN_STAGGER + DRAIN_MS;
+  }
+
   /* --- storyline --- */
   var timers = [];
 
@@ -1852,6 +1886,9 @@ function roundRectPath(ctx, x, y, w, h, r) {
     cursorHide();
     setPane('graph', true);
     graph.reset();
+    /* Cleared unconditionally: a phase jump during the end-of-loop drain would
+       otherwise leave a segment pinned full behind the new active step. */
+    stepEls.forEach(function (li) { li.classList.remove('draining'); });
     setStep(0);
   }
 
@@ -2263,6 +2300,13 @@ function roundRectPath(ctx, x, y, w, h, r) {
       graph.linkedNotes().forEach(function (id) { graph.glow(id, 0.6); });
       graph.link();
     });
+    /* Drain the timeline before the restart rather than at it. `run(1)` resets
+       every step in one frame, so letting it do the clearing empties all four
+       rail segments simultaneously — the timeline blinks off instead of the
+       progress receding. Started 1280ms early (4 * DRAIN_STAGGER + DRAIN_MS,
+       the time the staggered release actually needs) so the rail is empty
+       exactly as the loop turns over; the loop's total length is unchanged. */
+    at(45820, function () { drainSteps(); });
     at(47100, function () { track('demo-completed', demoOnScreen); run(1); });
   }
 
