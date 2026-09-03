@@ -15,7 +15,7 @@ edges → topics → hierarchy → layout
 Every constant below is read from source.
 
 :::note
-Verified against plugin version **2.0.2**. Constants change; if you are on a
+Verified against plugin version **2.0.0**. Constants change; if you are on a
 much later version, treat the numbers as indicative and the structure as
 current.
 :::
