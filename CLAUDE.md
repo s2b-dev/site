@@ -22,6 +22,8 @@ Use `bun` (not npm/yarn). The lockfile is `bun.lock`.
   missing links.
 - `bun run preview` — serve the production build locally.
 - `bun run check` — `astro check` (type-checks `.astro` files).
+- `bun run demo:video` — records the demo as shareable videos (needs `bun run
+  dev` running). See "Recording the demo" below.
 
 There is no separate lint/format step configured.
 
@@ -603,6 +605,56 @@ One visual per pillar at most, and only one of them moves:
   and skills are text-headed settings sections with no glyph in the app.
   Avoid `git-fork`, which the demo already uses for the graph-selection
   chip.
+
+### Recording the demo
+
+`bun run demo:video` (with `bun run dev` running) records one loop of the
+storyline as four WebMs — desktop and phone widths, dark and light — with a
+transparent background, a rounded card and a symmetric drop shadow. They are
+for READMEs and posts, and are written **outside the repo** (`../s2b-demo-video`,
+override with `--out`): ~9MB a set, replaced wholesale on every re-record, so
+committing them would grow history by that much each time. `--only
+desktop:dark` (or just `mobile`, or `light`) records a subset.
+
+The script's header comment carries the reasoning; the short version is that
+four things are load-bearing and each one shipped a broken video before it was
+understood:
+
+- **Capture is 1:1 — no zoom, no `deviceScaleFactor`.** Raising resolution via
+  `html { zoom: N }` rescales the coordinates `landing.js` reads from
+  `getBoundingClientRect()` to place the simulated cursor, so the cursor
+  drifts off the buttons it presses and the card's top edge stops matching the
+  crop. CDP's screencast ignores `deviceScaleFactor`, and the screenshot path
+  that honours it manages ~29fps against the screencast's ~100. Correct beats
+  sharp; the output is therefore 1x.
+- **The crop is verified against a real frame before encoding**
+  (`scripts/lib/check-crop-edges.py`). The DOM box and the screencast have
+  disagreed by ~10px in one theme and not the other, and a few pixels either
+  clips the window's title bar or drags the step timeline in under the card.
+  Detecting the card by colour does not work in both themes — the light card
+  is white on white — so the check looks for its *border* on all four edges.
+  Don't remove it.
+- **One loop, start to finish.** The demo runs continuously, so the capture
+  clicks the timeline's first step to restart the storyline, then stops when
+  the timeline returns to step 1. A fixed wait overshoots: the real cycle is
+  ~46.4s, not the nominal 47.1s, and the overshoot wraps the next loop's
+  opening onto the end. Trailing frames from the reset are dropped too — the
+  timeline flips a beat *after* the window starts collapsing, and on mobile
+  the card loses ~28px, which exposes the page beneath the fixed crop.
+- **No `-r` on ffmpeg's concat input.** It overrides the per-frame `duration`
+  lines rather than reading them, so every frame plays at that fixed rate:
+  4600 frames at 120fps is 38s of storyline inside a 46s file, with the last
+  frame frozen for the rest. For the same reason the trim duration is the
+  concat list's own sum, not the capture's wall clock — trimming to the longer
+  number leaves the tail with no source frames, which ffmpeg fills from the
+  looping shadow input.
+
+Captures run **sequentially on purpose**: four browsers at once contend for the
+GPU and each drops from ~100fps to ~20.
+
+WebM with alpha does not render in GitHub issue/PR comments (a README or a site
+is fine). If a comment-embeddable file is ever needed, H.264 mp4 has no alpha
+channel, so it needs an opaque background matched to wherever it will sit.
 
 ### Section backgrounds
 
