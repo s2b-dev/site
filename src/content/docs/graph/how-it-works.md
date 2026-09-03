@@ -14,12 +14,6 @@ edges → topics → hierarchy → layout
 
 Every constant below is read from source.
 
-:::note
-Verified against plugin version **2.0.0**. Constants change; if you are on a
-much later version, treat the numbers as indicative and the structure as
-current.
-:::
-
 ## 1 · Edges
 
 Two kinds of edge reach the graph, and only the first needs a model.

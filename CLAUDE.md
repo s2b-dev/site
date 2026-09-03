@@ -674,7 +674,10 @@ Each feature group ends with a **How it works** page — `search/how-it-works`,
 These are deliberately *not* a separate "internals" section: a reader who wants
 to know why recency can't hijack a ranking, or why granularity has
 the stops it does, is already reading that feature's page. Both are written
-against plugin source and carry a "verified against version X" note.
+against plugin source and carry **no version note** — they are refreshed each
+release and read as current. A "verified against version X" note was tried and
+removed: it invites the reader to discount the numbers, and it goes stale
+faster than the constants it hedges about.
 
 There is no architecture page. `internals/architecture.md` was removed — it
 described repo layout and composition-root detail that no user acts on, and it
@@ -770,9 +773,9 @@ hand before each release. Work through this list against the sources above:
       naming current top models, so specific model names must not creep into
       that prose — that is the drift this indirection exists to avoid.
       No model rankings are duplicated in `help/faq`; it links here
-- [ ] `search/how-it-works` and `graph/how-it-works` — constants and the
-      "verified against" version note on each; sources are listed at the foot
-      of both pages
+- [ ] `search/how-it-works` and `graph/how-it-works` — every constant on both
+      pages, against the sources listed at the foot of each. These carry no
+      version note, so this pass is the only thing keeping them true
 
 Prose claims (staged edits, conversation branching, per-model capability
 detection) are not mechanically checkable. Re-read them when the related
