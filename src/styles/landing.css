@@ -1212,20 +1212,29 @@
     background: var(--accent-soft); border-color: var(--accent); color: var(--accent);
   }
   .steps li:has(~ .on)::after { --p: 1; }
-  /* End of loop: the rails drain one at a time, last back to first, rather
-     than all at once. Every state here is derived from `:has(~ .on)`, so when
-     the active step jumps from 5 back to 1 all four matches break in the same
-     frame and the whole timeline empties simultaneously — four bars going
-     grey together, which reads as the widget resetting rather than as one
-     progress bar retreating. `.draining` holds a segment full while the ones
-     after it empty; landing.js peels the class off in sequence, so the fill
-     recedes along the rail as a single continuous movement. It also holds the
-     DOT, since a dot that de-highlights ahead of its own rail segment
-     re-introduces the same scattered effect one step down. */
-  .steps li.draining::after { --p: 1; }
-  .steps li.draining::before {
+  /* End of loop: the rail drains as ONE edge travelling from the last dot
+     back to the first, rather than all at once. Every state here is derived
+     from `:has(~ .on)`, so when the active step jumps from 5 back to 1 all
+     four matches break in the same frame and the whole timeline empties
+     simultaneously — four bars going grey together, which reads as the widget
+     resetting rather than as one progress bar retreating.
+     Two hold classes pin the picture, and `drainSteps()` in landing.js
+     releases them on a schedule: `hold-rail` keeps a segment full until the
+     edge arrives at its far dot; `hold-dot` keeps a dot lit until the edge
+     reaches IT, a whole segment later. They are separate classes because
+     those are different moments — and the dot's is the one that matters,
+     since the rail deliberately stops short of each dot: the dot is the
+     bridge between two dashes, so if it lets go early the retreat breaks into
+     pieces there.
+     While draining, segments empty on a LINEAR curve at `--drain-ms` (set by
+     landing.js from the same constant that spaces the schedule). The
+     default sweep is eased, which suits a single segment filling; a chain of
+     eased segments makes the edge slow down and speed up at every dot. */
+  .steps li.hold-rail::after { --p: 1; }
+  .steps li.hold-dot::before {
     background: var(--accent-soft); border-color: var(--accent); color: var(--accent);
   }
+  .steps.draining li:not(:last-child)::after { transition: --p var(--drain-ms, .35s) linear; }
   /* active */
   .steps li.on::before { background: var(--accent-2); border-color: var(--accent-2); color: #fff; }
   /* upcoming: dimmed heading, so the eye lands on where the story is */

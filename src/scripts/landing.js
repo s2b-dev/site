@@ -792,7 +792,8 @@ function roundRectPath(ctx, x, y, w, h, r) {
       else cursor.style.transition = '';
     })();
   }
-  var stepEls = document.querySelectorAll('#steps li');
+  var stepsEl = document.getElementById('steps');
+  var stepEls = stepsEl.querySelectorAll('li');
 
   /* --- search results --- */
   /* The Semantic match badge, right-aligned in the title row as
@@ -1741,38 +1742,64 @@ function roundRectPath(ctx, x, y, w, h, r) {
     });
   }
 
-  /* How long one rail segment takes to empty — the `--p` transition in
-     landing.css. The stagger is deliberately shorter than the drain, so the
-     segments overlap and the fill reads as one edge sliding back along the
-     rail rather than four bars emptying in turn. */
-  var DRAIN_MS = 600;
-  var DRAIN_STAGGER = 170;
+  /* How long ONE rail segment takes to empty. Handed to the stylesheet as
+     `--drain-ms` (see `.steps.draining` in landing.css), so the CSS transition
+     and this schedule can't disagree. Segments drain strictly one after
+     another, each starting the moment the previous one has finished — a
+     progress bar has one edge, and a stagger shorter than the drain (tried:
+     170ms against 600ms) had three or four segments shrinking at once, which
+     is "all at once with a wobble" rather than one fill receding. */
+  var DRAIN_MS = 350;
 
   /**
-   * Empty the timeline back to nothing, last segment first.
+   * Empty the timeline back to nothing, as one edge travelling from the last
+   * dot back to the first.
    *
    * The CSS derives done/active/upcoming from `:has(~ .on)` alone, so simply
    * clearing the active step drops every completed segment in the same frame.
-   * Pinning each one with `.draining` and releasing them in reverse gives the
-   * retreat a direction. Returns the time the last release lands, so the
-   * caller can restart the storyline only once the rail is actually empty.
+   * Two hold classes pin the current picture and are then released on a
+   * schedule — separately, because a segment and its own dot let go at
+   * DIFFERENT moments:
+   *
+   *   - `hold-rail` on entry k keeps segment k (dot k → dot k+1) full. It is
+   *     released when the edge arrives at dot k+1, i.e. when segment k+1 has
+   *     finished draining; that starts segment k emptying toward dot k.
+   *   - `hold-dot` on entry k keeps dot k in its "done" look. It is released
+   *     when the edge REACHES dot k — the end of segment k's drain — not when
+   *     that drain starts. Releasing dot and rail together (the first version)
+   *     un-highlighted every dot a whole segment ahead of the fill, and with a
+   *     gap kept between dot and rail the dot is the bridge between two
+   *     dashes, so its timing is what makes the handoff read as continuous.
+   *
+   * Returns the time at which the rail is empty, so the caller can turn the
+   * loop over exactly then.
    */
   function drainSteps() {
     var n = stepEls.length;
     /* Pin the current state, THEN clear the active step. Order matters: the
-       `.draining` class has to be holding the fill before `:has(~ .on)` stops
+       hold classes have to be carrying the fill before `:has(~ .on)` stops
        matching, or the rail empties in the frame between the two. */
-    stepEls.forEach(function (li) { li.classList.add('draining'); });
-    setStep(0);
-    /* Released back to front: the rightmost entry goes first (delay 0) and the
-       leftmost last, so the filled rail recedes toward the start rather than
-       every segment fading where it stands. */
-    stepEls.forEach(function (li, i) {
-      var delay = (n - 1 - i) * DRAIN_STAGGER;
-      timers.push(setTimeout(function () { li.classList.remove('draining'); }, delay));
+    stepsEl.classList.add('draining');
+    stepsEl.style.setProperty('--drain-ms', DRAIN_MS + 'ms');
+    stepEls.forEach(function (li, k) {
+      li.classList.add('hold-dot');
+      /* The last entry has no rail after it — nothing to hold. */
+      if (k < n - 1) li.classList.add('hold-rail');
     });
-    /* Rail empty once the last-released segment has finished its transition. */
-    return (n - 1) * DRAIN_STAGGER + DRAIN_MS;
+    setStep(0);
+    /* Back to front. With n entries there are n-1 segments; segment k starts
+       at (n-2-k) drains in and its dot k lets go one drain later, when the
+       edge gets there. The last entry has no segment, only a dot, and it is
+       the first thing to let go: that is where the edge starts. */
+    stepEls.forEach(function (li, k) {
+      if (k < n - 1) {
+        timers.push(setTimeout(function () { li.classList.remove('hold-rail'); },
+          (n - 2 - k) * DRAIN_MS));
+      }
+      timers.push(setTimeout(function () { li.classList.remove('hold-dot'); },
+        (n - 1 - k) * DRAIN_MS));
+    });
+    return (n - 1) * DRAIN_MS;
   }
 
   /* --- storyline --- */
@@ -1888,7 +1915,8 @@ function roundRectPath(ctx, x, y, w, h, r) {
     graph.reset();
     /* Cleared unconditionally: a phase jump during the end-of-loop drain would
        otherwise leave a segment pinned full behind the new active step. */
-    stepEls.forEach(function (li) { li.classList.remove('draining'); });
+    stepsEl.classList.remove('draining');
+    stepEls.forEach(function (li) { li.classList.remove('hold-rail', 'hold-dot'); });
     setStep(0);
   }
 
@@ -2303,10 +2331,12 @@ function roundRectPath(ctx, x, y, w, h, r) {
     /* Drain the timeline before the restart rather than at it. `run(1)` resets
        every step in one frame, so letting it do the clearing empties all four
        rail segments simultaneously — the timeline blinks off instead of the
-       progress receding. Started 1280ms early (4 * DRAIN_STAGGER + DRAIN_MS,
-       the time the staggered release actually needs) so the rail is empty
-       exactly as the loop turns over; the loop's total length is unchanged. */
-    at(45820, function () { drainSteps(); });
+       progress receding. Started 1400ms early (4 segments × DRAIN_MS — what
+       `drainSteps` returns) so the rail is empty exactly as the loop turns
+       over; the loop's total length is unchanged. The cost is that phase 5's
+       caption loses its highlight 1.4s before the finale ends, which is why
+       the drain is as brisk as it is. */
+    at(45700, function () { drainSteps(); });
     at(47100, function () { track('demo-completed', demoOnScreen); run(1); });
   }
 
