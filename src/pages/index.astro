@@ -585,7 +585,13 @@ const structuredData = {
 	                  <circle cx="12" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><circle cx="18" cy="6" r="3"/>
 	                  <path d="M18 9v2c0 .6-.4 1-1 1H7c-.6 0-1-.4-1-1V9M12 12v3"/>
 	                </svg>
-	                9 Graph Notes
+	                {/* Names the topic rather than counting notes, per
+                    ContextTray.svelte's effectiveTopicLabel: shown because
+                    the lasso at phase 3 selects the Long-term memory
+                    sub-topic exactly (a strict match — see
+                    selectedTopicLabels in SmartGraphView.svelte). Not yet on
+                    dev — feature/graph-topic-pill-label @ e67a8aa. */}
+                Long-term memory
 	                {/* The split remove-all action the real summary chip carries. */}
 	                <span class="v-att-x" aria-hidden="true">×</span>
 	              </span>
