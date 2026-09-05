@@ -10,7 +10,7 @@ open standard for exposing tools to a language model. Point Smart Second Brain
 at an MCP server and its tools appear alongside the agent's built-in ones.
 
 This is how the agent reaches things that aren't in your vault: an issue
-tracker, a database, a calendar, a local filesystem outside the vault.
+tracker, a database, a calendar, a service running on your own machine.
 
 ## Per agent, not global
 
@@ -19,14 +19,8 @@ can carry a web-heavy server set while your everyday note agent carries none.
 
 ## Adding a server
 
-Two transports are supported. The **Transport** dropdown calls them **Remote
-Server (HTTP)** and **Local Command (stdio)**. On mobile only the first is
-offered.
-
-### HTTP
-
-Streamable HTTP, and the recommended transport for anything remote. Works on
-**desktop and mobile**.
+Servers are reached over **HTTP** (Streamable HTTP, falling back to SSE for
+older servers). The same configuration works on **desktop and mobile**.
 
 | Field | Example |
 | --- | --- |
@@ -34,20 +28,18 @@ Streamable HTTP, and the recommended transport for anything remote. Works on
 | **Server URL** | `https://mcp.example.com/mcp` |
 | **Headers** | `Authorization: Bearer token`, one per line |
 
-### stdio
+Pasting a server's published JSON config (the `mcpServers` block from its
+README, or a VS Code `servers` entry) into any field fills the form for you.
+**Test connection** lists the tools the server offers before you save.
 
-Launches a local process and talks to it over stdin/stdout.
-
-| Field | Example |
-| --- | --- |
-| **Command** | `npx` |
-| **Arguments** | `-y @modelcontextprotocol/server-filesystem /path/to/dir` |
-| **Environment variables** | `API_KEY=your-key`, one per line in `KEY=VALUE` format |
-
-:::caution[Desktop only]
-stdio requires Node APIs that Obsidian's mobile WebView doesn't have. On
-mobile, stdio servers are **skipped**, and the agent starts with its remaining
-tools rather than failing. If you need the same tools on both, use HTTP.
+:::note[No local command (stdio) servers]
+Smart Second Brain does not launch processes, so servers that only speak stdio
+(`"command": "npx", "args": [...]`) cannot be added; pasting such a config is
+refused with a message. To use one, run it behind a small HTTP bridge such as
+[`mcp-proxy`](https://github.com/sparfenyuk/mcp-proxy) or
+[`supergateway`](https://github.com/supercorp-ai/supergateway) and point the
+plugin at the bridge's URL. Anything the bridge exposes then works on mobile
+too.
 :::
 
 ## When tools are loaded
@@ -84,4 +76,4 @@ another Obsidian plugin. It's a file, it's version-controlled with your notes,
 and it costs nothing at rest.
 
 Reach for **MCP** when the capability lives in a genuinely external system that
-needs credentials, a network connection, or a running process.
+needs credentials, a network connection, or a running service.
