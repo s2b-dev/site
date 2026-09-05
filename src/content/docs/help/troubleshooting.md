@@ -178,10 +178,10 @@ See [Trusted providers](/privacy/trusted-providers/).
 
 ## MCP tools don't appear
 
-**stdio servers do nothing on mobile.** The transport needs Node APIs the
-mobile WebView lacks, so they're skipped and the agent starts with its
-remaining tools. Use HTTP transport if you need the same tools on both
-platforms.
+**Local command (stdio) servers can't be added.** The plugin only connects
+over HTTP and never launches processes, so a config with a `command` is
+refused when pasted. Run the server behind an HTTP bridge and use its URL
+instead. See [MCP servers](/agents/mcp/).
 
 Otherwise, the handshake failed. Turn on verbose logging and look for the MCP
 initialization lines. Failed handshakes aren't cached, so the retry happens on
