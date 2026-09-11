@@ -16,6 +16,11 @@ Open it with **Smart Second Brain: Open smart graph**.
 **Authored links.** Your wikilinks, optionally with arrowheads showing
 direction (**Directed links**).
 
+**Tags.** With **Tags** turned on under Scope, each tag is a node linked to
+every note that carries it, the way Obsidian's own graph draws them with its
+Tags filter on. Tag edges are undirected and always drawn while tags are shown,
+whatever the link toggles say. Tags also shape the topics; see below.
+
 **Inferred links.** When an embedding model is configured, the graph adds edges
 between notes that are semantically similar but not linked. Two controls govern
 them:
@@ -51,10 +56,28 @@ coarse topic holds most of its notes. That's what lets you ask "what is this
 vault about?" at more than one altitude and get consistent answers: every note
 rolls up somewhere.
 
+### Tags shape topics
+
+For a vault organised by tags rather than links, tags *are* the authored
+structure, so when tags are shown their edges join topic detection alongside
+your wikilinks, in both fused and link-only mode. A tag-organised vault no
+longer reads as "nothing is linked".
+
+Each tag's pull is damped by how many notes carry it: a topical tag on a dozen
+notes binds them firmly, while a status tag on hundreds (`#todo`, `#draft`)
+can't drag unrelated notes into one topic. A tag on a single note counts the
+same as one wikilink.
+
+Tags are never topic *members*. They don't count toward a topic's size, carry
+no topic colour of their own, and don't fold into a collapsed bubble. A tag
+that lives in a topic (at least half of the notes carrying it are inside) is
+drawn within that topic's region, pulled toward its centre, and can give the
+topic its name.
+
 Related controls:
 
-- **Link-only topics:** detect topics from authored links alone, ignoring
-  inferred edges.
+- **Link-only topics:** detect topics from authored links alone (your
+  wikilinks, plus tags when they're shown), ignoring inferred edges.
 - **Seed:** the PRNG seed. The same seed on the same graph gives the same
   topics, so a layout you liked is reproducible.
 
@@ -106,6 +129,16 @@ viable.
 
 **Markdown only** excludes non-markdown files from the graph. As with search,
 the agent folder is always excluded.
+
+**Tags** (off by default) draws each tag as a node linked to the notes that
+carry it, and lets shared tags help shape the topics. Tag nodes use the theme's
+tag colour and size by how many notes carry them; the tooltip shows the count.
+Clicking a tag node, or **Search notes with this tag** in its context menu,
+opens Obsidian's search on that tag, the same as clicking a tag in a note. Tags match
+case-insensitively with the first-seen casing as the label, and nested tags
+are their own nodes: `#a/b` is not a child of `#a`. Only notes that pass the
+other filters contribute, so a folder or extension filter carries over to
+which tags appear.
 
 ## Interacting
 
