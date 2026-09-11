@@ -16,14 +16,32 @@ Every constant below is read from source.
 
 ## 1 · Edges
 
-Two kinds of edge reach the graph, and only the first needs a model.
+Three kinds of edge reach the graph, and only the last needs a model.
 
 **Authored edges** come from Obsidian's own `resolvedLinks`. Their weight is
 the number of links between the two notes.
 
+**Tag edges** exist only while the Tags scope toggle is on. Each tag becomes a
+node and gets one edge from every note that carries it, read from the metadata
+cache. They are authored structure, so they join topic detection next to the
+wikilinks; the semantic scan never sees them.
+
 **Inferred edges** come from a neighbour scan over your embeddings, weighted by
 cosine similarity. A pair that already has an authored link is excluded, so an
 inferred edge always represents a connection you did *not* write.
+
+### Weights for topic detection
+
+`components/graph/SmartGraphView.svelte` → `leidenWeightFor()`
+
+Drawn weight and topic weight are not the same number. Before Leiden runs,
+each edge is rescaled so the three kinds are comparable:
+
+| Edge | Topic weight | Why |
+| --- | --- | --- |
+| authored | `1 + log₂(links)` | Repeated links count for more, but not linearly. |
+| tag | `1 / √(notes carrying the tag)` | A tag's total pull grows as √n. A topical tag on a dozen notes binds them firmly; a status tag on hundreds can't form a gravity well. A single-note tag equals one wikilink. |
+| inferred | `cosine × 0.7` | Below 1 so an explicit `[[link]]` stays the stronger statement about how two notes relate. |
 
 ### Best chunk, not mean vector
 
@@ -79,7 +97,15 @@ re-derives both norms on every comparison.
 
 Topics are Leiden communities over the edge set, run in a Web Worker. Edges are
 deduplicated first (`leiden-ts` rejects duplicate undirected edges) and
-self-loops are collapsed.
+self-loops are collapsed. **Link-only topics** drops the inferred edges from
+that set and keeps the authored and tag ones.
+
+Tag nodes take part in the partition but are never topic *members*: a topic's
+`paths` and size count notes only. A tag is treated as the topic's own when at
+least half of its notes are inside, the bar for being drawn within the region
+and for being allowed to name the topic. Without that bar a broad tag spread
+across many topics would win the internal-degree contest in whichever one it
+landed and label a group it doesn't describe.
 
 The **seed defaults to 42** and is exposed as a setting: the same seed on the
 same graph gives the same topics, so a layout you liked is reproducible.
@@ -269,4 +295,4 @@ hit-test only. The physics must never see a camera-dependent radius.
 
 `utils/semanticEdges.ts` · `utils/topicHierarchy.ts` · `utils/graphLayout.ts` ·
 `utils/graphUtils.ts` · `utils/computeWorker.ts` ·
-`views/smart-graph/graphDataBuilder.ts`
+`views/smart-graph/graphDataBuilder.ts` · `components/graph/SmartGraphView.svelte`
