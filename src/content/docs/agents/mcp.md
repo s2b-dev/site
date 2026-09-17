@@ -2,7 +2,7 @@
 title: MCP servers
 description: Connect external tools and data sources via MCP.
 sidebar:
-  order: 5
+  order: 6
 ---
 
 [MCP](https://modelcontextprotocol.io/), the Model Context Protocol, is an

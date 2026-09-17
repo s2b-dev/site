@@ -35,7 +35,7 @@ allowed-tools: manage_notes
 
 ## Bundled core skills
 
-Four ship with the plugin and are seeded into your vault on first run:
+Five ship with the plugin and are seeded into your vault on first run:
 
 | Skill | Attaches | Covers |
 | --- | --- | --- |
@@ -43,6 +43,7 @@ Four ship with the plugin and are seeded into your vault on first run:
 | `manage-notes` | `manage_notes` | Creating, editing, deleting and moving notes: the staging policy, and how to replace or withdraw an edit it has already staged |
 | `web` | `fetch_url`, `web_search` | Reaching the public internet, vault-first |
 | `manage-skills` | `manage_skills` | Authoring and revising skills |
+| `widgets` | *(no tools)* | Building [widgets](/agents/widgets/): the block format, the data bridge, and the sandbox rules. Pure guidance, so it is never hidden by a tool override |
 
 Older vaults had `manage-notes` under the name `edit-notes` and `manage-skills`
 under `update-skills`. The plugin renames the folders on update and keeps your

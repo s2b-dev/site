@@ -2,7 +2,7 @@
 title: Memory
 description: Working memory stored as real notes in your vault.
 sidebar:
-  order: 4
+  order: 5
 ---
 
 Memory lets an agent remember things between conversations: that you prefer

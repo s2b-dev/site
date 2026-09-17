@@ -2,7 +2,7 @@
 title: Integrations
 description: Let an agent script other Obsidian plugins through their public APIs.
 sidebar:
-  order: 3
+  order: 4
 ---
 
 An integration lets an agent call another Obsidian plugin's public API. Ask for
