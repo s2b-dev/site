@@ -43,7 +43,11 @@ A saved widget is a `.widget` file. It behaves like any file in the vault:
   and embed re-renders.
 
 The agent can revise a saved widget the same way it edits notes: it reads the
-file, stages the change, and you review the diff before anything is written.
+file and stages the change, and you review it as the **rendered widget** before
+anything is written. The chat's pending-changes bar previews the proposal in
+place (with the source diff a click away), and the widget's own pane shows the
+proposed version under an accept/reject bar, with a toggle back to the current
+one.
 
 :::note
 Obsidian Sync carries `.widget` files only if **Sync all other types** is on
