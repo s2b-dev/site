@@ -36,7 +36,7 @@ A saved widget is a `.widget` file. It behaves like any file in the vault:
 
 - **Its own tab.** Open it from the file explorer or the quick switcher and it
   fills the pane. The header has **Edit source** (a plain-text editor for the
-  file, since Obsidian has none for the extension) and **Refresh**.
+  file, since Obsidian has none for the extension), **Refresh**, and **Rename**.
 - **Embeddable.** `![[Vault overview.widget]]` renders it inside a note at its
   own height. Hovering a link to it shows the same preview as any page preview.
 - **Live.** Edit the file, or accept an agent's edit to it, and every open tab
