@@ -776,6 +776,7 @@ in the plugin repo, checked out alongside this one at `../smart-second-brain`:
 | Providers | `src/providers/index.ts` → `PROVIDER_TEMPLATES` |
 | Built-in tools | `src/types/plugin.ts` → `BUILT_IN_TOOL_IDS` |
 | Bundled core skills | `src/skills/defaults/*/SKILL.md` |
+| Widgets (fence, `.widget` files, header keys, libraries, sandbox) | `src/widget/` (`widgetSpec.ts`, `widgetFrame.ts`, `widgetLibs.ts`, `registerWidgetBlocks.ts`), `src/views/widget/` |
 | Integration skills | `src/skills/integrations/*/SKILL.md`, and `CURATED_PLUGIN_INTEGRATIONS` in `src/agent/integrations/pluginIntegrations.ts` |
 | Skill/memory folder paths | `src/utils/agentPaths.ts` |
 | Command names | `src/main.ts` → `addCommand` calls |
@@ -804,6 +805,12 @@ hand before each release. Work through this list against the sources above:
 
 - [ ] `start/providers` — provider table matches `PROVIDER_TEMPLATES`
 - [ ] `agents/skills` — bundled core skills match `src/skills/defaults/`
+- [ ] `agents/widgets` — header keys match `WidgetSpec` in
+      `src/widget/widgetSpec.ts`, `libs` matches `WIDGET_LIBS` in
+      `src/widget/widgetLibs.ts` (and the trace types the Plotly build carries),
+      the chat toolbar labels match `registerWidgetBlocks.ts`, the tab actions
+      match `views/widget/WidgetView.ts`, and the default icon matches
+      `DEFAULT_WIDGET_ICON`
 - [ ] `agents/integrations` — curated list matches
       `CURATED_PLUGIN_INTEGRATIONS`; the seeded-at-startup core-plugin
       integrations are the entries in `src/skills/integrations/` whose

@@ -110,6 +110,7 @@ export default defineConfig({
 					items: [
 						{ label: 'Overview', slug: 'agents' },
 						{ label: 'Skills', slug: 'agents/skills' },
+						{ label: 'Widgets', slug: 'agents/widgets' },
 						{ label: 'Integrations', slug: 'agents/integrations' },
 						{ label: 'Memory', slug: 'agents/memory' },
 						{ label: 'MCP servers', slug: 'agents/mcp' },

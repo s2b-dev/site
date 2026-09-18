@@ -16,6 +16,8 @@ What an agent *has* is covered on its own page: the
 [skills](/agents/skills/) that give it tools, the
 [integrations](/agents/integrations/) that let it script other plugins, its
 [memory](/agents/memory/), and any [MCP servers](/agents/mcp/) it connects to.
+What it can *build* for you — dashboards, charts and plots from your notes —
+is on the [Widgets](/agents/widgets/) page.
 
 ## Conversations are notes
 
@@ -68,12 +70,12 @@ on its enabled skills. See [Skills](/agents/skills/).
 | --- | --- |
 | `search_notes` | Search the vault (lexical, semantic, or hybrid) |
 | `list_directory` | List folders and files |
-| `read_content` | Read a note's content |
+| `read_content` | Read a note (or a `.widget` file) |
 | `grep_notes` | Find an exact substring or regex across notes |
 | `get_all_tags` | List every tag in the vault |
 | `get_properties` | Read frontmatter properties, or list all property keys |
 | `execute_javascript` | Run JavaScript against the vault |
-| `manage_notes` | Create, update, delete, and move notes (**staged for review**) |
+| `manage_notes` | Create, update, delete, and move notes and `.widget` files (**staged for review**) |
 | `fetch_url` | Fetch a public web page as markdown |
 | `web_search` | Search the web |
 | `manage_skills` | Create, revise, or delete skills |

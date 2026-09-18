@@ -1427,6 +1427,39 @@
   .chat-still .v-chat { --chat-w: 100%; border-left: none; }
   .chat-still .v-chat-body { padding: 16px 14px 12px; }
 
+  /* A widget as the chat renders one (.s2b-widget-toolbar + .s2b-widget-frame
+     in the plugin): a muted toolbar line — icon, title, three actions — over
+     a bordered card whose only content is the widget's own document. The
+     frame's 12px inset is the plugin's WIDGET_FRAME_PADDING_PX. */
+  .wid { display: flex; flex-direction: column; gap: 4px; }
+  .wid-bar { display: flex; align-items: center; gap: 4px; color: var(--ob-text-2); font-size: 12.5px; }
+  .wid-ic { width: 14px; height: 14px; flex-shrink: 0; }
+  .wid-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .wid-act { display: inline-flex; padding: 3px; border-radius: 4px; color: var(--ob-text-2); }
+  .wid-act svg { width: 13px; height: 13px; }
+  .wid-frame {
+    border: 1px solid var(--ob-border); border-radius: 8px; padding: 12px;
+    background: var(--ob-bg);
+  }
+  .wid-head {
+    display: flex; justify-content: space-between; align-items: baseline; gap: 8px;
+    margin-bottom: 8px; font-size: 12.5px; font-weight: 500; color: var(--ob-text);
+  }
+  .wid-sum { font-weight: 400; font-size: 11.5px; color: var(--ob-text-2); }
+  /* Bars fill from the baseline; --h is the datum. Accent like the plugin's
+     own tinted surfaces, the latest week solid to read as "now". */
+  .wid-chart { display: flex; align-items: flex-end; gap: 5px; height: 72px; }
+  .wid-b {
+    flex: 1; height: var(--h); border-radius: 3px 3px 0 0;
+    background: var(--ob-accent); opacity: .45;
+  }
+  .wid-b-now { opacity: 1; }
+  .wid-axis {
+    display: flex; justify-content: space-between; margin-top: 5px;
+    padding-top: 5px; border-top: 1px solid var(--ob-border);
+    font-size: 10.5px; color: var(--ob-text-3);
+  }
+
   /* The trailing "and also…" line under a trimmed grid. Deliberately quiet:
      these are real capabilities that don't deserve a card each. */
   .fmore {
