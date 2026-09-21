@@ -805,6 +805,16 @@ hand before each release. Work through this list against the sources above:
 
 - [ ] `start/providers` — provider table matches `PROVIDER_TEMPLATES`
 - [ ] `agents/skills` — bundled core skills match `src/skills/defaults/`
+- [ ] `agents/memory` — the two frontmatter properties, the seeded note's
+      filename, and the three budgets match the constants in
+      `src/agent/memoryNotes.ts`; the placeholders named on `agents/memory` and
+      `agents/index` match `src/agent/prompts.ts`; the review defaults (off,
+      threshold, mobile off) and the setting names in "Review after busy
+      turns" match `DEFAULT_POST_TURN_REVIEW` in `src/agent/postTurnReview.ts`
+      and the Self-improvement section of `AgentEditorModal.svelte`
+- [ ] `agents/skills` — the `manage_skills` default (on) matches
+      `builtInToolDefaults.ts`; the usage-line example under "Where a skill
+      came from" matches the wording in `src/skills/usageSummary.ts`
 - [ ] `agents/widgets` — header keys match `WidgetSpec` in
       `src/widget/widgetSpec.ts`, `libs` matches `WIDGET_LIBS` in
       `src/widget/widgetLibs.ts` (and the trace types the Plotly build carries),

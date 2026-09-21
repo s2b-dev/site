@@ -79,6 +79,11 @@ Write descriptions accordingly. The description is the only thing the agent
 sees when deciding whether to load a skill, so it should say *when* to load it,
 not just what the skill is about.
 
+A skill is loaded once per conversation. While its instructions are still in
+the conversation from an earlier load, the agent is told not to load it again;
+once a long conversation has been summarized and the text is gone, it loads it
+afresh.
+
 ## Tool overrides
 
 Because a tool can be attached by more than one skill, per-tool switches are
@@ -92,15 +97,58 @@ denying it one specific tool.
 
 ## The agent can write skills
 
-With the `manage-skills` skill enabled, the agent can author new skills, revise
-skills attached to it, and delete skills it created.
+With the `manage-skills` skill enabled, which it is by default, the agent can
+author new skills, revise skills attached to it, and delete skills it created.
+To keep the guidance and deny the ability, veto `manage_skills` in the
+[Tools modal](#tool-overrides).
 
 This is how a discovery becomes permanent: once the agent works out how some
 API actually behaves, it folds the concrete methods and arguments into a skill
 so the next run skips the rediscovery.
 
+The same goes for corrections. If a skill it loaded was missing a step or had
+something wrong, or you tell it how this kind of task should be done here, it
+is told to revise that skill before it finishes, fixing the sentence that was
+wrong rather than appending an update under it, and writing the lesson as a
+rule rather than a story of what happened. Facts about *you* go to
+[memory](/agents/memory/#memory-or-skill) instead; how the agent should work
+goes here. An optional
+[review after busy turns](/agents/memory/#review-after-busy-turns) runs the
+same check as a side run when a conversation has done enough work that the
+agent likely skipped it.
+
+### How a revision works
+
+The agent has to **load the skill first**. A patch or a rewrite is refused
+until the skill has been read in the current conversation, and refused again
+if the file changed after that read, whether by you, by sync, or by another
+conversation. That keeps a revision written against the text that is actually
+there, not a remembered or summarized copy.
+
+The normal revision is a **patch**: one exact passage, copied from the loaded
+skill, and its replacement. The passage has to match exactly once, so the
+agent includes enough surrounding text to pin it down; an empty replacement
+deletes it. Everything outside the passage stays byte for byte as it was,
+including indentation and line endings. Replacing the whole body remains
+available for restructuring, and is the only way to change the description.
+
+The frontmatter is off limits to a patch. A skill's name, plugin link, and
+category are locked from the moment it is created.
+
 Unlike note edits, **skill operations apply immediately**. There is no review
 queue. Creating a skill is the same action as attaching it.
+
+### Where a skill came from
+
+A skill the agent creates is stamped `author: agent` under `metadata` in its
+frontmatter, the same key the bundled skills use to name their author. That is
+the whole provenance record, and it travels with the note through sync and
+copies.
+
+The Agent editor's **Custom** section shows each custom skill's origin and use
+on one line, for example *Created by the agent · used 3 times, last 2 days ago
+· revised once*. The counts live in plugin data, not in the note, so loading a
+skill never rewrites the file. Deleting the skill clears them.
 
 :::caution
 A skill the agent creates may only request tools from a fixed read-only
