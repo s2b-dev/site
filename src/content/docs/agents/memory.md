@@ -130,6 +130,46 @@ Nothing that only mattered in one conversation is written anywhere. Before it
 finishes a task, the agent is told to ask itself whether it learned something
 worth keeping, route it to one of those two places, and otherwise save nothing.
 
+## Review after busy turns
+
+An agent in the middle of a long task tends to answer and move on, so the
+end-of-task check above is easy to skip. **Review after busy turns**, in the
+Agent editor's **Self-improvement** section, runs that check as a separate,
+short side run once the conversation has done enough work.
+
+It is **off by default**: each review is one extra model call over the
+conversation. Switched on, it works like this:
+
+- Every turn's tool calls are counted, and the count is kept with the chat,
+  so it survives closing Obsidian and disappears with the chat. Loading a skill
+  does not count; reading guidance is preparation, not work.
+- When the count since the last review reaches **5**, the review runs right
+  after the answer is on screen. It reads the conversation as a transcript,
+  decides whether anything in it is worth keeping, and puts it where the
+  routing above says: a fact about you into a memory note, a lesson about the
+  task into the skill that was used. It sees the same memory index and skill
+  list the agent does, so it can check before duplicating something.
+- A notice tells you what it saved, for example *S2B Agent learned: revised
+  skill weekly-review; saved memory User*. Most reviews save nothing, and
+  then there is no notice.
+- A turn in which the agent revised a skill itself resets the count without
+  a review: the work the review exists to prompt has already been done.
+
+The review can only write in two places. Memory notes go through a writer that
+cannot address anything outside `Agents/Memories/`; it adds to an existing note
+rather than replacing it, so two reviews finishing at once cannot lose each
+other's facts. Skill changes go through the same `manage_skills` tool the agent
+has, minus deletion: a reviewer can create or revise a skill, never remove
+one. Nothing else in your vault is reachable from a review.
+
+**Review model** picks which model runs it. The default is the agent's own chat
+model, but a cheaper one is fine: the review reads a transcript and writes
+short notes. **Also on mobile** is off by default, because a side model call
+on a phone spends battery and data on work you are not watching.
+
+Nothing is scheduled. If Obsidian closes before a review runs, it does not run,
+and the same conversation trips the count again next time.
+
 ## Customizing
 
 The `# Memory` section is part of a note. If the agent records too much, tell
