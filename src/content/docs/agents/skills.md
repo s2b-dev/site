@@ -107,6 +107,24 @@ rule rather than a story of what happened. Facts about *you* go to
 [memory](/agents/memory/#memory-or-skill) instead; how the agent should work
 goes here.
 
+### How a revision works
+
+The agent has to **load the skill first**. A patch or a rewrite is refused
+until the skill has been read in the current conversation, and refused again
+if the file changed after that read, whether by you, by sync, or by another
+conversation. That keeps a revision written against the text that is actually
+there, not a remembered or summarized copy.
+
+The normal revision is a **patch**: one exact passage, copied from the loaded
+skill, and its replacement. The passage has to match exactly once, so the
+agent includes enough surrounding text to pin it down; an empty replacement
+deletes it. Everything outside the passage stays byte for byte as it was,
+including indentation and line endings. Replacing the whole body remains
+available for restructuring, and is the only way to change the description.
+
+The frontmatter is off limits to a patch. A skill's name, plugin link, and
+category are locked from the moment it is created.
+
 Unlike note edits, **skill operations apply immediately**. There is no review
 queue. Creating a skill is the same action as attaching it.
 
