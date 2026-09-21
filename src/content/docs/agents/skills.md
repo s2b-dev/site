@@ -99,6 +99,14 @@ This is how a discovery becomes permanent: once the agent works out how some
 API actually behaves, it folds the concrete methods and arguments into a skill
 so the next run skips the rediscovery.
 
+The same goes for corrections. If a skill it loaded was missing a step or had
+something wrong, or you tell it how this kind of task should be done here, it
+is told to revise that skill before it finishes, fixing the sentence that was
+wrong rather than appending an update under it, and writing the lesson as a
+rule rather than a story of what happened. Facts about *you* go to
+[memory](/agents/memory/#memory-or-skill) instead; how the agent should work
+goes here.
+
 Unlike note edits, **skill operations apply immediately**. There is no review
 queue. Creating a skill is the same action as attaching it.
 

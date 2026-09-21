@@ -805,6 +805,10 @@ hand before each release. Work through this list against the sources above:
 
 - [ ] `start/providers` — provider table matches `PROVIDER_TEMPLATES`
 - [ ] `agents/skills` — bundled core skills match `src/skills/defaults/`
+- [ ] `agents/memory` — the two frontmatter properties, the seeded note's
+      filename, and the three budgets match the constants in
+      `src/agent/memoryNotes.ts`; the placeholders named on `agents/memory` and
+      `agents/index` match `src/agent/prompts.ts`
 - [ ] `agents/widgets` — header keys match `WidgetSpec` in
       `src/widget/widgetSpec.ts`, `libs` matches `WIDGET_LIBS` in
       `src/widget/widgetLibs.ts` (and the trace types the Plotly build carries),
