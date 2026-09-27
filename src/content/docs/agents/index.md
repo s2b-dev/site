@@ -217,9 +217,11 @@ it.** Remove `# Memory` and that agent stops using memory. There is no separate
 toggle.
 
 Values that must stay live are written into the note as placeholders and filled
-in each time the prompt is assembled: `{{date}}` becomes today's date, and
-`{{memoryFolder}}` becomes the current memory folder. Leave them in place.
-Changing the Agents folder later never leaves a stale path baked into the note.
+in each time the prompt is assembled: `{{date}}` becomes today's date,
+`{{memoryFolder}}` becomes the current memory folder, and `{{memoryIndex}}`
+becomes the list of memory notes (see [Memory](/agents/memory/)). Leave them in
+place. Changing the Agents folder later never leaves a stale path baked into
+the note.
 
 The note carries a small frontmatter block the plugin manages (`author` and
 `version`). The version records which shipped default your copy started from,
