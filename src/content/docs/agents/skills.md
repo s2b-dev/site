@@ -112,10 +112,7 @@ is told to revise that skill before it finishes, fixing the sentence that was
 wrong rather than appending an update under it, and writing the lesson as a
 rule rather than a story of what happened. Facts about *you* go to
 [memory](/agents/memory/#memory-or-skill) instead; how the agent should work
-goes here. An optional
-[review after busy turns](/agents/memory/#review-after-busy-turns) runs the
-same check as a side run when a conversation has done enough work that the
-agent likely skipped it.
+goes here.
 
 ### How a revision works
 

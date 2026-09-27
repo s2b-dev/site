@@ -808,10 +808,7 @@ hand before each release. Work through this list against the sources above:
 - [ ] `agents/memory` — the two frontmatter properties, the seeded note's
       filename, and the three budgets match the constants in
       `src/agent/memoryNotes.ts`; the placeholders named on `agents/memory` and
-      `agents/index` match `src/agent/prompts.ts`; the review defaults (off,
-      threshold, mobile off) and the setting names in "Review after busy
-      turns" match `DEFAULT_POST_TURN_REVIEW` in `src/agent/postTurnReview.ts`
-      and the Self-improvement section of `AgentEditorModal.svelte`
+      `agents/index` match `src/agent/prompts.ts`
 - [ ] `agents/skills` — the `manage_skills` default (on) matches
       `builtInToolDefaults.ts`; the usage-line example under "Where a skill
       came from" matches the wording in `src/skills/usageSummary.ts`
