@@ -98,8 +98,10 @@ denying it one specific tool.
 ## The agent can write skills
 
 With the `manage-skills` skill enabled, which it is by default, the agent can
-author new skills, revise skills attached to it, and delete skills it created.
-To keep the guidance and deny the ability, veto `manage_skills` in the
+author new skills, revise skills attached to it, and delete a skill when you
+ask it to, whoever wrote that skill. It never deletes one on its own
+initiative, and the bundled core skills can't be deleted at all. To keep the
+guidance and deny the ability, veto `manage_skills` in the
 [Tools modal](#tool-overrides).
 
 This is how a discovery becomes permanent: once the agent works out how some
