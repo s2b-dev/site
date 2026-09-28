@@ -54,6 +54,14 @@ until you accept it.
 | Embeddings via a cloud provider | Yes, for non-private notes |
 | Agent chat via a local model | Never |
 | Agent chat via a cloud provider | Yes, for non-private notes |
+| Update check | No note content. Once a day, a request to GitHub for the plugin's version number |
+
+The update check asks GitHub whether a newer version of the plugin exists, the
+same way Obsidian's own plugin update check does, and shows a notice if one
+does. It sends nothing about you or your vault; GitHub sees an ordinary request
+from your IP address. It skips itself while Obsidian's **Automatically check
+for plugin updates** is on, and you can turn it off under **Settings → Smart
+Second Brain → General → Privacy → Check for updates**.
 
 :::caution
 The privacy filter is applied when notes are **indexed and read**. Note
