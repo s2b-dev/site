@@ -810,8 +810,7 @@ hand before each release. Work through this list against the sources above:
       `src/agent/memoryNotes.ts`; the placeholders named on `agents/memory` and
       `agents/index` match `src/agent/prompts.ts`
 - [ ] `agents/skills` — the `manage_skills` default (on) matches
-      `builtInToolDefaults.ts`; the usage-line example under "Where a skill
-      came from" matches the wording in `src/skills/usageSummary.ts`
+      `builtInToolDefaults.ts`
 - [ ] `agents/widgets` — header keys match `WidgetSpec` in
       `src/widget/widgetSpec.ts`, `libs` matches `WIDGET_LIBS` in
       `src/widget/widgetLibs.ts` (and the trace types the Plotly build carries),
