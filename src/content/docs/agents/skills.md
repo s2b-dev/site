@@ -142,12 +142,8 @@ queue. Creating a skill is the same action as attaching it.
 A skill the agent creates is stamped `author: agent` under `metadata` in its
 frontmatter, the same key the bundled skills use to name their author. That is
 the whole provenance record, and it travels with the note through sync and
-copies.
-
-The Agent editor's **Custom** section shows each custom skill's origin and use
-on one line, for example *Created by the agent · used 3 times, last 2 days ago
-· revised once*. The counts live in plugin data, not in the note, so loading a
-skill never rewrites the file. Deleting the skill clears them.
+copies. Nothing in the plugin acts on it; it is there so you can tell which
+skills started with the agent.
 
 :::caution
 A skill the agent creates may only request tools from a fixed read-only
