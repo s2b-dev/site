@@ -99,7 +99,9 @@ denying it one specific tool.
 
 With the `manage-skills` skill enabled, which it is by default, the agent can
 author new skills, revise skills attached to it, and delete skills it created.
-To keep the guidance and deny the ability, veto `manage_skills` in the
+A skill it did not create, such as one you wrote or an integration skill, is
+deleted only when you explicitly ask for it; the bundled core skills are never
+deleted. To keep the guidance and deny the ability, veto `manage_skills` in the
 [Tools modal](#tool-overrides).
 
 This is how a discovery becomes permanent: once the agent works out how some
@@ -140,7 +142,8 @@ queue. Creating a skill is the same action as attaching it.
 A skill the agent creates is stamped `author: agent` under `metadata` in its
 frontmatter, the same key the bundled skills use to name their author. That is
 the whole provenance record, and it travels with the note through sync and
-copies.
+copies. It is also what the delete rule reads: without the stamp, the agent
+treats a skill as yours.
 
 The Agent editor's **Custom** section shows each custom skill's origin and use
 on one line, for example *Created by the agent · used 3 times, last 2 days ago
