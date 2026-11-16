@@ -81,20 +81,38 @@ system prompts) is excluded from indexing, search, and the graph. It is plugin
 machinery that happens to be stored as notes, and it would otherwise dominate
 results about the plugin itself.
 
-PDFs are indexed by their extracted text, not just their title — both for
-lexical search and, when an embedding model is configured, semantic search.
 Images are indexed by title only. There is no OCR or image-content extraction.
-On mobile, an oversized or scanned PDF falls back to title-only indexing, since
-above a certain size a PDF is predominantly scanned pages with no text to
-extract.
 
-## Chat files
+## Indexed content
 
-Conversations are stored as `.chat` files in your vault, and they are indexed,
-so you can find a past conversation by searching for what was said in it.
-Because conversation history is a tree of checkpoints where each checkpoint
-re-contains every prior message, chat files are deduped by message id before
-indexing. Without that, a single conversation would be indexed many times over.
+Notes, canvases, and widgets always have their contents indexed. Three other
+kinds of file are **off by default**, and you switch each on under
+**Settings → Smart Second Brain → Search → Indexed content**:
+
+| Group | Files | Why it starts off |
+| --- | --- | --- |
+| **PDFs** | `pdf` | Extracting text is slow on a large library, and most of a long PDF is rarely what you are looking for. |
+| **Chats** | `.chat` | Past conversations are mostly the model's own answers, which would then come back in search as if they were sources. |
+| **Data files** | `csv`, `json`, `yaml`, `yml` | Structured data searches poorly by meaning, and one export can add thousands of entries. |
+
+A group that is off is still in search **by title and path**, and the agent
+can still open its files when you point it at them. Only their contents stay
+out of the index. Switching a group on or off updates both the search index
+and the embedding indexes in the background; nothing needs rebuilding by hand.
+
+**PDFs** are indexed by their extracted text, for lexical search and, when an
+embedding model is configured, semantic search. A long PDF is indexed up to
+roughly its first 80 pages (about 4 on mobile). On mobile, an oversized or
+scanned PDF falls back to title-only indexing, since above a certain size a PDF
+is predominantly scanned pages with no text to extract. While PDFs are being
+indexed, the progress notice counts them separately (*PDFs 3/20*), because one
+PDF can take as long as hundreds of notes.
+
+**Chats** are stored as `.chat` files in your vault. With the group on, you can
+find a past conversation by searching for what was said in it. Because
+conversation history is a tree of checkpoints where each checkpoint re-contains
+every prior message, chat files are deduped by message id before indexing.
+Without that, a single conversation would be indexed many times over.
 
 Chats are also transcludable: `![[My conversation.chat]]` renders the
 transcript inside another note. See

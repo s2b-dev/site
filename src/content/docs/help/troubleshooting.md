@@ -97,8 +97,10 @@ and won't change mid-conversation. Configure an embedding model under
 
 ### The index is incomplete
 
-The first build runs in the background with progress in the status bar. Large
-vaults take a few minutes. After that it is incremental.
+The first build runs in the background with a progress notice. Large vaults
+take a few minutes. After that it is incremental. If PDFs are switched on under
+**Indexed content**, they are indexed last and counted on their own
+(*PDFs 3/20*): a long PDF can take as long as hundreds of notes.
 
 The **indexing report** tells you what was skipped and why:
 
@@ -116,8 +118,10 @@ A wave of `embed-error` entries points at the provider, not the vault.
 ### Notes are missing on purpose
 
 The agent folder (`Agents/` by default) is excluded from indexing, search, and
-the graph. So are binary files' contents: images and PDFs are indexed by
-**title only**.
+the graph. Images are indexed by **title only**. So are PDFs, chats, and data
+files (`csv`, `json`, `yaml`) unless you switch their group on under
+**Settings → Search → Indexed content**. See
+[Indexed content](/search/#indexed-content).
 
 ### The results are just weak
 

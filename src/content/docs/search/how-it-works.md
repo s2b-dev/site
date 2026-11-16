@@ -26,13 +26,40 @@ generated corpus with an 18-case graded relevance benchmark.
 
 `utils/fileFiltering.ts` → `readIndexableContent()`
 
-Every vault file outside the agent folder is indexable. `.chat` files are
-gunzipped and deduped by LangChain message id. PDFs are extracted via pdfjs
-(`utils/pdfExtractor.ts` → `extractTextFromPdf()`) and indexed by that text.
-Images return an empty body and are indexed by title alone. On mobile, a PDF
-above `MOBILE_MAX_READ_BYTES` (10MB) falls back to title-only indexing too,
-since above that size a PDF is predominantly scanned pages with no text to
-extract.
+Every vault file outside the agent folder is indexable. Whether its
+**contents** are read depends on its content group (`contentGroupOf()`): notes
+always; `pdfs`, `chats`, and `data` (`csv`, `json`, `yaml`, `yml`) only when
+switched on under **Indexed content**, all three off by default
+(`DEFAULT_CONTENT_INDEXING`). A file in a group that is off returns an empty
+body without being read, so it is indexed lexically by title and path and left
+out of the embedding index entirely (`isEmbeddableFile()`), where a title-only
+vector would sit at the similarity noise floor.
+
+`.chat` files are gunzipped and deduped by LangChain message id. PDFs are
+extracted via pdfjs (`utils/pdfExtractor.ts` → `extractTextFromPdf()`) and
+indexed by that text. Images return an empty body and are indexed by title
+alone. On mobile, a PDF above `MOBILE_MAX_READ_BYTES` (10MB) falls back to
+title-only indexing too, since above that size a PDF is predominantly scanned
+pages with no text to extract.
+
+The text handed to indexing is capped by provenance. Authored notes (`md`,
+`txt`) keep up to 1,000,000 characters on desktop and 100,000 on mobile;
+everything extracted or structured (PDFs, chats, canvases, data files) keeps
+200,000 on desktop (about 80 PDF pages) and 10,000 on mobile. Retrieval
+saturates long before these bounds, while embedding time and index memory keep
+growing with length.
+
+**Switching a group.** The embedding indexes re-validate against the vault as
+now filtered: a group switched off leaves as orphans, one switched on is
+embedded as missing. A lexical document records nothing about whether its
+contents were read, so the search index keeps the groups it was built with in
+vault-local storage and re-reads exactly the files of groups that changed.
+
+**Bulk order.** PDFs whose contents are indexed are read last
+(`orderForBulkIndexing()`), so every note is searchable before the slow
+extraction tail starts. Progress reports that tail as its own phase with its own
+time estimate; counted in files alone, the bar used to reach 99% on the notes
+and then sit there.
 
 **Why the dedupe matters.** Conversation history is a tree of checkpoints, and
 each checkpoint re-contains every prior message. Concatenating them repeated
@@ -275,7 +302,7 @@ blanket penalty on long notes.
 
 ## Source
 
-`utils/chunkText.ts` · `utils/fileFiltering.ts` ·
+`utils/chunkText.ts` · `utils/fileFiltering.ts` · `search/bulkPacing.ts` ·
 `vectorstore/VectorStoreService.ts` · `vectorstore/chunkAggregation.ts` ·
 `vectorstore/queryInstruction.ts` ·
 `vectorstore/HNSWVectorStore.ts` · `vectorstore/MiniSearchService.ts` ·
