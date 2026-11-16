@@ -854,6 +854,11 @@ hand before each release. Work through this list against the sources above:
       naming current top models, so specific model names must not creep into
       that prose — that is the drift this indirection exists to avoid.
       No model rankings are duplicated in `help/faq`; it links here
+- [ ] `search/index` — the **Indexed content** table (groups, their
+      extensions, all off by default) matches `CONTENT_GROUP_EXTENSIONS` and
+      `DEFAULT_CONTENT_INDEXING` in `src/utils/fileFiltering.ts`, and the
+      "about 80 pages (4 on mobile)" figure still matches the extracted-text
+      caps there
 - [ ] `search/how-it-works` and `graph/how-it-works` — every constant on both
       pages, against the sources listed at the foot of each. These carry no
       version note, so this pass is the only thing keeping them true
