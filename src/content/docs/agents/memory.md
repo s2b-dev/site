@@ -59,14 +59,17 @@ Both parts are bounded so memory can never crowd out the conversation:
 
 | Part | Budget |
 | --- | --- |
-| Always-loaded note bodies, combined | 3000 characters |
+| Always-loaded note bodies, combined | A quarter of the model's context window |
 | The list, all lines combined | 4000 characters |
 | One line of the list | 160 characters |
 
-Past the budget an always-loaded note is cut short with a marker, and the list
-ends with a count of notes not shown, which the agent can still reach with
-`list_directory`. Notes themselves have no limit; a long note costs one line
-until the agent opens it.
+Always-loaded notes are never cut short: each one is sent whole or not at all.
+If they don't all fit a model's budget, the ones that don't fit stay in the
+list, marked as too large for this model, and the agent reads them when it
+needs them; the plugin also shows a notice so you know. The list ends with a
+count of notes not shown when it runs out of room, and the agent can still
+reach those with `list_directory`. Notes themselves have no limit; a long note
+costs one line until the agent opens it.
 
 The whole block is fenced and labelled as recorded facts rather than
 instructions, so a note that happens to read like a command is treated as a
