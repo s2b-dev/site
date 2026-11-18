@@ -210,17 +210,28 @@ dominate any result about the plugin itself.
 ### The system prompt is a note
 
 Each agent's system prompt is the body of its `AGENT.md`. It is an ordinary
-note, editable in Obsidian like anything else, and it ships in three sections:
-the base instructions, a `# Current Date` section, and a `# Memory` section
-holding the memory instructions. **Deleting a section is how you opt out of
-it.** Remove `# Memory` and that agent stops using memory. There is no separate
-toggle.
+note, editable in Obsidian like anything else, and it ships in four sections:
+the base instructions, a `# Current Date` section, a `# Vault` section, and a
+`# Memory` section holding the memory instructions. **Deleting a section is how
+you opt out of it.** Remove `# Memory` and that agent stops using memory; remove
+`# Vault` and it no longer gets the vault overview. There is no separate toggle.
+
+The `# Vault` section gives the agent a live overview of your vault, so new
+notes are filed, named and tagged the way your existing ones are. It has two
+parts: **vault settings** read from Obsidian (the daily notes folder and date
+format, the templates folder, where new notes go, and whether you use wikilinks
+or Markdown links), and what already exists in your notes (the folder tree and
+the tags and properties in use, most used first). The lists are capped and carry
+no counts, so the prompt stays short and only changes when your vault's shape
+does. Notes that are private for the agent's model are left out; if every note
+is private, the section says so.
 
 Values that must stay live are written into the note as placeholders and filled
 in each time the prompt is assembled: `{{date}}` becomes today's date,
-`{{memoryFolder}}` becomes the current memory folder, and `{{memoryIndex}}`
-becomes the list of memory notes (see [Memory](/agents/memory/)). Leave them in
-place. Changing the Agents folder later never leaves a stale path baked into
+`{{vaultSettings}}`, `{{vaultFolders}}`, `{{vaultTags}}` and `{{vaultProperties}}`
+become the parts of the vault overview, `{{memoryFolder}}` becomes the current
+memory folder, and `{{memoryIndex}}` becomes the list of memory notes (see
+[Memory](/agents/memory/)). Leave them in place. Changing the Agents folder later never leaves a stale path baked into
 the note.
 
 The note carries a small frontmatter block the plugin manages (`author` and
