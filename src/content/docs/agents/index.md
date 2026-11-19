@@ -64,7 +64,8 @@ A few properties worth knowing:
 ## Built-in tools
 
 These are the tools the agent can be given. Which ones it actually has depends
-on its enabled skills. See [Skills](/agents/skills/).
+on its enabled skills, except `write_todos`, which every agent has unless you
+turn it off. See [Skills](/agents/skills/).
 
 | Tool | What it does |
 | --- | --- |
@@ -79,6 +80,7 @@ on its enabled skills. See [Skills](/agents/skills/).
 | `fetch_url` | Fetch a public web page as markdown |
 | `web_search` | Search the web |
 | `manage_skills` | Create, revise, or delete skills |
+| `write_todos` | Keep a task list for multi-step work, shown above the chat input |
 
 Two more tools appear situationally: `load_skill`, which pulls in a skill's full
 instructions on demand, and a delegation tool when an agent has subagents
@@ -93,6 +95,21 @@ ready, it's told so in the result rather than being left to guess.
 
 Tool names and descriptions are editable per agent, so you can rename a tool or
 sharpen its description if your model responds better to different wording.
+
+### The task list
+
+When a request takes several steps, such as reorganising a folder or researching
+a topic across many notes, the agent writes its plan as a checklist with
+`write_todos` before it starts and ticks steps off as it goes. You follow along
+in a bar above the chat input: collapsed, it shows how many steps are done and
+the one in progress; click it to see the whole list. For a question it can
+answer directly, the agent skips the list.
+
+The list belongs to the conversation branch, so editing a message, regenerating
+a reply, or switching branches shows that branch's list. An unfinished list
+stays up across your next messages; a finished one clears once you move on.
+Subagents don't get the tool. To turn it off, use the agent's
+[Tools modal](/agents/skills/#tool-overrides).
 
 ## Nothing is written without your approval
 
