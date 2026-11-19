@@ -1,6 +1,6 @@
 ---
 title: Connecting a provider
-description: Set up OpenAI, Anthropic, Ollama, OpenRouter, or any OpenAI-compatible endpoint.
+description: Set up OpenAI, Anthropic, Ollama, OpenRouter, Hugging Face, or any OpenAI-compatible endpoint.
 sidebar:
   order: 3
 ---
@@ -21,6 +21,7 @@ provider**.
 | **OpenAI** | No | API key, or ChatGPT sign-in. |
 | **Anthropic** | No | Claude models. |
 | **OpenRouter** | No | Routes to many vendors behind one key. |
+| **Hugging Face** | No | Open models from Hugging Face's inference providers. Hugging Face sign-in, or an access token. Chat models only. |
 | **Custom** (OpenAI-compatible) | Depends | Any endpoint speaking the OpenAI API. |
 
 You can create **multiple instances of the same provider type** with distinct
@@ -59,6 +60,10 @@ trusted in the provider's settings. See
 Add the provider, paste your API key, and select a model. Keys are held in
 Obsidian's secret storage. The plugin's config file stores only a reference,
 never the raw key.
+
+OpenAI and Hugging Face also offer a sign-in button instead of a key: click it,
+approve access in your browser, and you're connected. Hugging Face's sign-in
+works on mobile too.
 
 Cloud providers are **untrusted by default**, which means they are blocked from
 reading, embedding, or receiving any note you've marked private. See the
