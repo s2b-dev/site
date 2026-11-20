@@ -43,9 +43,17 @@ For current rankings — and which benchmarks to weight when reading them — se
 
 ## Does it work with non-English vaults?
 
-Yes. Response quality varies with the model and the language it reasons in, and
-strong multilingual embedding models give the best retrieval results. More UI
-translations are on the way.
+Yes. The agent replies in whatever language you write to it in. Response
+quality varies with the model and the language it reasons in, and strong
+multilingual embedding models give the best retrieval results.
+
+The interface follows Obsidian's own language setting (*Settings → General →
+Language*, then restart Obsidian). It is available in English, German, French,
+Spanish, Brazilian Portuguese, Russian, Turkish, Slovenian, Simplified Chinese,
+Japanese and Korean; any other language falls back to English. The translations
+are machine-written so far. If you're a native speaker, corrections and new
+languages are very welcome; see
+[Translating the UI](https://github.com/s2b-dev/smart-second-brain/blob/main/CONTRIBUTING.md#translating-the-ui).
 
 ## What's next?
 
