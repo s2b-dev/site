@@ -843,6 +843,8 @@ hand before each release. Work through this list against the sources above:
 - [ ] `src/scripts/vendor/*` — diff each file against its plugin source
       (paths in the provenance headers); refresh the copies and the commit
       hash if the plugin's layout/tuning changed
+- [ ] `help/faq` — the UI language list under "Does it work with non-English
+      vaults?" matches `SUPPORTED_LOCALES` in `src/i18n/index.ts`
 - [ ] `help/faq` — the "What's next?" project board link still resolves and
       the board is still public (the roadmap is deliberately *not* duplicated
       here — it went stale as a hand-written list)
