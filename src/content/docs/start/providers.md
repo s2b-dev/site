@@ -20,7 +20,7 @@ provider**.
 | **oMLX** | Yes | Local inference on Apple Silicon. |
 | **OpenAI** | No | API key, or ChatGPT sign-in. |
 | **Anthropic** | No | Claude models. |
-| **OpenRouter** | No | Routes to many vendors behind one key. |
+| **OpenRouter** | No | Routes to many vendors behind one key. Optional EU or US region. |
 | **Custom** (OpenAI-compatible) | Depends | Any endpoint speaking the OpenAI API. |
 
 You can create **multiple instances of the same provider type** with distinct
@@ -63,6 +63,25 @@ never the raw key.
 Cloud providers are **untrusted by default**, which means they are blocked from
 reading, embedding, or receiving any note you've marked private. See the
 [Privacy model](/privacy/model/).
+
+### Keeping OpenRouter requests in the EU or US
+
+OpenRouter can keep every request inside one region. In the OpenRouter
+provider's settings, open **Advanced** and set **Region** to **EU** or **US**.
+The plugin then sends all of that provider's traffic (chat, embeddings, and
+the model list) to OpenRouter's regional endpoint, `eu.openrouter.ai` or
+`us.openrouter.ai`, instead of the global one.
+
+- In-region routing needs an OpenRouter **Business or Enterprise** plan. Your
+  existing key works; no new key is needed.
+- The model picker then lists only the models that have a provider in that
+  region. A model without one isn't routed elsewhere: it is simply
+  unavailable.
+- To use both, add two OpenRouter instances, one per region.
+
+See OpenRouter's
+[in-region routing guide](https://openrouter.ai/docs/guides/features/in-region-routing)
+for which models and providers each region covers.
 
 ## Choosing a model
 
