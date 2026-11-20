@@ -21,6 +21,7 @@ covers what trust does with that.
 | **OpenAI** | Untrusted | Remote |
 | **Anthropic** | Untrusted | Remote |
 | **OpenRouter** | Untrusted | Remote |
+| **Hugging Face** | Untrusted | Remote |
 | **Custom** (OpenAI-compatible) | Untrusted | The endpoint is arbitrary |
 
 The rule is mechanical: the two local templates default to trusted, and
