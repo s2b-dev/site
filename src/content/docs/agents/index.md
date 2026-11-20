@@ -64,8 +64,8 @@ A few properties worth knowing:
 ## Built-in tools
 
 These are the tools the agent can be given. Which ones it actually has depends
-on its enabled skills, except `write_todos`, which every agent has unless you
-turn it off. See [Skills](/agents/skills/).
+on its enabled skills, except `write_todos` and `ask_question`, which every
+agent has unless you turn them off. See [Skills](/agents/skills/).
 
 | Tool | What it does |
 | --- | --- |
@@ -81,6 +81,7 @@ turn it off. See [Skills](/agents/skills/).
 | `web_search` | Search the web |
 | `manage_skills` | Create, revise, or delete skills |
 | `write_todos` | Keep a task list for multi-step work, shown above the chat input |
+| `ask_question` | Pause and ask you a multiple-choice question when a request is unclear |
 
 Two more tools appear situationally: `load_skill`, which pulls in a skill's full
 instructions on demand, and a delegation tool when an agent has subagents
@@ -109,6 +110,36 @@ The list belongs to the conversation branch, so editing a message, regenerating
 a reply, or switching branches shows that branch's list. An unfinished list
 stays up across your next messages; a finished one clears once you move on.
 Subagents don't get the tool. To turn it off, use the agent's
+[Tools modal](/agents/skills/#tool-overrides).
+
+### Questions from the agent
+
+When a request can be read in more than one way, or a choice is yours to make
+(a name, a folder, which of several matching notes you mean), the agent can stop
+and ask with `ask_question` instead of guessing. The question appears in a bar
+above the chat input, with the agent's suggested answers as options. It is told
+not to ask about anything it can find out by searching or reading the vault.
+
+- **Pick an option**, or several when the question says "Select all that
+  apply". A single question with one choice is answered as soon as you click.
+- **Type your own answer** in the field under the options if none of them fit.
+- **Several questions** (up to four) are shown one at a time, with Back and
+  Next; nothing is sent until the last step.
+- **Reply in the chat input instead.** A message sent while a question is open
+  is delivered as your answer, together with any open notes or selection in
+  the context tray. Files can't be attached to an answer.
+- **Dismiss** with the ✕ to skip the question. The agent is told you didn't
+  answer and carries on with its best judgement, or says what it needs.
+
+The agent waits for as long as you need. The open question is saved in the chat
+file, so it is still there after you close and reopen Obsidian. It belongs to
+its conversation branch: edit an earlier message and the new branch runs
+without it, switch back and the question is waiting again. Your answer
+continues the same reply rather than starting a new turn, and afterwards the
+question and what you answered show as one step in the reply.
+
+Subagents don't get the tool, since a delegated task shouldn't stop to wait for
+you. To turn it off, use the agent's
 [Tools modal](/agents/skills/#tool-overrides).
 
 ## Nothing is written without your approval

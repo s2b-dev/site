@@ -20,9 +20,11 @@ you can write one in Obsidian without leaving the app.
 Skills are not an add-on layered over the agent's built-in abilities — they are
 how the agent gets those abilities. A skill's frontmatter can carry an
 `allowed-tools` line, and a built-in tool is bound only when some **enabled**
-skill attaches it. Turn off the skill, and the agent loses the tool. The one
-exception is `write_todos`, the agent's [task list](/agents/#the-task-list),
-which no skill owns: it is bound unless you veto it in the Tools modal.
+skill attaches it. Turn off the skill, and the agent loses the tool. The two
+exceptions are `write_todos`, the agent's [task list](/agents/#the-task-list),
+and `ask_question`, which lets it
+[ask you a question](/agents/#questions-from-the-agent). No skill owns them:
+they are bound unless you veto them in the Tools modal.
 
 ```markdown
 ---
