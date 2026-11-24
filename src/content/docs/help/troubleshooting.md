@@ -174,7 +174,7 @@ Check two things in order:
 1. **Is the note actually private?** The two vault modes invert the test. In
    *private by default*, a note is private unless listed. In *public by
    default*, it's private only if listed.
-2. **Is the provider trusted?** Only Ollama and oMLX default to trusted.
+2. **Is the provider trusted?** Only Ollama, oMLX and LM Studio default to trusted.
    Everything else, including a custom endpoint on your own hardware,
    defaults to untrusted until you say otherwise.
 

@@ -1,6 +1,6 @@
 ---
 title: Connecting a provider
-description: Set up OpenAI, Anthropic, Ollama, OpenRouter, Hugging Face, or any OpenAI-compatible endpoint.
+description: Set up OpenAI, Anthropic, Google Gemini, Mistral, Ollama, LM Studio, OpenRouter, Hugging Face, or any OpenAI-compatible endpoint.
 sidebar:
   order: 3
 ---
@@ -18,8 +18,11 @@ provider**.
 | --- | --- | --- |
 | **Ollama** | Yes | Fully local. Nothing leaves your machine. |
 | **oMLX** | Yes | Local inference on Apple Silicon. |
+| **LM Studio** | Yes | Local models through LM Studio's server. |
 | **OpenAI** | No | API key, or ChatGPT sign-in. |
 | **Anthropic** | No | Claude models. |
+| **Google Gemini** | No | Gemini chat and embedding models. API key from Google AI Studio. |
+| **Mistral** | No | Mistral's own chat and embedding models, served from the EU. |
 | **OpenRouter** | No | Routes to many vendors behind one key. |
 | **Hugging Face** | No | Open models from Hugging Face's inference providers. Hugging Face sign-in, or an access token. Chat models only. |
 | **Custom** (OpenAI-compatible) | Depends | Any endpoint speaking the OpenAI API. |
@@ -43,12 +46,24 @@ ollama pull llama3.1 && ollama pull qwen3-embedding:0.6b
 Local providers are treated as **trusted** by default, since no data leaves the
 machine.
 
+## Local setup with LM Studio
+
+1. Install [LM Studio](https://lmstudio.ai/) and download a chat model, plus an
+   embedding model if you want semantic search.
+2. Open LM Studio's **Developer** tab and switch the server on.
+3. In plugin settings, add an **LM Studio** provider. The default server URL is
+   `http://localhost:1234`. Leave the API key empty unless you turned on
+   authentication in LM Studio.
+
+The plugin reads LM Studio's model list to tell chat models from embedding
+models, and sizes a model's context window to the length LM Studio actually
+loaded it with.
+
 ### Other local engines
 
-LM Studio, a llama.cpp server, or anything else that speaks the OpenAI API
-works through the **Custom** provider (the OpenAI-compatible template). For
-LM Studio, start its local server and set the base URL to
-`http://localhost:1234`. The API key can be left empty.
+A llama.cpp server, or anything else that speaks the OpenAI API, works through
+the **Custom** provider (the OpenAI-compatible template). Set the base URL to
+the server's address. The API key can usually be left empty.
 
 A Custom provider starts **untrusted**, because the plugin cannot tell a
 local endpoint from a remote one. If you want it to see private notes, mark it
@@ -84,7 +99,7 @@ score — the agent spends most of its time calling tools, and a strong reasoner
 that calls them unreliably is the worse choice here.
 
 For **embedding**, `qwen3-embedding` is a good default. It is multilingual, and
-it is available on Ollama, oMLX and OpenRouter, so the same choice follows you
+it is available on Ollama, oMLX, LM Studio and OpenRouter, so the same choice follows you
 between a local and a hosted setup. Sizes go 0.6b / 4b / 8b. `0.6b` is the
 laptop-friendly one.
 

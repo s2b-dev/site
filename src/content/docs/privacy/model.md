@@ -30,7 +30,7 @@ any time.
 
 Every provider is marked trusted or untrusted:
 
-- **Local providers** (Ollama, oMLX) default to **trusted**, since the data
+- **Local providers** (Ollama, oMLX, LM Studio) default to **trusted**, since the data
   never leaves your machine.
 - **Cloud providers** default to **untrusted**. They are blocked from private
   notes even if the agent tries to reach one.
