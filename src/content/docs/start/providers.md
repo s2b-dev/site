@@ -32,7 +32,8 @@ provider**.
 Many more services speak the OpenAI API: DeepSeek, Groq, Fireworks, Moonshot,
 Z.ai and a few hundred others. Rather than a template each, **Add provider →
 More providers** lists them, from the public [models.dev](https://models.dev)
-directory. Search for one and pick it. You get a **Custom** provider with the
+directory. LM Studio, oMLX and Hugging Face are listed there too, at the top,
+and open their own setup. Search for any other service and pick it. You get a **Custom** provider with the
 service's name, logo and API address already filled in, plus a link to where
 you get its key. Paste the key and you're connected. Like every Custom
 provider, it starts out untrusted.
@@ -66,7 +67,7 @@ machine.
 1. Install [LM Studio](https://lmstudio.ai/) and download a chat model, plus an
    embedding model if you want semantic search.
 2. Open LM Studio's **Developer** tab and switch the server on.
-3. In plugin settings, add an **LM Studio** provider. The default server URL is
+3. In plugin settings, choose **Add provider → More providers → LM Studio**. The default server URL is
    `http://localhost:1234`. Leave the API key empty unless you turned on
    authentication in LM Studio.
 
