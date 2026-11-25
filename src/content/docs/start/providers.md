@@ -27,6 +27,21 @@ provider**.
 | **Hugging Face** | No | Open models from Hugging Face's inference providers. Hugging Face sign-in, or an access token. Chat models only. |
 | **Custom** (OpenAI-compatible) | Depends | Any endpoint speaking the OpenAI API. |
 
+### More providers
+
+Many more services speak the OpenAI API: DeepSeek, Groq, Fireworks, Moonshot,
+Z.ai and a few hundred others. Rather than a template each, **Add provider →
+More providers** lists them, from the public [models.dev](https://models.dev)
+directory. Search for one and pick it. You get a **Custom** provider with the
+service's name, logo and API address already filled in, plus a link to where
+you get its key. Paste the key and you're connected. Like every Custom
+provider, it starts out untrusted.
+
+The list is bundled with the plugin and refreshed with each release, so
+nothing is fetched from models.dev while you use it. Smart Second Brain hasn't
+tested these services one by one. If a service isn't listed, add it as a
+Custom provider yourself.
+
 You can create **multiple instances of the same provider type** with distinct
 display names and endpoints, useful for separating a work key from a personal
 one, or pointing at two different self-hosted endpoints.
@@ -63,7 +78,9 @@ loaded it with.
 
 A llama.cpp server, or anything else that speaks the OpenAI API, works through
 the **Custom** provider (the OpenAI-compatible template). Set the base URL to
-the server's address. The API key can usually be left empty.
+the server's API root, such as `http://localhost:8080/v1`. The plugin uses
+the address exactly as you enter it, and only adds `/v1` when you give a bare
+host like `http://localhost:8080`. The API key can usually be left empty.
 
 A Custom provider starts **untrusted**, because the plugin cannot tell a
 local endpoint from a remote one. If you want it to see private notes, mark it
