@@ -32,7 +32,7 @@ provider**.
 Many more services speak the OpenAI API: DeepSeek, Groq, Fireworks, Moonshot,
 Z.ai and a few hundred others. Rather than a template each, **Add provider →
 More providers** lists them, from the public [models.dev](https://models.dev)
-directory. LM Studio, oMLX and Hugging Face are listed there too, at the top,
+directory. LM Studio, oMLX and Hugging Face are listed there too,
 and open their own setup. Search for any other service and pick it. You get a **Custom** provider with the
 service's name, logo and API address already filled in, plus a link to where
 you get its key. Paste the key and you're connected. Like every Custom
