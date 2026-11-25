@@ -22,10 +22,10 @@ is on the [Widgets](/agents/widgets/) page.
 ## Conversations are notes
 
 Chats are stored as `.chat` files in your vault (the **Chats folder** under
-**Settings → Agents**). A new chat opens as a tab in the main area by default.
-**Open new chat in** under the same settings moves it to the left or right
-sidebar so it sits beside the note you're reading. Chats sync with everything
-else. Switch on **Chats** under **Settings → Search → Indexed content** to
+**Settings → Agents**). A chat opens where your last one was: drag a chat
+into the left or right sidebar, or into a tab in the main area, and the next one
+opens there too. On a new device a chat starts in the right sidebar on desktop
+and as a tab on mobile. Chats sync with everything else. Switch on **Chats** under **Settings → Search → Indexed content** to
 search them by what was said in them; by default they are found by title only.
 
 **History is a tree, not a list.** Editing an earlier message or regenerating a
