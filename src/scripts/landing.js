@@ -3269,7 +3269,7 @@ function roundRectPath(ctx, x, y, w, h, r) {
   var COPY = {
     local: [
       ['ok', 'Nothing leaves your computer.', 'The AI runs on it too, so your notes have nowhere to travel.'],
-      ['ok', 'No account, no bill.', 'Ollama and oMLX are free and offline, so the plugin trusts them from the start.'],
+      ['ok', 'No account, no bill.', 'Ollama, oMLX and LM Studio are free and offline, so the plugin trusts them from the start.'],
       ['ok', 'Every note, right away.', 'Nothing to allow or configure, because nothing is being sent anywhere.'],
     ],
     cloud: [

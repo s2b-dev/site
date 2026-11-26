@@ -1348,7 +1348,7 @@
     display: flex; flex-wrap: wrap; align-items: center; justify-content: center;
     gap: 8px 18px; margin-bottom: 30px;
     /* 14.5, the claims' size: this line is the evidence for them (the lede
-       promises "seven providers" and this is where a reader checks the count),
+       promises "ten providers" and this is where a reader checks the count),
        so it should not be the quietest thing in the section. */
     font-size: 14.5px; color: var(--text-2);
   }

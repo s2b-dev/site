@@ -18,13 +18,16 @@ covers what trust does with that.
 | --- | --- | --- |
 | **Ollama** | Trusted | Runs locally, nothing leaves the machine |
 | **oMLX** | Trusted | Runs locally on your Mac |
+| **LM Studio** | Trusted | Runs locally, nothing leaves the machine |
 | **OpenAI** | Untrusted | Remote |
 | **Anthropic** | Untrusted | Remote |
+| **Google Gemini** | Untrusted | Remote |
+| **Mistral** | Untrusted | Remote |
 | **OpenRouter** | Untrusted | Remote |
 | **Hugging Face** | Untrusted | Remote |
 | **Custom** (OpenAI-compatible) | Untrusted | The endpoint is arbitrary |
 
-The rule is mechanical: the two local templates default to trusted, and
+The rule is mechanical: the three local templates default to trusted, and
 **everything else defaults to untrusted**, including a custom endpoint pointed
 at your own hardware. The plugin has no way to know that
 `http://192.168.1.40:8000` is a machine in your house, so it assumes it isn't.
