@@ -166,6 +166,26 @@ enabled skills, tool overrides, and MCP servers. Switch between them per chat.
 A practical split: a fast, cheap local model for everyday vault questions, and
 a frontier cloud model for work that needs real reasoning.
 
+### Reasoning effort
+
+Models that think before they answer can be told how long to think. The Agent
+editor's **Reasoning effort** row, under the context window, sets it per agent:
+**Low**, **Medium** or **High**. Higher effort is slower and uses more tokens,
+which tends to pay off on multi-step work; lower is quicker for simple
+lookups. **Model default**, the starting value, sends nothing and leaves the
+choice to the provider.
+
+The row appears for OpenAI (API key or ChatGPT sign-in), Anthropic,
+OpenRouter, Hugging Face, oMLX and Custom providers, including services added
+from **More providers**. It is hidden when the provider reports that the
+selected model doesn't take an effort, and always for Ollama, LM Studio,
+Google Gemini and Mistral. Picking a different model sets it back to Model
+default.
+
+Some endpoints don't say whether a model takes an effort, so the row stays
+visible. If such a model rejects the level you chose, the error notice offers
+**Use model default**, which clears the setting.
+
 ### They run in parallel
 
 Chats don't queue behind each other. Start a slow research task in one chat,
